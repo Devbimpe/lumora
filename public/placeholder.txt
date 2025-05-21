@@ -1,0 +1,5 @@
+This is a placeholder .txt file used to create the public directory. 
+The public directory exists to store static assets such as images, fonts, etc. 
+Files inside public can then be referenced by your code starting from the base URL (/)
+
+This should be removed once Items start getting added to the public directory. 
