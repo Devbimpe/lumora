@@ -14,7 +14,8 @@ When Setting up a dev enviroment the developer needs to:
 5. You have now successfully set up your development enviroment!! You're one cool dev :D
 
 ### Deploying Lumora
-TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed 
+TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed and a production build has been created.
+
 
 ### Links to Outside Documentation
 Including some important resources so developers can access them quickly
