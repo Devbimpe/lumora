@@ -5,13 +5,13 @@ LUMORA is an interactive e-learning platform designed to deliver training module
 
 ### Setting up Dev Enviroment
 When Setting up a dev enviroment the developer needs to:
-1. Install Node.js version 18.18 or later
-2. Once Node.js has been installed run the following command: npm install next@latest react@latest react-dom@latest
-    * This will install the required .next and node_modules into your current directory.
+1. Run npm install in lumora directory
+    * This will install the required node_modules listed in package.json into your current directory.
 3. Within in the lumora directory run the following command: npm run dev
-    * This will start a development container on localhost:3000
+    * This will start a development container on localhost:3000 and install the required .next/ modules
 4. in web browser of your choice go to: http://localhost:3000
 5. You have now successfully set up your development enviroment!! You're one cool dev :D
+6. TODO: Once ER Model for Database is generated Update this section with steps on how to start     database 
 
 ### Deploying Lumora
 TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed and a production build has been created.
