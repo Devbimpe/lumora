@@ -1,4 +1,5 @@
 // Smaple code for the API route to fetch users from the database:
+// TODO: This is a demo function for the backend. This should be removed once other backend functions get added to /src/app/api'
 import pool from '../../../../db/db';
 
 export async function GET() {

@@ -12,16 +12,6 @@ When Setting up a dev enviroment the developer needs to:
     * This will start a development container on localhost:3000 and install the required .next/ modules
 4. in web browser of your choice go to: http://localhost:3000
 5. You have now successfully set up your development enviroment!! You're one cool dev :D
-6. TODO: Once ER Model for Database is generated Update this section with steps on how to start database 
-
-### Deploying Lumora
-TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed and a production build has been created.
-
-
-### Links to Outside Documentation
-Including some important resources so developers can access them quickly
-1. React Documentation: https://react.dev/
-2. Next.js Documentation: https://nextjs.org/docs 
 
 ### Steps on how to set up your database on the local host.
 1. **Install MySQL** (if you have not installed it yet)  
@@ -48,3 +38,12 @@ Including some important resources so developers can access them quickly
 
 5. **Test the connection**  
    - Run the application and verify it connects to your local MySQL database without errors.
+
+### Deploying Lumora
+TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed and a production build has been created.
+
+
+### Links to Outside Documentation
+Including some important resources so developers can access them quickly
+1. React Documentation: https://react.dev/
+2. Next.js Documentation: https://nextjs.org/docs 
