@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "./button"
 
 const slides = [
   {
@@ -26,7 +26,7 @@ const slides = [
   },
 ]
 
-export default function HeroCarousel() {
+export default function CarouselSection() {
   const [currentSlide, setCurrentSlide] = useState(0)
 
   useEffect(() => {
@@ -46,7 +46,26 @@ export default function HeroCarousel() {
   }
 
   return (
-    <section className="bg-green-600 text-white py-16 relative">
+    <section className="text-white py-16 relative" style={{ backgroundColor: "#69977A" }}>
+      {/* Navigation Buttons - Positioned in the middle of the content */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-8 top-1/2 transform -translate-y-1/2 z-10 bg-green-700 hover:bg-green-800 text-white p-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <button
+        onClick={nextSlide}
+        className="absolute right-8 top-1/2 transform -translate-y-1/2 z-10 bg-green-700 hover:bg-green-800 text-white p-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
       <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8 items-center min-h-[400px]">
         <div className="relative">
           <div className="mb-8">
@@ -55,24 +74,18 @@ export default function HeroCarousel() {
               {slides[currentSlide].content}
             </div>
           </div>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3">Get Started</Button>
+          <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded">Get Started</Button>
 
-          <div className="flex space-x-4 mt-6">
-            <button onClick={prevSlide} className="bg-green-700 hover:bg-green-800 p-2 rounded-full transition-colors">
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <button onClick={nextSlide} className="bg-green-700 hover:bg-green-800 p-2 rounded-full transition-colors">
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="flex space-x-2 mt-4">
+          {/* Centered Indicator Dots */}
+          <div className="flex justify-center space-x-3 mt-8">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  index === currentSlide ? "bg-orange-400" : "bg-green-400"
+                className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                  index === currentSlide
+                    ? "bg-orange-400 shadow-lg scale-110"
+                    : "bg-white bg-opacity-60 hover:bg-opacity-80"
                 }`}
               />
             ))}
@@ -80,7 +93,7 @@ export default function HeroCarousel() {
         </div>
 
         <div className="flex justify-center">
-          <img src="/hero-illustration.png" alt="LUMORA Hero Illustration" className="max-w-full h-auto w-96" />
+          <img src="/main-page-illustration.png" alt="LUMORA Hero Illustration" className="max-w-full h-auto w-96" />
         </div>
       </div>
     </section>
