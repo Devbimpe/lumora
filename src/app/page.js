@@ -1,13 +1,15 @@
-import TrainingModules from './TrainingModule';
-import Module1 from './Module1';
-// export default function Page() {
-//   return <TrainingModules />;
-// }
-export default function Page() {
+import CarouselSection from "./components/carousel-section"
+import HowItWorksSection from "./components/how-it-works-section"
+import TrainingModulesSection from "./components/training-modules-section"
+import Footer from "./components/footer"
+
+export default function HomePage() {
   return (
-    <div>
-      <Module1 />
-      {/* <TrainingModules /> */}
+    <div className="min-h-screen bg-gray-50">
+      <CarouselSection />
+      <HowItWorksSection />
+      <TrainingModulesSection />
+      <Footer />
     </div>
-  );
+  )
 }
