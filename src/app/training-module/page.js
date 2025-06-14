@@ -16,13 +16,13 @@ const TrainingModule = () => (
     <p className="text-green-700 text-center mb-4">
       Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
     </p>
-    <Module title="MODULE 1: What Is Sustainability" bgColor="bg-green-100" borderColor="border-blue-500" href="/modules/module1" />
+    <Module title="MODULE 1: What Is Sustainability" subtitle="Introduction to sustainability and its relevance in tech" bgColor="bg-green-100" borderColor="border-blue-500" href="/modules/module1" />
     <Module title="MODULE 2: Dimensions of Sustainability" subtitle="Environmental, economic, technical and social sustainability" bgColor="bg-yellow-100" borderColor="border-blue-500" href="/modules/module2" />
-    <Module title="MODULE 3: Social Sustainability" bgColor="bg-green-100" borderColor="border-blue-500" href="/modules/module3" />
-    <Module title="MODULE 4: Dimensions of Social Sustainability" bgColor="bg-yellow-100" borderColor="" href="/modules/module4" />
-    <Module title="MODULE 5: Dimensions of Sustainability" subtitle="Environmental, economic, technical and social sustainability" bgColor="bg-green-100" borderColor="" href="/modules/module5" />
-    <Module title="MODULE 6: Social Sustainability" bgColor="bg-yellow-100" borderColor="" href="/modules/module6" />
-    <Module title="MODULE 7: Implementation Strategies : Practical approaches to implementing sustainable software practices" bgColor="bg-green-100" borderColor="" href="/modules/module7" />
+    <Module title="MODULE 3: Social Sustainability" subtitle="Understanding the tech industry's social impact and ethical obligations" bgColor="bg-green-100" borderColor="border-blue-500" href="/modules/module3" />
+    <Module title="MODULE 4: Environmental Impact" subititle="Understanding environmental implications of software development" bgColor="bg-yellow-100" borderColor="border-blue-500" href="/modules/module4" />
+    <Module title="MODULE 5: Dimensions of Sustainability" subtitle="Balancing economic factors with sustainable development practices" bgColor="bg-green-100" borderColor="border-blue-500" href="/modules/module5" />
+    <Module title="MODULE 6: Social Sustainability" subtitle="Ethical considerations in technical decision-making processes" bgColor="bg-yellow-100" borderColor="border-blue-500" href="/modules/module6" />
+    <Module title="MODULE 7: Implementation Strategies" subtitle="Practical approaches to implementing sustainable software practices" bgColor="bg-green-100" borderColor="border-blue-500" href="/modules/module7" />
   </div>
 );
 
