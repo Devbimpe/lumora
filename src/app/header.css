@@ -1,0 +1,50 @@
+.topnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fefbf7;
+  padding: 0 16px;
+  height: 110px;
+}
+
+Image{
+  align-items: center;
+  display:flex;
+}
+
+.login {
+  background-color: #ff8201;
+  border-radius: 5px; 
+  height: 50px; 
+  width: 150px; 
+  float: right;
+  font-size: 18px; 
+  margin: 20px;
+  
+  
+  display: flex;  
+  justify-content: center; 
+  align-items: center; 
+  text-decoration: none;  
+  color: white;  
+  
+}
+.about{
+  float: left;
+  font-size: 18;
+  margin: 20px;
+  display: flex;   
+  justify-content: center; 
+  align-items: center;
+}
+.trainingmodule{
+  font-size: 18;
+  margin: 20px;
+  display: flex;         
+  justify-content: center; 
+  align-items: center;
+}
+.right{
+  display: flex;
+  float: right;
+}
