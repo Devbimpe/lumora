@@ -1,1 +1,109 @@
 @import 'tailwindcss';
+
+/* styles/Login.css */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #fdfaf5;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.Maininfo {
+  text-align: center;
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 40vw;
+}
+
+.LoginPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+img {
+  align-self: center;
+}
+
+h1 {
+  font-size: 1.5rem;
+  color: #2f6633;
+  margin: 0.5rem 0;
+}
+
+h2 {
+  color: #888;
+  font-size: 1rem;
+  margin-bottom: 2rem;
+}
+
+.info {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: bold;
+}
+
+input[type='email'],
+input[type='password'] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.remember_forget {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.button button {
+  background-color: orange;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  width: 100%;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.register_link {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.register_link a {
+  color: orange;
+  text-decoration: none;
+  margin-left: 0.3rem;
+}
+
+.footer {
+    background-color: white;
+  display: flex;
+justify-content: space-evenly;
+padding-top: 20px;
+align-items: center;
+}

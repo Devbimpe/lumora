@@ -1,6 +1,9 @@
+
+import './globals.css';
+
 export default function Footer() {
 return (
-    <footer style={footerStyle}>
+    <footer className ="footer">
 
     <div >
         <ul>
@@ -22,17 +25,3 @@ return (
 );
 }
 
-const footerStyle = {
-display: 'flex',
-justifyContent: 'space-evenly',
-paddingTop: '20px',
-alignItems: 'center',
-
-ahover: {
-    textDecoration: 'underline',
-    color: 'black',
-    fontSize: '14px',
-},
-
-
-};
