@@ -1,6 +1,4 @@
 'use client';
-import Image from 'next/image';
-import Footer from '../Footer';
 import '../globals.css';
 
 export default function Login() {
@@ -8,7 +6,6 @@ export default function Login() {
     <div className="page">
       <main>
         <div className="LoginPage">
-          <Image src="/Lumora.jpeg" alt="LUMORA Logo" width={500} height={500} />
           <h1>Welcome to LUMORA</h1>
           <h2>Login to your account.</h2>
           <div className="Maininfo">
@@ -45,7 +42,7 @@ export default function Login() {
           </div>
         </div>
       </main>
-      <Footer />
+   
     </div>
   );
 }

@@ -1,6 +1,4 @@
-
 import './globals.css';
-
 export default function Footer() {
 return (
     <footer className ="footer">
@@ -9,13 +7,6 @@ return (
         <ul>
         <li><a href="#">Info about Dalhousie SE Lab</a></li>
         <li><a href="#">Contact Info</a></li>
-        </ul>
-    </div>
-    <div>
-        <img src="../../Lumora.jpeg" alt="LUMORA Logo" style={{ height: '100px' }} />
-    </div>
-    <div >
-        <ul>
         <li><a href="#">Copyrights</a></li>
         <li><a href="#">References</a></li>
         <li><a href="#">FAQs</a></li>
