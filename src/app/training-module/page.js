@@ -3,7 +3,9 @@ import Link from "next/link";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref>
-    <div className={`p-4 ${bgColor} ${borderColor} border-4 mb-4 cursor-pointer hover:bg-opacity-90 flex items-center`}>
+    <div
+      className={`p-4 ${bgColor} ${borderColor} border-4 mb-4 cursor-pointer hover:bg-opacity-90 flex items-center transition duration-200 hover:scale-105`}
+    >
       {icon && (
         <img src={icon} alt={title} className="w-16 h-16 mb-2 object-contain mr-4" />
       )}
