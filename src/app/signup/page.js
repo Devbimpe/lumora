@@ -1,5 +1,5 @@
-"use client";
 
+"use client";
 import { useState } from 'react';
 import Image from 'next/image';
 import './signup.css';
@@ -55,11 +55,16 @@ export default function Page() {
     }
 
     try {
-      const res = await fetch('/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const res = await fetch('/api/users/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userName: form.userName,
+        email: form.email,
+        password: form.password,
+        name: form.name
+  }),
+});
 
       if (res.ok) {
         setSuccess('Signup successful! You can now log in.');
