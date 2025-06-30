@@ -1,6 +1,4 @@
-## Gitignore file, Git will ignore all files/directories included in this file.
-
-.next
 node_modules
 .env.local
-.DS_Store.DS_Store
+.next
+.DS_Store

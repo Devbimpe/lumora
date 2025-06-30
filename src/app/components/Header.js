@@ -16,7 +16,8 @@ export function Header(){
       </div>
       <div className="right">
         <Link href={{pathname: '/'}} className="about" >About</Link>
-        <Link href={{pathname: '/'}} className="trainingmodule">Training Module</Link>
+        {/* <Link href={{pathname: '/'}} className="trainingmodule">Training Module</Link> */}
+        <Link href="/training-module" className="trainingmodule">Training Module</Link>
         <Link href={{pathname: 'login'}} className='login'>Login</Link>
       </div>
     </nav>
