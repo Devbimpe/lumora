@@ -1,4 +1,3 @@
-
 "use client";
 import { useState } from 'react';
 import Image from 'next/image';
@@ -181,6 +180,9 @@ export default function Page() {
           </button>
         </form>
       </div>
+      <p className="password-requirements">
+        Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).
+      </p>
     </div>
   );
 }

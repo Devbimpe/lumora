@@ -73,4 +73,10 @@ h2{
 .submit-button:hover {
   background-color: #d46d05;
 }
+.password-requirements{
+  color: #e31212;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
 
