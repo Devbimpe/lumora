@@ -9,6 +9,7 @@ export default function Page() {
     userName: '',
     email: '',
     password: '',
+    confirmPassword: '', // Added confirmPassword to state
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -19,13 +20,13 @@ export default function Page() {
   }
 
   function validatePassword(password) {
-    // Password must be 8+ chars, with at least 1 uppercase, 1 lowercase, 1 number, 1 special char
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   }
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.id]: e.target.value });
+    setError(''); // Clear error on input change to avoid stale messages
   };
 
   const handleSubmit = async (e) => {
@@ -35,7 +36,7 @@ export default function Page() {
     setIsLoading(true);
 
     // Frontend validation
-    if (!form.name || !form.userName || !form.email || !form.password) {
+    if (!form.name || !form.userName || !form.email || !form.password || !form.confirmPassword) {
       setError('All fields are required.');
       setIsLoading(false);
       return;
@@ -45,29 +46,33 @@ export default function Page() {
       setIsLoading(false);
       return;
     }
+    // Prevent submission if password does not meet requirements
     if (!validatePassword(form.password)) {
-      setError(
-        'Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).'
-      );
+      setError('Password does not meet requirements.');
+      setIsLoading(false);
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match.');
       setIsLoading(false);
       return;
     }
 
     try {
       const res = await fetch('/api/users/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userName: form.userName,
-        email: form.email,
-        password: form.password,
-        name: form.name
-  }),
-});
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userName: form.userName,
+          email: form.email,
+          password: form.password,
+          name: form.name,
+        }),
+      });
 
       if (res.ok) {
         setSuccess('Signup successful! You can now log in.');
-        setForm({ name: '', userName: '', email: '', password: '' });
+        setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
       } else {
         const data = await res.json();
         setError(data.error || 'Signup failed.');
@@ -91,16 +96,6 @@ export default function Page() {
       </div>
       <h1>Welcome to Lumora</h1>
       <h2>Sign up to your account</h2>
-      {error && (
-        <p id="form-error" className="error" role="alert" aria-live="assertive">
-          {error}
-        </p>
-      )}
-      {success && (
-        <p id="form-success" className="success" role="alert" aria-live="assertive">
-          {success}
-        </p>
-      )}
       <div className="form-card">
         <form
           className="form"
@@ -169,6 +164,22 @@ export default function Page() {
               aria-describedby={error && error.includes('Password') ? 'form-error' : undefined}
             />
           </div>
+          <div className="input-group">
+            <label htmlFor="confirmPassword" className="label">
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              placeholder="Confirm your password"
+              className="input"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              required
+              aria-required="true"
+              aria-describedby={error && error.includes('Passwords do not match') ? 'form-error' : undefined}
+            />
+          </div>
           <button
             type="submit"
             className="submit-button"
@@ -179,10 +190,24 @@ export default function Page() {
             {isLoading ? 'Signing up...' : 'Signup'}
           </button>
         </form>
+        {/* Move alerts here, below the form */}
+        {error && (
+          <p id="form-error" className="error" role="alert" aria-live="assertive">
+            {error}
+          </p>
+        )}
+        {success && (
+          <p id="form-success" className="success" role="alert" aria-live="assertive">
+            {success}
+          </p>
+        )}
+        {/* Password requirements message */}
+        {!validatePassword(form.password) && form.password && (
+          <p className="password-requirements">
+            Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).
+          </p>
+        )}
       </div>
-      <p className="password-requirements">
-        Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).
-      </p>
     </div>
   );
 }

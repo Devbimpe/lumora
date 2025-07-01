@@ -79,4 +79,15 @@ h2{
   border-radius: 4px;
   margin-bottom: 16px;
 }
-
+.error {
+  color: red;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+.success {
+  color: #008000;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
