@@ -86,15 +86,6 @@ export default function Page() {
 
   return (
     <div className="container">
-      <div className="logo">
-        <Image
-          src="/Lumoralogo.jpeg"
-          alt="Lumora Logo"
-          width={300}
-          height={80}
-        />
-      </div>
-      <h1>Welcome to Lumora</h1>
       <h2>Sign up to your account</h2>
       <div className="form-card">
         <form

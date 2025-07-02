@@ -1,3 +1,4 @@
+
 .container {
   min-height: 100vh;
   display: flex;
@@ -16,6 +17,7 @@ h1{
 }
 h2{
     font-size: 1.5rem;
+     color:#057939;
 }
 .form-card {
   background-color: white;
@@ -39,7 +41,6 @@ h2{
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  
 }
 
 .input-group {
@@ -74,4 +75,21 @@ h2{
 .submit-button:hover {
   background-color: #d46d05;
 }
-
+.password-requirements{
+  color: #e31212;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+.error {
+  color: red;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+.success {
+  color: #008000;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
