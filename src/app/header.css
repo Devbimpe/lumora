@@ -44,7 +44,36 @@ Image{
   justify-content: center; 
   align-items: center;
 }
-.right{
+
+.user-section {
   display: flex;
-  float: right;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-welcome {
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.logout-btn {
+  background-color: #ff6b35;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: #e55a2b;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
