@@ -94,8 +94,7 @@ export default function Login() {
     <div className="page">
       <main>
         <div className="LoginPage">
-          <h1>Welcome to LUMORA</h1>
-          <h2>Login to your account.</h2>
+          <h1>Login to your account</h1>
 
           <div className="Maininfo">
             <form onSubmit={handleSubmit}>
