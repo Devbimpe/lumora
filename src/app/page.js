@@ -1,7 +1,6 @@
-import CarouselSection from "./components/carousel-section"
-import Footer from "./components/footer"
-import HowItWorksSection from "./components/how-it-works-section"
-import TrainingModulesSection from "./components/training-modules-section"
+import CarouselSection from "./components/carousel-section";
+import HowItWorksSection from "./components/how-it-works-section";
+import TrainingModulesSection from "./components/training-modules-section";
 
 export default function HomePage() {
   return (
@@ -9,7 +8,7 @@ export default function HomePage() {
       <CarouselSection />
       <HowItWorksSection />
       <TrainingModulesSection />
-      <Footer />
+
     </div>
   )
 }

@@ -42,7 +42,7 @@ export default function Login() {
           </div>
         </div>
       </main>
-   
+
     </div>
   );
 }

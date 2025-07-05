@@ -1,4 +1,4 @@
-import './globals.css';
+import '../globals.css';
 export default function Footer() {
 return (
     <footer className ="footer">
@@ -6,7 +6,7 @@ return (
     <div >
         <ul>
         <li><a href="#">Info about Dalhousie SE Lab</a></li>
-        <li><a href="#">Contact Info</a></li>
+        <li><a href="/contact">Contact Info</a></li>
         <li><a href="#">Copyrights</a></li>
         <li><a href="#">References</a></li>
         <li><a href="#">FAQs</a></li>
