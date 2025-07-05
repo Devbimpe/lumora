@@ -1,6 +1,6 @@
 'use client';
-import '../contact.css';
 import '../globals.css';
+import './contact.css';
 
 
 export default function Contact() {
