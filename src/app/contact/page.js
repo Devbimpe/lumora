@@ -30,7 +30,6 @@ return (
             <button type="submit" id="SubmitButton">Submit</button>
             </div>
 
-            <input type="hidden" name="_captcha" value="false" />
         </form>
         </div>
     </main>
