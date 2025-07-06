@@ -71,6 +71,10 @@ INSERT INTO StudentSubmissions (KnowledgeCheckID, StudentID, SubmissionAnswer, G
 (3, 2, 'Server-side rendering is rendering on the server.', NULL),
 (4, 2, 'API routes are in pages/api folder.', 95.00);
 
+-- Update User table for the email activation flow
+ALTER TABLE users
+ADD COLUMN is_activated BOOLEAN DEFAULT FALSE,
+ADD COLUMN activation_token VARCHAR(255);
 -- View the dummy data in the table
 SELECT * FROM Users;
 SELECT * FROM Modules;
