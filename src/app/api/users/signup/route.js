@@ -38,8 +38,8 @@ export async function POST(req) {
       },
     });
 
-    const activationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/activate?token=${activationToken}&email=${encodeURIComponent(email)}`;
-
+    const activationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/activate?token=${activationToken}&email=${encodeURIComponent(email)}`;
+    
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,

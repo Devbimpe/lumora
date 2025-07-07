@@ -17,11 +17,11 @@ export async function GET(req) {
   if (users.length === 0) {
     return Response.json({ error: 'Invalid or expired activation link.' }, { status: 400 });
   }
+ await pool.query(
+  'UPDATE Users SET is_activated = 1, activation_token = NULL WHERE Email = ?',
+  [email]
+);
 
-  await pool.query(
-    'UPDATE Users SET isActivated = TRUE, activationToken = NULL WHERE Email = ?',
-    [email]
-  );
-
-  return Response.json({ message: 'Account activated! You can now log in.' }, { status: 200 });
+// Redirect to login page after activation
+return Response.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login`, 302);
 }
