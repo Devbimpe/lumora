@@ -1,5 +1,6 @@
 import pool from "../../../../db/db.js"
 import jwt from "jsonwebtoken"
+import bcrypt from "bcrypt"
 
 const JWT_SECRET = "lumora-secret-key-2024"
 
@@ -7,7 +8,6 @@ export async function POST(request) {
   try {
     // Get email and password from the request
     const { email, password } = await request.json()
-
     console.log("🔍 Login attempt for:", email)
 
     // Check if email and password were provided
@@ -27,8 +27,8 @@ export async function POST(request) {
     const user = users[0]
     console.log("👤 Found user:", user.Username)
 
-    // Check password directly (since we updated the database with proper passwords)
-    const isPasswordValid = password === user.Password
+    // Use bcrypt to compare password with hashed password from database
+    const isPasswordValid = await bcrypt.compare(password, user.Password)
 
     if (!isPasswordValid) {
       console.log("❌ Invalid password for:", email)
