@@ -3,37 +3,37 @@ export default function TrainingModulesSection() {
     {
       title: "What Is Sustainability",
       description: "Introduction to sustainability and its relevance in tech",
-      emoji: "💡",
+      image: "/M1.jpg",
     },
     {
-      title: "Dimensions of Sustainability",
+      title: "Dimensions of Sustainability", 
       description: "Environmental, economic, technical and social sustainability",
-      emoji: "❤️",
+      image: "/M2.jpg",
     },
     {
       title: "Social Sustainability",
-      description: "Understanding the tech industry's social impact and ethical obligations",
-      emoji: "👥",
+      description: "Understanding the tech industry's social impact and ethical obligations", 
+      image: "/M3.jpg",
     },
     {
       title: "Environmental Impact",
       description: "Understanding environmental implications of software development",
-      emoji: "🌿",
+      image: "/M4.jpg",
     },
     {
       title: "Economic Considerations",
       description: "Balancing economic factors with sustainable development practices",
-      emoji: "💰",
+      image: "/M5.jpg",
     },
     {
-      title: "Technical Ethics",
+      title: "Technical Ethics", 
       description: "Ethical considerations in technical decision-making processes",
-      emoji: "🛡️",
+      image: "/M6.jpg",
     },
     {
       title: "Implementation Strategies",
       description: "Practical approaches to implementing sustainable software practices",
-      emoji: "📝",
+      image: "/M7.jpg",
     },
   ]
 
@@ -43,7 +43,6 @@ export default function TrainingModulesSection() {
   return (
     <section className="bg-green-100 py-16">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Big heading with inline styles as backup */}
         <h2
           className="text-5xl font-bold text-center text-green-700 mb-16"
           style={{ fontSize: "3rem", fontWeight: "bold", textAlign: "center", color: "#16803D", marginBottom: "4rem" }}
@@ -59,10 +58,14 @@ export default function TrainingModulesSection() {
               className="bg-white rounded-lg p-6 text-center shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer hover:scale-105 transform transition-transform"
             >
               <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl text-white">{module.emoji}</span>
+                <img
+                  src={module.image || "/placeholder.svg"}
+                  alt={module.title}
+                  className="w-10 h-10 object-cover"
+                />
               </div>
-              <h3 className="text-lg font-bold text-green-700 mb-2 leading-tight">{module.title}</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">{module.description}</p>
+              <h3 className="text-lg font-bold text-green-700 mb-2">{module.title}</h3>
+              <p className="text-gray-600 text-sm">{module.description}</p>
             </div>
           ))}
         </div>
@@ -76,10 +79,14 @@ export default function TrainingModulesSection() {
                 className="bg-white rounded-lg p-6 text-center shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer hover:scale-105 transform transition-transform"
               >
                 <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl text-white">{module.emoji}</span>
+                  <img
+                    src={module.image || "/placeholder.svg"}
+                    alt={module.title}
+                    className="w-10 h-10 object-cover"
+                  />
                 </div>
-                <h3 className="text-lg font-bold text-green-700 mb-2 leading-tight">{module.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{module.description}</p>
+                <h3 className="text-lg font-bold text-green-700 mb-2">{module.title}</h3>
+                <p className="text-gray-600 text-sm">{module.description}</p>
               </div>
             ))}
           </div>
