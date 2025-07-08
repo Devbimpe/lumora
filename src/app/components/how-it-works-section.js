@@ -1,8 +1,13 @@
 export default function HowItWorksSection() {
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16" style={{ backgroundColor: "#FFF8E1" }}>
       <div className="max-w-6xl mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center text-green-700 mb-12">How It Works</h2>
+        <h2
+          className="text-5xl font-bold text-center text-green-700 mb-16"
+          style={{ fontSize: "3rem", fontWeight: "bold", textAlign: "center", color: "#16803D", marginBottom: "4rem" }}
+        >
+          How this Works?
+        </h2>
         <div className="grid md:grid-cols-3 gap-8">
           <div className="bg-orange-100 rounded-lg p-6 text-center">
             <div className="w-16 h-16 border-2 border-green-700 rounded-full flex items-center justify-center mx-auto mb-4">
