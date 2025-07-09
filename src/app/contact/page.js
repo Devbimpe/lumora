@@ -1,6 +1,6 @@
 'use client';
-import '../contact.css';
 import '../globals.css';
+import './contact.css';
 
 
 export default function Contact() {
@@ -30,7 +30,6 @@ return (
             <button type="submit" id="SubmitButton">Submit</button>
             </div>
 
-            <input type="hidden" name="_captcha" value="false" />
         </form>
         </div>
     </main>

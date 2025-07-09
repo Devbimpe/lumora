@@ -1,65 +1,95 @@
 export default function TrainingModulesSection() {
   const modules = [
     {
-      title: "MODULE 1: What Is Sustainability",
+      title: "What Is Sustainability",
       description: "Introduction to sustainability and its relevance in tech",
-      emoji: "💡",
-      bgColor: "",
+      image: "/M1.jpg",
     },
     {
-      title: "MODULE 2: Dimensions of Sustainability",
+      title: "Dimensions of Sustainability", 
       description: "Environmental, economic, technical and social sustainability",
-      emoji: "❤️",
-      bgColor: "bg-orange-100",
+      image: "/M2.jpg",
     },
     {
-      title: "MODULE 3: Social Sustainability",
-      description: "Understanding the tech industry's social impact and ethical obligations",
-      emoji: "👥",
-      bgColor: "",
+      title: "Social Sustainability",
+      description: "Understanding the tech industry's social impact and ethical obligations", 
+      image: "/M3.jpg",
     },
     {
-      title: "MODULE 4: Environmental Impact",
+      title: "Environmental Impact",
       description: "Understanding environmental implications of software development",
-      emoji: "🌿",
-      bgColor: "bg-orange-100",
+      image: "/M4.jpg",
     },
     {
-      title: "MODULE 5: Economic Considerations",
+      title: "Economic Considerations",
       description: "Balancing economic factors with sustainable development practices",
-      emoji: "💰",
-      bgColor: "",
+      image: "/M5.jpg",
     },
     {
-      title: "MODULE 6: Technical Ethics",
+      title: "Technical Ethics", 
       description: "Ethical considerations in technical decision-making processes",
-      emoji: "🛡️",
-      bgColor: "bg-orange-100",
+      image: "/M6.jpg",
     },
     {
-      title: "MODULE 7: Implementation Strategies",
+      title: "Implementation Strategies",
       description: "Practical approaches to implementing sustainable software practices",
-      emoji: "📝",
-      bgColor: "",
+      image: "/M7.jpg",
     },
   ]
 
+  const firstRow = modules.slice(0, 4)
+  const secondRow = modules.slice(4, 7)
+
   return (
     <section className="bg-green-100 py-16">
-      <div className="max-w-4xl mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center text-green-700 mb-12">Training Modules</h2>
-        <div className="space-y-6">
-          {modules.map((module, index) => (
-            <div key={index} className={`flex items-start space-x-6 ${module.bgColor} rounded-lg p-4`}>
-              <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                <span className="text-2xl text-white">{module.emoji}</span>
+      <div className="max-w-6xl mx-auto px-4">
+        <h2
+          className="text-5xl font-bold text-center text-green-700 mb-16"
+          style={{ fontSize: "3rem", fontWeight: "bold", textAlign: "center", color: "#16803D", marginBottom: "4rem" }}
+        >
+          What will you Learn?
+        </h2>
+
+        {/* First row - 4 modules */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {firstRow.map((module, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-lg p-6 text-center shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer hover:scale-105 transform transition-transform"
+            >
+              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <img
+                  src={module.image || "/placeholder.svg"}
+                  alt={module.title}
+                  className="w-10 h-10 object-cover"
+                />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-green-700 mb-2">{module.title}</h3>
-                <p className="text-gray-700 text-lg">{module.description}</p>
-              </div>
+              <h3 className="text-lg font-bold text-green-700 mb-2">{module.title}</h3>
+              <p className="text-gray-600 text-sm">{module.description}</p>
             </div>
           ))}
+        </div>
+
+        {/* Second row - 3 modules centered */}
+        <div className="flex justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
+            {secondRow.map((module, index) => (
+              <div
+                key={index + 4}
+                className="bg-white rounded-lg p-6 text-center shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer hover:scale-105 transform transition-transform"
+              >
+                <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <img
+                    src={module.image || "/placeholder.svg"}
+                    alt={module.title}
+                    className="w-10 h-10 object-cover"
+                  />
+                </div>
+                <h3 className="text-lg font-bold text-green-700 mb-2">{module.title}</h3>
+                <p className="text-gray-600 text-sm">{module.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
