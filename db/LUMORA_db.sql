@@ -58,26 +58,31 @@ INSERT INTO Content (ModuleID, Overview, Reading) VALUES
 (2, 'API Routes in Next.js', 'Create serverless APIs with Next.js...');
 
 -- Insert into KnowledgeChecks
-INSERT INTO KnowledgeChecks (ContentID, ModuleID, Question, Answer) VALUES
-(1, 1, 'What is JSX in React?', 'JSX is a syntax extension for JavaScript used in React.'),
-(2, 1, 'What is the difference between state and props?', 'State is mutable, props are immutable.'),
-(3, 2, 'What is server-side rendering in Next.js?', 'Rendering pages on the server for each request.'),
-(4, 2, 'How do you create an API route in Next.js?', 'Create a file in the pages/api directory.');
-
+INSERT INTO KnowledgeChecks (ContentID, Question, Answer) VALUES
+(1, 'What is JSX in React?', 'JSX is a syntax extension for JavaScript used in React.'),
+(2, 'What is the difference between state and props?', 'State is mutable, props are immutable.'),
+(3, 'What is server-side rendering in Next.js?', 'Rendering pages on the server for each request.'),
+(4, 'How do you create an API route in Next.js?', 'Create a file in the pages/api directory.');
 -- Insert into StudentSubmissions
 INSERT INTO StudentSubmissions (KnowledgeCheckID, StudentID, SubmissionAnswer, Grade) VALUES
 (1, 1, 'JSX is a syntax for React.', 90.00),
 (2, 1, 'State changes, props don’t.', 85.00),
 (3, 2, 'Server-side rendering is rendering on the server.', NULL),
 (4, 2, 'API routes are in pages/api folder.', 95.00);
-
 -- Update User table for the email activation flow
-ALTER TABLE users
-ADD COLUMN is_activated BOOLEAN DEFAULT FALSE,
-ADD COLUMN activation_token VARCHAR(255);
+ALTER TABLE Users
+ADD COLUMN activationTokenExpires DATETIME,
+ADD COLUMN isActivated BOOLEAN DEFAULT FALSE,
+ADD COLUMN ActivationToken VARCHAR(255);
+
+
+
+DELETE FROM Users
+WHERE UserID >7;
 -- View the dummy data in the table
 SELECT * FROM Users;
 SELECT * FROM Modules;
 SELECT * FROM content;
 SELECT * FROM KnowledgeChecks;
 SELECT * FROM StudentSubmissions;
+
