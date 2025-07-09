@@ -71,7 +71,7 @@ export default function Page() {
       });
 
       if (res.ok) {
-        setSuccess('Signup successful! You can now log in.');
+        setSuccess('Check your email — we’ve sent you an activation link to complete your registration.');
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
       } else {
         const data = await res.json();
