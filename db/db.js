@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({
@@ -6,7 +7,19 @@ const pool = mysql.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 10, // TO DO if the conneciton limit need to be increased
     queueLimit: 0,
 });
+
+export async function testConnection() {
+    try {
+        const connection = await pool.getConnection();
+        await connection.ping();
+        connection.release();
+        console.log('Database connection successful!');
+    } catch (error) {
+        console.error('Database connection failed:', error.message);
+        throw error;
+    }
+}
 export default pool;
