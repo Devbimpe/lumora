@@ -1,26 +1,18 @@
 import mysql from 'mysql2/promise';
-
+import pool from "../../../db/db.js"
 // Export a function that can be imported by the bridge
 export async function getModules() {
   try {
-    const connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    });
+    
 
     console.log('✅ Database connected');
     
-    const [modules] = await connection.query(`
+    const [modules] = await pool.query(`
       SELECT ModuleID AS id, title
       FROM modules
     `);
     
     console.log(`📊 Found ${modules.length} modules`);
-    
-    await connection.end();
     
     return new Response(JSON.stringify(modules), {
       status: 200,

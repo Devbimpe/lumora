@@ -5,20 +5,52 @@ export default function ModuleManagement() {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedModuleId, setExpandedModuleId] = useState(null); // Track which module is expanded
+  const [heading, setHeading] = useState('');
+  const [subHeading, setSubHeading] = useState('');
+  const [submitStatus, setSubmitStatus] = useState('');
+
+  const handleSubmit = async () => {
+    if (!heading.trim() || !subHeading.trim()) {
+      setSubmitStatus('Both fields are required.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/add-module', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ heading, subHeading }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Submission failed.');
+      }
+
+      setSubmitStatus('✅ Module added successfully!');
+      setHeading('');
+      setSubHeading('');
+    } catch (err) {
+      console.error('Submit error:', err);
+      setSubmitStatus('❌ ' + err.message);
+    }
+  };
+
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch('/api/admin/modules');
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to load modules');
         }
-        
+
         const data = await response.json();
         setModules(data);
       } catch (error) {
@@ -28,28 +60,26 @@ export default function ModuleManagement() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Module Management</h1>
-      
       {loading && (
         <div className="flex items-center justify-center h-40">
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
           <span className="ml-3">Loading modules...</span>
         </div>
       )}
-      
+
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
           <div className="flex">
             <div className="text-red-500 font-bold mr-2">Error:</div>
             <div>{error}</div>
           </div>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="mt-2 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
           >
@@ -57,23 +87,85 @@ export default function ModuleManagement() {
           </button>
         </div>
       )}
-      
+
       {!loading && !error && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-3 px-4 text-left">ID</th>
-                <th className="py-3 px-4 text-left">Title</th>
-              </tr>
-            </thead>
+        <div>
+          <button
+              onClick={handleSubmit}
+              className="text-sm bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+            >
+              Save Changes
+            </button>
+          <table className="w-full table-fixed">
+            
             <tbody>
               {modules.length > 0 ? (
-                modules.map(module => (
-                  <tr key={module.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">{module.id}</td>
-                    <td className="py-3 px-4 font-medium">{module.title}</td>
-                  </tr>
+                modules.map((module) => (
+                  <>
+                    {expandedModuleId === module.id && (
+                      <tr>
+                        <td colSpan="2" className="p-4">
+                          <div className="bg-[#fed5ab] shadow p-4">
+                            <div className="flex justify-between items-center mb-2">
+                            </div>
+                            {/* You can replace this with any table or module-specific content */}
+                            <table className="w-full">
+                              <tbody>
+                                <tr>
+                                  <td className="bg-gray-200 px-2 py-3">
+                                    <input
+                                      type="text"
+                                      placeholder="HEADING"
+                                      onChange={(e) => setHeading(e.target.value)}
+                                      className="w-full px-2 py-1 placeholder:text-center"
+                                    />
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="h-2"></td>
+                                </tr>
+                                <tr>
+                                  <td className="bg-gray-200 px-2 py-1">
+                                    <input
+                                      type="text"
+                                      placeholder="SUB-HEADING"
+                                      onChange={(e) => setSubHeading(e.target.value)}
+                                      className="w-full px-2 placeholder:text-center"
+                                    />
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Main hoverable row */}
+                    <tr
+                      key={module.id}
+                      className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group"
+                    >
+                      <td className="py-6 px-4 text-2xl">MODULE {module.id}:</td>
+                      <td className="py-6 px-4 text-2xl relative">
+                        {module.title}
+
+                        {/* Show button on hover */}
+                        <button
+                          onClick={() => setExpandedModuleId(module.id)}
+                          className="absolute right-2 top-2 bg-blue-600 text-white text-sm px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        >
+                          +↑
+                        </button>
+                      </td>
+                    </tr>
+
+                    {/* Spacer row */}
+                    <tr>
+                      <td colSpan="2" className="h-4"></td>
+                    </tr>
+                  </>
                 ))
               ) : (
                 <tr>

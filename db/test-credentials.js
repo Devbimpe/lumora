@@ -3,9 +3,9 @@ import mysql from 'mysql2/promise';
 
 const connection = await mysql.createConnection({
   host: '127.0.0.1',
-  user: 'root', // replace with actual username
-  password: '123456', // replace with actual password
-  database: 'lumora' // replace with actual database name
+  user: 'root', 
+  password: '123456', 
+  database: 'lumora' 
 });
 
 const [rows] = await connection.query('SELECT 1 + 1 AS solution');
