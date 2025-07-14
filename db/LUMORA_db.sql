@@ -14,7 +14,8 @@ CREATE TABLE Users(
 
 CREATE TABLE Modules(
     ModuleID INT PRIMARY KEY auto_increment,
-    Title varchar(50) NOT NULL
+    Heading varchar(50) NOT NULL,
+    Subheading varchar(50) NOT NULL
 );
 
 CREATE TABLE Content(
@@ -50,9 +51,10 @@ INSERT INTO Users (Username, Password, Email, Role, PercentModulesCompleted) VAL
 ('admin_user', 'AdminPass789!', 'admin@example.com', 'Admin', 0.00);
 
 -- Insert into Modules
-INSERT INTO Modules (Title) VALUES
-('React Basics'),
-('Next.js Fundamentals');
+INSERT INTO Modules (Heading, Subheading) VALUES
+('React Basics', 'What is React?'),
+('Next.js Fundamentals', 'What is next.js?');
+
 
 -- Insert into Content
 INSERT INTO Content (ModuleID, Overview, Reading) VALUES
@@ -89,3 +91,4 @@ SELECT * FROM Modules;
 SELECT * FROM Content;
 SELECT * FROM KnowledgeChecks;
 SELECT * FROM StudentSubmissions;
+
