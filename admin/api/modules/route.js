@@ -8,7 +8,7 @@ export async function getModules() {
     console.log('✅ Database connected');
     
     const [modules] = await pool.query(`
-      SELECT ModuleID AS id, title
+      SELECT ModuleID AS id, Heading
       FROM modules
     `);
     
@@ -30,7 +30,43 @@ export async function getModules() {
   }
 }
 
-// Export the GET handler as well for consistency
-export async function GET() {
-  return await getModules();
+
+export async function addModule({ heading, subHeading }) {
+  try {
+    console.log('📥 Inserting new module...');
+
+    const [result] = await pool.query(
+      `INSERT INTO modules (Heading, SubHeading) VALUES (?, ?)`,
+      [heading, subHeading]
+    );
+
+    console.log(`✅ Inserted with ID: ${result.insertId}`);
+
+    return {
+      success: true,
+      id: result.insertId,
+    };
+  } catch (error) {
+    console.error('❌ Insert failed:', error);
+    throw error;
+  }
+}
+
+
+export async function deleteModule(id) {
+  try {
+    console.log(`🗑️ Deleting module with ID ${id}...`);
+
+    const [result] = await pool.query('DELETE FROM modules WHERE ModuleID = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      throw new Error('Module not found');
+    }
+
+    console.log('✅ Module deleted');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Delete failed:', error);
+    throw error;
+  }
 }

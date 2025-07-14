@@ -12,3 +12,52 @@ export async function GET() {
     );
   }
 }
+
+import { addModule } from '../../../../../admin/api/modules/route'; // adjust path if needed
+
+export async function POST(req) {
+  try {
+    const { heading, subHeading } = await req.json();
+
+    if (!heading || !subHeading) {
+      return new Response(JSON.stringify({ error: 'Missing heading or sub-heading' }), {
+        status: 400,
+      });
+    }
+
+    const result = await addModule({ heading, subHeading });
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('❌ Route error:', error);
+    return new Response(JSON.stringify({ error: 'Failed to add module' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+import { deleteModule } from '../../../../../admin/api/modules/route';
+
+export async function DELETE(req) {
+  try {
+    const { id } = await req.json();
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'Missing ID' }), {
+        status: 400,
+      });
+    }
+
+    const result = await deleteModule(id); // ✅ use bridge function
+
+    return new Response(JSON.stringify(result), { status: 200 });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Failed to delete module' }), {
+      status: 500,
+    });
+  }
+}

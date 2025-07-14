@@ -17,7 +17,7 @@ export default function ModuleManagement() {
     }
 
     try {
-      const response = await fetch('/api/admin/add-module', {
+      const response = await fetch('/api/admin/modules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ heading, subHeading }),
@@ -34,6 +34,27 @@ export default function ModuleManagement() {
     } catch (err) {
       console.error('Submit error:', err);
       setSubmitStatus('❌ ' + err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm('Are you sure you want to delete this module?');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch('/api/admin/modules', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to delete module');
+
+      // Remove the deleted module from the UI
+      setModules(prev => prev.filter(m => m.id !== id));
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Delete failed');
     }
   };
 
@@ -149,15 +170,23 @@ export default function ModuleManagement() {
                     >
                       <td className="py-6 px-4 text-2xl">MODULE {module.id}:</td>
                       <td className="py-6 px-4 text-2xl relative">
-                        {module.title}
+                        {module.Heading}
 
                         {/* Show button on hover */}
-                        <button
-                          onClick={() => setExpandedModuleId(module.id)}
-                          className="absolute right-2 top-2 bg-blue-600 text-white text-sm px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        >
-                          +↑
-                        </button>
+                        <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                          <button
+                            onClick={() => setExpandedModuleId(module.id)}
+                            className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700"
+                          >
+                            +↑
+                          </button>
+                          <button
+                            onClick={() => handleDelete(module.id)}
+                            className="bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
 
