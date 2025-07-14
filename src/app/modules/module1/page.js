@@ -1,36 +1,63 @@
-import React from "react";
-import Link from "next/link";
+'use client';
+import { useEffect, useState } from 'react';
+import '../Module.css';
 
-const Module1 = () => {
-  return (
-    <div>
-      {/* Main content */}
-      <main className="max-w-4xl mx-auto p-8">
-        <h2 className="text-4xl font-extrabold text-green-800 underline mb-8">
-          MODULE 1: What is Sustainability
-        </h2>
 
-        <section className="mb-12">
-          <h3 className="text-2xl font-bold text-green-800 mb-2">Part 1:</h3>
-          <p className="text-black text-lg">
-            Introduction to sustainability and its relevance in tech
-          </p>
-        </section>
+export default function Module1() {
+  const [content, setContent] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-        <section>
-          <h3 className="text-2xl font-bold text-green-800 mb-2">Questions</h3>
-          <p className="mb-4">Introduction to sustainability?</p>
-          <textarea
-            className="w-full h-24 p-3 border border-gray-200 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="Your answer here..."
-          />
-          <button className="mt-4 px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600">
-            Submit
-          </button>
-        </section>
-      </main>
+  useEffect(() => {
+    async function fetchContent() {
+      try {
+        const res = await fetch('/api/users/Module');
+        if (!res.ok) throw new Error('Network response was not ok');
+        const data = await res.json();
+        setContent(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchContent();
+  }, []);
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => Math.min(prev + 1, content.length - 1));
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
+  if (content.length === 0) return <p>No content available</p>;
+
+  const currentSection = content[currentIndex];
+
+return (
+  <div className="module-container">
+    <h2 className="module-heading">{currentSection.title}</h2>
+
+    <div
+      className="module-content"
+      dangerouslySetInnerHTML={{ __html: currentSection.content_html }}
+    />
+
+    <div className="nav-buttons">
+      <button onClick={handlePrev} disabled={currentIndex === 0} className="prev-button">
+        Prev
+      </button>
+      <button onClick={handleNext} disabled={currentIndex === content.length - 1} className='next-button'>
+        Next
+      </button>
     </div>
-  );
-};
+  </div>
+);
 
-export default Module1;
+}

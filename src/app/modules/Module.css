@@ -1,0 +1,55 @@
+/* Module.css */
+
+
+.module-container {
+  margin: 2rem auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  color: #333;
+  background-color:  #fdfaf5;
+  padding: 2rem;
+  border-radius: 20px;
+  height: 100vh;;
+
+}
+
+.module-heading {
+  color: #1a4d2e;
+  font-weight: bold;
+  font-size: 50px;
+  margin-bottom: 1rem;
+}
+
+.module-content {
+  min-height: 70vh;
+  font-size: 18px;
+  line-height: 40px;
+
+  margin-bottom: 2rem;
+  background-color: white;
+  padding:30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+
+.prev-button,
+.next-button {
+  background-color:  #e65c00;
+  color: black;
+  border: 2px solid #e65c00;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 0.5rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.nav-buttons{
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
