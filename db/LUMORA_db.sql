@@ -89,4 +89,3 @@ SELECT * FROM Modules;
 SELECT * FROM Content;
 SELECT * FROM KnowledgeChecks;
 SELECT * FROM StudentSubmissions;
-
