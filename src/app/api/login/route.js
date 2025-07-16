@@ -7,7 +7,7 @@ const JWT_SECRET = "lumora-secret-key-2024"
 export async function POST(request) {
   try {
     // Get email and password from the request
-    const { email, password } = await request.json()
+    const { email, password} = await request.json()
     console.log("🔍 Login attempt for:", email)
 
     // Check if email and password were provided
@@ -26,7 +26,14 @@ export async function POST(request) {
 
     const user = users[0]
     console.log("👤 Found user:", user.Username)
-
+    
+    //Check if user is Activated
+    if(!user.isActivated){
+       if (user.activationTokenExpires && new Date(user.activationTokenExpires) < new Date()) {
+        return Response.json({ success: false, message: "Activation link expired. Please sign up again." }, { status: 403 })
+      }
+      return Response.json({ success: false, message: "Account not activated. Please check your email for the activation link." }, { status: 403 })
+    }
     // Use bcrypt to compare password with hashed password from database
     const isPasswordValid = await bcrypt.compare(password, user.Password)
 
