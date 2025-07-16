@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
@@ -8,7 +7,6 @@ export function Header() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Check if user is logged in when component loads
   useEffect(() => {
     checkAuthStatus()
   }, [])
@@ -17,7 +15,6 @@ export function Header() {
     try {
       const response = await fetch("/api/check-auth")
       const data = await response.json()
-
       if (data.authenticated) {
         setUser(data.user)
       }
@@ -32,7 +29,7 @@ export function Header() {
     try {
       await fetch("/api/logout", { method: "POST" })
       setUser(null)
-      window.location.href = "/" // Redirect to home
+      window.location.href = "/" 
     } catch (error) {
       console.error("Logout failed:", error)
     }
@@ -42,23 +39,25 @@ export function Header() {
     <header>
       <nav className="topnav">
         <div>
-          <Link href={{ pathname: "/" }}>
+          <Link href="/">
+            {" "}
             <Image src="/Lumoralogo.jpeg" alt="LumoraLogo" width={"200"} height={"80"} />
           </Link>
         </div>
-
         <div className="right">
-          <Link href={{ pathname: "/" }} className="about">
-            About
+          <Link href="/" className="home">
+            Home
           </Link>
-          <Link href="/training-module" className="trainingmodule">
-            Training Module
-          </Link>
+
+          {user && ( 
+            <Link href="/training-module" className="trainingmodule">
+              Training Module
+            </Link>
+          )}
 
           {loading ? (
             <span className="login">Loading...</span>
           ) : user ? (
-            // Show user dropdown and logout when logged in
             <div className="user-section">
               <span className="user-welcome">Hi, {user.username}</span>
               <button onClick={handleLogout} className="logout-btn">
@@ -66,8 +65,7 @@ export function Header() {
               </button>
             </div>
           ) : (
-            // Show login link when not logged in
-            <Link href={{ pathname: "login" }} className="login">
+            <Link href="/login" className="login">
               Login
             </Link>
           )}

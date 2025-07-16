@@ -2,6 +2,7 @@ import CarouselSection from "./components/carousel-section"
 import WhyThisMattersSection from "./components/why-this-matters-section"
 import HowItWorksSection from "./components/how-it-works-section"
 import TrainingModulesSection from "./components/training-modules-section"
+import WhoIsThisForSection from "./components/who-is-this-for-section" 
 
 export default function HomePage() {
   return (
@@ -10,6 +11,7 @@ export default function HomePage() {
       <WhyThisMattersSection />
       <TrainingModulesSection />
       <HowItWorksSection />
+      <WhoIsThisForSection /> 
     </div>
   )
 }

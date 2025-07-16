@@ -12,7 +12,6 @@
     "bcryptjs": "^3.0.2",
     "cookie": "^1.0.2",
     "dotenv": "^16.6.1",
-    "@emotion/react": "^11.14.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.512.0",
     "mysql2": "^3.14.1",
