@@ -65,7 +65,7 @@ export default function ModuleManagement() {
   };
 
   const handleModuleClick = (id) => {
-    router.push(`/admin/content/${id}`);
+    router.push(`/admin/content`);
   };
 
   useEffect(() => {
