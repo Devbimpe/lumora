@@ -70,3 +70,22 @@ export async function deleteModule(id) {
     throw error;
   }
 }
+
+export async function updateModule({ id, heading, subHeading }) {
+  try {
+    const [result] = await pool.query(
+      `UPDATE modules 
+       SET Heading = ?, SubHeading = ?
+       WHERE ModuleID = ?`,
+      [heading, subHeading, id]
+    );
+    
+    if (result.affectedRows === 0) {
+      throw new Error('Module not found');
+    }
+    
+    return { success: true, id };
+  } catch (error) {
+    throw error;
+  }
+}

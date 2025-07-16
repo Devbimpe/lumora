@@ -1,11 +1,12 @@
 'use client';
+import React from 'react';
 import { useState, useEffect } from 'react';
 
 export default function ModuleManagement() {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedModuleId, setExpandedModuleId] = useState(null); // Track which module is expanded
+  const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState('');
   const [subHeading, setSubHeading] = useState('');
   const [submitStatus, setSubmitStatus] = useState('');
@@ -17,20 +18,37 @@ export default function ModuleManagement() {
     }
 
     try {
+      setSubmitStatus(expandedModuleId === 'new' ? 'Saving...' : 'Updating...');
+      
+      // Determine if we're creating or updating
+      const isNew = expandedModuleId === 'new';
+      const method = isNew ? 'POST' : 'PUT';
+      const body = isNew 
+        ? JSON.stringify({ heading, subHeading })
+        : JSON.stringify({ id: expandedModuleId, heading, subHeading });
+
       const response = await fetch('/api/admin/modules', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ heading, subHeading }),
+        body
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Submission failed.');
+        throw new Error(errorData.error || (isNew ? 'Submission failed.' : 'Update failed.'));
       }
 
-      setSubmitStatus('✅ Module added successfully!');
+      // Refresh modules after successful operation
+      fetchModules();
+      
+      setSubmitStatus(isNew 
+        ? '✅ Module added successfully!' 
+        : '✅ Module updated successfully!');
+      
+      // Clear form and close
       setHeading('');
       setSubHeading('');
+      setExpandedModuleId(null);
     } catch (err) {
       console.error('Submit error:', err);
       setSubmitStatus('❌ ' + err.message);
@@ -58,35 +76,43 @@ export default function ModuleManagement() {
     }
   };
 
+  const fetchModules = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/admin/modules');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load modules');
+      }
+
+      const data = await response.json();
+      setModules(data);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch('/api/admin/modules');
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to load modules');
-        }
-
-        const data = await response.json();
-        setModules(data);
-      } catch (error) {
-        console.error('Fetch error:', error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchModules();
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-4xl mx-auto p-4 relative pb-16 min-h-screen">
+      {submitStatus && (
+        <div className={`mb-4 p-3 rounded-md text-center ${
+          submitStatus.includes('✅') ? 'bg-green-100 text-green-800' : 
+          submitStatus.includes('❌') ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+        }`}>
+          {submitStatus}
+        </div>
+      )}
+
       {loading && (
         <div className="flex items-center justify-center h-40">
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
@@ -111,18 +137,13 @@ export default function ModuleManagement() {
 
       {!loading && !error && (
         <div>
-          <button
-              onClick={handleSubmit}
-              className="text-sm bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-            >
-              Save Changes
-            </button>
+          
           <table className="w-full table-fixed">
-            
             <tbody>
               {modules.length > 0 ? (
                 modules.map((module) => (
-                  <>
+                  
+                  <React.Fragment key={module.id}>
                     {expandedModuleId === module.id && (
                       <tr>
                         <td colSpan="2" className="p-4">
@@ -157,28 +178,31 @@ export default function ModuleManagement() {
                                 </tr>
                               </tbody>
                             </table>
-
+                            <div className="flex justify-end">
+                              <button
+                                onClick={handleSubmit}
+                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                              >
+                                Update Module
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
                     )}
-
-                    {/* Main hoverable row */}
-                    <tr
-                      key={module.id}
-                      className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group"
-                    >
+                    {/* Main row for each module */}
+                    <tr className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group">
                       <td className="py-6 px-4 text-2xl">MODULE {module.id}:</td>
                       <td className="py-6 px-4 text-2xl relative">
                         {module.Heading}
-
-                        {/* Show button on hover */}
+                        
+                        {/* Delete button - still on each row */}
                         <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                           <button
                             onClick={() => setExpandedModuleId(module.id)}
                             className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700"
                           >
-                            +↑
+                            Edit
                           </button>
                           <button
                             onClick={() => handleDelete(module.id)}
@@ -194,7 +218,7 @@ export default function ModuleManagement() {
                     <tr>
                       <td colSpan="2" className="h-4"></td>
                     </tr>
-                  </>
+                  </React.Fragment>
                 ))
               ) : (
                 <tr>
@@ -205,8 +229,65 @@ export default function ModuleManagement() {
               )}
             </tbody>
           </table>
+          {expandedModuleId === 'new' && (
+            <div className="bg-[#fed5ab] shadow p-4 mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold text-lg">Add New Module</h3>
+                <button 
+                  onClick={() => setExpandedModuleId(null)}
+                  className="text-gray-500 hover:text-gray-700 text-xl"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <input
+                    type="text"
+                    placeholder="HEADING"
+                    value={heading}
+                    onChange={(e) => setHeading(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-md placeholder:text-center bg-white"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="SUB-HEADING"
+                    value={subHeading}
+                    onChange={(e) => setSubHeading(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-md placeholder:text-center bg-white"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleSubmit}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Save Module
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Floating "Add Module" button at bottom right */}
+      <button
+        onClick={() => setExpandedModuleId('new')}
+        className="bg-blue-600 text-white rounded p-4 shadow-lg hover:bg-blue-700 transition-all duration-300"
+        style={{
+          width: '150px',
+          height: '80px',
+          fontSize: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        Add Module
+      </button>
     </div>
   );
 }
