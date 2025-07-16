@@ -1,14 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ModuleManagement() {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedModuleId, setExpandedModuleId] = useState(null); // Track which module is expanded
   const [heading, setHeading] = useState('');
   const [subHeading, setSubHeading] = useState('');
   const [submitStatus, setSubmitStatus] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async () => {
     if (!heading.trim() || !subHeading.trim()) {
@@ -31,6 +32,12 @@ export default function ModuleManagement() {
       setSubmitStatus('✅ Module added successfully!');
       setHeading('');
       setSubHeading('');
+      const fetchData = async () => {
+        const response = await fetch('/api/admin/modules');
+        const data = await response.json();
+        setModules(data);
+      };
+      fetchData();
     } catch (err) {
       console.error('Submit error:', err);
       setSubmitStatus('❌ ' + err.message);
@@ -50,7 +57,6 @@ export default function ModuleManagement() {
 
       if (!response.ok) throw new Error('Failed to delete module');
 
-      // Remove the deleted module from the UI
       setModules(prev => prev.filter(m => m.id !== id));
     } catch (error) {
       console.error('Delete error:', error);
@@ -58,6 +64,9 @@ export default function ModuleManagement() {
     }
   };
 
+  const handleModuleClick = (id) => {
+    router.push(`/admin/content/${id}`);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,92 +118,62 @@ export default function ModuleManagement() {
         </div>
       )}
 
+      {submitStatus && (
+        <div className={`p-4 mb-4 ${submitStatus.includes('successfully') ? 'bg-green-100' : 'bg-red-100'}`}>
+          {submitStatus}
+        </div>
+      )}
+
       {!loading && !error && (
         <div>
-          <button
+          <div className="mb-6 bg-[#fed5ab] p-4 rounded shadow">
+            <input
+              type="text"
+              placeholder="HEADING"
+              value={heading}
+              onChange={(e) => setHeading(e.target.value)}
+              className="w-full px-2 py-1 mb-2 placeholder:text-center border rounded"
+            />
+            <input
+              type="text"
+              placeholder="SUB-HEADING"
+              value={subHeading}
+              onChange={(e) => setSubHeading(e.target.value)}
+              className="w-full px-2 py-1 placeholder:text-center border rounded"
+            />
+            <button
               onClick={handleSubmit}
-              className="text-sm bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+              className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
             >
-              Save Changes
+              Add Module
             </button>
+          </div>
+
           <table className="w-full table-fixed">
-            
             <tbody>
               {modules.length > 0 ? (
                 modules.map((module) => (
-                  <>
-                    {expandedModuleId === module.id && (
-                      <tr>
-                        <td colSpan="2" className="p-4">
-                          <div className="bg-[#fed5ab] shadow p-4">
-                            <div className="flex justify-between items-center mb-2">
-                            </div>
-                            {/* You can replace this with any table or module-specific content */}
-                            <table className="w-full">
-                              <tbody>
-                                <tr>
-                                  <td className="bg-gray-200 px-2 py-3">
-                                    <input
-                                      type="text"
-                                      placeholder="HEADING"
-                                      onChange={(e) => setHeading(e.target.value)}
-                                      className="w-full px-2 py-1 placeholder:text-center"
-                                    />
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <td className="h-2"></td>
-                                </tr>
-                                <tr>
-                                  <td className="bg-gray-200 px-2 py-1">
-                                    <input
-                                      type="text"
-                                      placeholder="SUB-HEADING"
-                                      onChange={(e) => setSubHeading(e.target.value)}
-                                      className="w-full px-2 placeholder:text-center"
-                                    />
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-
-                    {/* Main hoverable row */}
-                    <tr
-                      key={module.id}
-                      className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group"
-                    >
-                      <td className="py-6 px-4 text-2xl">MODULE {module.id}:</td>
-                      <td className="py-6 px-4 text-2xl relative">
-                        {module.Heading}
-
-                        {/* Show button on hover */}
-                        <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                          <button
-                            onClick={() => setExpandedModuleId(module.id)}
-                            className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700"
-                          >
-                            +↑
-                          </button>
-                          <button
-                            onClick={() => handleDelete(module.id)}
-                            className="bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Spacer row */}
-                    <tr>
-                      <td colSpan="2" className="h-4"></td>
-                    </tr>
-                  </>
+                  <tr
+                    key={module.id}
+                    className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group cursor-pointer"
+                    onClick={() => handleModuleClick(module.id)}
+                  >
+                    <td className="py-6 px-4 text-2xl">MODULE {module.id}:</td>
+                    <td className="py-6 px-4 text-2xl relative">
+                      {module.Heading}
+                      <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(module.id);
+                          }}
+                          className="bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))
               ) : (
                 <tr>
