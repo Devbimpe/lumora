@@ -11,7 +11,7 @@ CREATE TABLE Users(
     Role ENUM('Student', 'Admin') NOT NULL,
     PercentModulesCompleted DECIMAL(5,2) DEFAULT 0.00
 );
-
+-- Check if when creating database, the modules table have Heading and Subheading
 CREATE TABLE Modules(
     ModuleID INT PRIMARY KEY auto_increment,
     Heading varchar(50) NOT NULL,
