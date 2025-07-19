@@ -4,7 +4,6 @@ import pool from "../../../db/db.js"
 export async function getModules() {
   try {
     
-
     console.log('✅ Database connected');
     
     const [modules] = await pool.query(`
@@ -54,21 +53,56 @@ export async function addModule({ heading, subHeading }) {
 
 
 export async function deleteModule(id) {
+  const connection = await pool.getConnection();
   try {
-    console.log(`🗑️ Deleting module with ID ${id}...`);
+    await connection.beginTransaction();
 
-    const [result] = await pool.query('DELETE FROM modules WHERE ModuleID = ?', [id]);
+    console.log(`🗑️ Starting deletion for module ID: ${id}`);
+
+    // 1. Delete student submissions related to this module
+    await connection.query(`
+      DELETE ss
+      FROM StudentSubmissions ss
+      JOIN KnowledgeChecks kc ON ss.KnowledgeCheckID = kc.KnowledgeCheckID
+      JOIN Content c ON kc.ContentID = c.ContentID
+      WHERE c.ModuleID = ?
+    `, [id]);
+    console.log('✅ Deleted related student submissions');
+
+    // 2. Delete knowledge checks related to this module
+    await connection.query(`
+      DELETE kc
+      FROM KnowledgeChecks kc
+      JOIN Content c ON kc.ContentID = c.ContentID
+      WHERE c.ModuleID = ?
+    `, [id]);
+    console.log('✅ Deleted related knowledge checks');
+
+    // 3. Delete content related to this module
+    await connection.query(`
+      DELETE FROM Content
+      WHERE ModuleID = ?
+    `, [id]);
+    console.log('✅ Deleted related content');
+
+    // 4. Finally delete the module itself
+    const [result] = await connection.query(`
+      DELETE FROM Modules
+      WHERE ModuleID = ?
+    `, [id]);
 
     if (result.affectedRows === 0) {
       throw new Error('Module not found');
     }
+    console.log('✅ Deleted module');
 
-    console.log('✅ Module deleted');
+    await connection.commit();
+    console.log(` Module ${id} deleted successfully`);
     return { success: true };
   } catch (error) {
-    console.error('❌ Delete failed:', error);
-    throw error;
-  }
+    await connection.rollback();
+    console.error(`❌ Module deletion failed: ${error.message}`);}
+
 }
 
 export async function updateModule({ id, heading, subHeading }) {
