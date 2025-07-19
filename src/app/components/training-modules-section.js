@@ -6,27 +6,17 @@ export default function TrainingModulesSection() {
       image: "/M1.jpg",
     },
     {
-      title: "Dimensions of Sustainability", 
+      title: "Dimensions of Sustainability",
       description: "Environmental, economic, technical and social sustainability",
       image: "/M2.jpg",
     },
     {
       title: "Social Sustainability",
-      description: "Understanding the tech industry's social impact and ethical obligations", 
+      description: "Understanding the tech industry's social impact and ethical obligations",
       image: "/M3.jpg",
     },
     {
-      title: "Environmental Impact",
-      description: "Understanding environmental implications of software development",
-      image: "/M4.jpg",
-    },
-    {
-      title: "Economic Considerations",
-      description: "Balancing economic factors with sustainable development practices",
-      image: "/M5.jpg",
-    },
-    {
-      title: "Technical Ethics", 
+      title: "Technical Ethics",
       description: "Ethical considerations in technical decision-making processes",
       image: "/M6.jpg",
     },
@@ -37,8 +27,8 @@ export default function TrainingModulesSection() {
     },
   ]
 
-  const firstRow = modules.slice(0, 4)
-  const secondRow = modules.slice(4, 7)
+  const firstRow = modules.slice(0, 3) 
+  const secondRow = modules.slice(3, 5) 
 
   return (
     <section className="bg-green-100 py-16">
@@ -50,19 +40,14 @@ export default function TrainingModulesSection() {
           What will you Learn?
         </h2>
 
-        {/* First row - 4 modules */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
           {firstRow.map((module, index) => (
             <div
               key={index}
               className="bg-white rounded-lg p-6 text-center shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer hover:scale-105 transform transition-transform"
             >
               <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <img
-                  src={module.image || "/placeholder.svg"}
-                  alt={module.title}
-                  className="w-10 h-10 object-cover"
-                />
+                <img src={module.image || "/placeholder.svg"} alt={module.title} className="w-10 h-10 object-cover" />
               </div>
               <h3 className="text-lg font-bold text-green-700 mb-2">{module.title}</h3>
               <p className="text-gray-600 text-sm">{module.description}</p>
@@ -70,20 +55,16 @@ export default function TrainingModulesSection() {
           ))}
         </div>
 
-        {/* Second row - 3 modules centered */}
         <div className="flex justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+            {" "}
             {secondRow.map((module, index) => (
               <div
-                key={index + 4}
+                key={index + 3} 
                 className="bg-white rounded-lg p-6 text-center shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer hover:scale-105 transform transition-transform"
               >
                 <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <img
-                    src={module.image || "/placeholder.svg"}
-                    alt={module.title}
-                    className="w-10 h-10 object-cover"
-                  />
+                  <img src={module.image || "/placeholder.svg"} alt={module.title} className="w-10 h-10 object-cover" />
                 </div>
                 <h3 className="text-lg font-bold text-green-700 mb-2">{module.title}</h3>
                 <p className="text-gray-600 text-sm">{module.description}</p>
