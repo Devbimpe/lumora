@@ -12,9 +12,10 @@ async function getDbConnection() {
   });
   return connection;
 }
-export async function PUT(req, { params }) {
-  const id = params.id;
+export async function PUT(req, context) {
   const { Overview, Reading } = await req.json();
+  const params = await context.params;
+  const id = params.id;
   const connection = await getDbConnection();
   try {
     await connection.execute(
