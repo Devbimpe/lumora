@@ -141,7 +141,6 @@ export default function UserManagement() {
                     {/* Main row for each module */}
                     <tr className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group">
                       <td className="py-6 px-4 text-2xl">{user.UserID}:</td>
-                      <td className="py-6 px-4 text-2xl">{user.Password}</td>
                       <td className="py-6 px-4 text-2xl">{user.isActivated}</td>
                       <td className="py-6 px-4 text-2xl">
                         {user.Username}
