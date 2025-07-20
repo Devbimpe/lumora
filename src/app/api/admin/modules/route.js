@@ -52,12 +52,34 @@ export async function DELETE(req) {
       });
     }
 
-    const result = await deleteModule(id); // ✅ use bridge function
+    const result = await deleteModule(id); // use bridge function
 
     return new Response(JSON.stringify(result), { status: 200 });
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Failed to delete module' }), {
       status: 500,
     });
+  }
+}
+
+import { updateModule } from '../../../../../admin/api/modules/route';
+
+export async function PUT(req) {
+  try {
+    const { id, heading, subHeading } = await req.json();
+    
+    // Validate all required fields
+    if (!id || !heading || !subHeading) {
+      return new Response(JSON.stringify({ 
+        error: 'Missing module ID, heading, or sub-heading' 
+      }), { status: 400 });
+    }
+
+    const result = await updateModule({ id, heading, subHeading });
+    return new Response(JSON.stringify(result), { status: 200 });
+  } catch (error) {
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Failed to update module' 
+    }), { status: 500 });
   }
 }
