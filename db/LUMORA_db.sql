@@ -61,6 +61,14 @@ INSERT INTO Content (ModuleID, Overview, Reading) VALUES
 (1, "Why Sustainability Matters in Software", "Software is not neutral. Every system built affects people, infrastructure, and the planet. Unsustainable software systems often lead to:● High technical debt and short software lifespan● Inequitable access to technolog● Social or algorithmic harm (e.g., bias, exclusion, privacy or safety risks)● Excessive energy consumption and environmental wasteThe more society relies on software, the more critical it becomes that we engineer systems that are resilient, ethical, and future-ready."),
 (1, "Common Misconceptions", "Misconception Sustainability is just about the environment or “Green IT” Sustainable systems are less efficient Only architects or leaders should worry about this
 worry about this Every developer, designer, and tester should contribute to sustainability decisions");
+(1, "Common Misconceptions", "Sustainability is just about the environment or 'Green IT'"),
+(1, "Correction", "In software engineering, it also includes social, technical, and economic endurance."),
+(1, "Common Misconceptions", "Sustainable systems are less efficient"),
+(1, "Correction", "In fact, they often increase efficiency through maintainability."),
+(1, "Common Misconceptions", "Only architects or leaders should worry about this"),
+(1, "Correction", "Every developer, designer, and tester should contribute to sustainability decisions.");
+(1, "Knowledge Check", "A. Ensuring software runs as fast and efficiently as possible to meet user expectations B. Designing systems that can adapt and endure over time while minimizing negative social, environmental, technical, and economic impacts C. Reducing development costs by limiting scope and cutting unnecessary features D. Building digital systems that prioritize environmental goals above all else");
+
 
 -- Insert into Content
 INSERT INTO Content (ModuleID, Overview, Reading) VALUES
