@@ -46,9 +46,9 @@ CREATE TABLE StudentSubmissions (
 
 -- Insert into Users with PROPER passwords
 INSERT INTO Users (Username, Password, Email, Role, PercentModulesCompleted) VALUES
-('john_doe', 'Password123!', 'john.doe@example.com', 'Student', 50.00),
-('jane_smith', 'Password456!', 'jane.smith@example.com', 'Student', 25.00),
-('admin_user', 'AdminPass789!', 'admin@example.com', 'Admin', 0.00);
+("john_doe", "Password123!", "john.doe@example.com", "Student", 50.00),
+("jane_smith", "Password456!", "jane.smith@example.com", "Student", 25.00),
+("admin_user", "AdminPass789!", "admin@example.com", "Admin", 0.00);
 
 -- Insert into Modules
 INSERT INTO Modules (ModuleID, Heading, Subheading) VALUES
@@ -77,10 +77,12 @@ INSERT INTO KnowledgeChecks (ContentID, Question, Answer) VALUES
 
 -- Insert into StudentSubmissions
 INSERT INTO StudentSubmissions (KnowledgeCheckID, StudentID, SubmissionAnswer, Grade) VALUES
-(1, 1, 'JSX is a syntax for React.', 90.00),
-(2, 1, 'State changes, props don''t.', 85.00),
-(3, 2, 'Server-side rendering is rendering on the server.', NULL),
-(4, 2, 'API routes are in pages/api folder.', 95.00);
+(1, 1, "JSX is a syntax for React.", 90.00),
+(2, 1, "State changes, props don't.", 85.00),
+(3, 2, "Server-side rendering is rendering on the server.", NULL),
+(4, 2, "API routes are in pages/api folder.", 95.00);
+
+
 -- Update User table for the email activation flow
 ALTER TABLE Users
 ADD COLUMN activationTokenExpires DATETIME,
