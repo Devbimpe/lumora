@@ -54,6 +54,7 @@ INSERT INTO Users (Username, Password, Email, Role, PercentModulesCompleted) VAL
 INSERT INTO Modules (ModuleID, Heading, Subheading) VALUES
 (1, "Module1:What is Sustainability", "Introduction to Sustainability in Software Engineering");
 
+
 -- Insert into Content
 INSERT INTO Content (ModuleID, Overview, Reading) VALUES
 (1, "overview", "Software systems are now foundational to nearly every aspect of how we live, work, and connect as a society. In fact, software doesn’t just support our world, it shapes it. As our dependency on digital systems grows, so does our responsibility to ensure that these systems are designed and maintained with long-term well-being in mind.The growing scale and influence of software brings with it both extraordinary potential and significant pressure. If not built with care, digital systems can cause long-term harm socially, environmentally, economically, and even technically.This module will introduce you to the concept of sustainability in software engineering, explain why it matters, and lay the foundation for the dimensions that will be explored in later modules"),
