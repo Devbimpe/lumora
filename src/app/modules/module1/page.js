@@ -29,7 +29,7 @@ export default function Module1() {
   useEffect(() => {
     async function fetchContent() {
       try {
-        const res = await fetch('/api/users/Module?moduleId=1');
+        const res = await fetch('/api/Module?moduleId=1');
         if (!res.ok) throw new Error('Network response was not ok');
         const data = await res.json();
         setRawContent(data);
