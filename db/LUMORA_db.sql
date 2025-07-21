@@ -1,40 +1,10 @@
-DROP DATABASE IF EXISTS LUMORA;
-CREATE DATABASE LUMORA;
-
-USE LUMORA;
-
-CREATE TABLE Users(
-    UserID INT PRIMARY KEY auto_increment,
-    Username VARCHAR(50) NOT NULL UNIQUE,
+ Username VARCHAR(50) NOT NULL UNIQUE,
     Password VARCHAR(100) NOT NULL,
     Email VARCHAR(100) NOT NULL UNIQUE,
     Role ENUM("Student", "Admin") NOT NULL,
     PercentModulesCompleted DECIMAL(5,2) DEFAULT 0.00
 );
--- Check if when creating database, the modules table have Heading and Subheading
-CREATE TABLE Modules(
-    ModuleID INT PRIMARY KEY auto_increment,
-    Heading varchar(50) NOT NULL,
-    Subheading varchar(100) NOT NULL
-);
 
-CREATE TABLE Content(
-    ContentID INT PRIMARY KEY auto_increment,
-    ModuleID INT NOT NULL,
-    Overview TEXT,
-    Reading TEXT,
-    FOREIGN KEY (ModuleID) references Modules(ModuleID)
-);
-
-CREATE TABLE KnowledgeChecks (
-    KnowledgeCheckID INT PRIMARY KEY AUTO_INCREMENT,
-    ContentID INT NOT NULL,
-    Question TEXT NOT NULL,
-    Answer TEXT NOT NULL,
-    FOREIGN KEY (ContentID) REFERENCES Content(ContentID)
-);
-
-CREATE TABLE StudentSubmissions (
     StudentSubmissionID INT PRIMARY KEY AUTO_INCREMENT,
     KnowledgeCheckID INT NOT NULL,
     StudentID INT NOT NULL,
@@ -88,4 +58,4 @@ SELECT * FROM Users;
 SELECT * FROM Modules;
 SELECT * FROM Content;
 SELECT * FROM KnowledgeChecks;
-SELECT * FROM StudentSubmissi*
+SELECT * FROM StudentSubmissions;
