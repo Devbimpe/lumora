@@ -1,7 +1,7 @@
 // This code is just for testing the database connection
 // and should not be used in production.
 import 'dotenv/config';
-import pool, { testConnection } from './db.js';
+import pool, { testConnection } from './db/db.js';
 
 (async () => {
     try {

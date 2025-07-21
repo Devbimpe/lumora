@@ -11,7 +11,7 @@ CREATE TABLE Users(
     Role ENUM('Student', 'Admin') NOT NULL,
     PercentModulesCompleted DECIMAL(5,2) DEFAULT 0.00
 );
-
+-- Check if when creating database, the modules table have Heading and Subheading
 CREATE TABLE Modules(
     ModuleID INT PRIMARY KEY auto_increment,
     Heading varchar(50) NOT NULL,
@@ -54,7 +54,6 @@ INSERT INTO Users (Username, Password, Email, Role, PercentModulesCompleted) VAL
 INSERT INTO Modules (Heading, Subheading) VALUES
 ('React Basics', 'What is React?'),
 ('Next.js Fundamentals', 'What is next.js?');
-
 
 -- Insert into Content
 INSERT INTO Content (ModuleID, Overview, Reading) VALUES
