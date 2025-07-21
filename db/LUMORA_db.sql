@@ -68,7 +68,7 @@ INSERT INTO Content (ModuleID, Overview, Reading) VALUES
 
 -- Insert into KnowledgeChecks
 INSERT INTO KnowledgeChecks (ContentID, Question, Answer) VALUES
-(5, "Which of the following best captures the meaning of sustainability in software engineering?", "B");
+(10, "Which of the following best captures the meaning of sustainability in software engineering?", "B");
 
 -- Insert into StudentSubmissions
 INSERT INTO StudentSubmissions (KnowledgeCheckID, StudentID, SubmissionAnswer, Grade) VALUES

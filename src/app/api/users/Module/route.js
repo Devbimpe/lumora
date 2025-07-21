@@ -6,9 +6,9 @@ export async function GET(request) {
     const moduleId = url.searchParams.get('moduleId');
 
     let query = `
-        SELECT 
-        Modules.ModuleID, 
-        Modules.Heading, 
+        SELECT
+        Modules.ModuleID,
+        Modules.Heading,
         Modules.Subheading,
         Content.ContentID,
         Content.Overview,
