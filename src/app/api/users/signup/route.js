@@ -1,8 +1,13 @@
+<<<<<<< Updated upstream
 import pool from '../../../../../db/db.js';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
+=======
+import bcrypt from 'bcryptjs';
+import pool from '../../../../../db/db.js'; // Adjust path based on your folder structure
+>>>>>>> Stashed changes
 export async function POST(req) {
   try {
     const { name, userName, email, password } = await req.json();
