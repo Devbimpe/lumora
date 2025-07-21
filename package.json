@@ -13,7 +13,6 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.512.0",
     "mysql2": "^3.14.2",
     "next": "^15.3.3",
@@ -38,4 +37,5 @@
   "keywords": [],
   "author": "",
   "license": "ISC"
+  
 }
