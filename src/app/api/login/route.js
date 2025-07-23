@@ -1,6 +1,6 @@
 import pool from "../../../../db/db.js"
 import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
+import bcrypt from "bcryptjs"
 
 const JWT_SECRET = "lumora-secret-key-2024"
 

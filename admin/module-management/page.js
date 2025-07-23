@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ModuleManagement() {
   const [modules, setModules] = useState([]);
@@ -10,6 +11,29 @@ export default function ModuleManagement() {
   const [heading, setHeading] = useState('');
   const [subHeading, setSubHeading] = useState('');
   const [submitStatus, setSubmitStatus] = useState('');
+  const router = useRouter();
+
+  const fetchModules = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/admin/modules');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load modules');
+      }
+
+      const data = await response.json();
+      setModules(data);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!heading.trim() || !subHeading.trim()) {
@@ -39,7 +63,7 @@ export default function ModuleManagement() {
       }
 
       // Refresh modules after successful operation
-      fetchModules();
+      await fetchModules();
       
       setSubmitStatus(isNew 
         ? '✅ Module added successfully!' 
@@ -68,7 +92,6 @@ export default function ModuleManagement() {
 
       if (!response.ok) throw new Error('Failed to delete module');
 
-      // Remove the deleted module from the UI
       setModules(prev => prev.filter(m => m.id !== id));
     } catch (error) {
       console.error('Delete error:', error);
@@ -76,26 +99,8 @@ export default function ModuleManagement() {
     }
   };
 
-  const fetchModules = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/admin/modules');
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load modules');
-      }
-
-      const data = await response.json();
-      setModules(data);
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleModuleClick = (id) => {
+    router.push(`/admin/content`);
   };
 
   useEffect(() => {
@@ -137,12 +142,10 @@ export default function ModuleManagement() {
 
       {!loading && !error && (
         <div>
-          
           <table className="w-full table-fixed">
             <tbody>
               {modules.length > 0 ? (
                 modules.map((module) => (
-                  
                   <React.Fragment key={module.id}>
                     {expandedModuleId === module.id && (
                       <tr>
@@ -150,7 +153,6 @@ export default function ModuleManagement() {
                           <div className="bg-[#fed5ab] shadow p-4">
                             <div className="flex justify-between items-center mb-2">
                             </div>
-                            {/* You can replace this with any table or module-specific content */}
                             <table className="w-full">
                               <tbody>
                                 <tr>
@@ -158,6 +160,7 @@ export default function ModuleManagement() {
                                     <input
                                       type="text"
                                       placeholder="HEADING"
+                                      value={heading}
                                       onChange={(e) => setHeading(e.target.value)}
                                       className="w-full px-2 py-1 placeholder:text-center"
                                     />
@@ -171,6 +174,7 @@ export default function ModuleManagement() {
                                     <input
                                       type="text"
                                       placeholder="SUB-HEADING"
+                                      value={subHeading}
                                       onChange={(e) => setSubHeading(e.target.value)}
                                       className="w-full px-2 placeholder:text-center"
                                     />
@@ -190,22 +194,28 @@ export default function ModuleManagement() {
                         </td>
                       </tr>
                     )}
-                    {/* Main row for each module */}
-                    <tr className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group">
+                    
+                    <tr className="bg-[#dbf2e0] hover:scale-105 transition-transform duration-200 relative group cursor-pointer"
+                        onClick={() => handleModuleClick(module.id)}>
                       <td className="py-6 px-4 text-2xl">MODULE {module.id}:</td>
                       <td className="py-6 px-4 text-2xl relative">
                         {module.Heading}
                         
-                        {/* Delete button - still on each row */}
                         <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                           <button
-                            onClick={() => setExpandedModuleId(module.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedModuleId(module.id);
+                            }}
                             className="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700"
                           >
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(module.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(module.id);
+                            }}
                             className="bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700"
                           >
                             Delete
@@ -214,7 +224,6 @@ export default function ModuleManagement() {
                       </td>
                     </tr>
 
-                    {/* Spacer row */}
                     <tr>
                       <td colSpan="2" className="h-4"></td>
                     </tr>
@@ -229,6 +238,7 @@ export default function ModuleManagement() {
               )}
             </tbody>
           </table>
+          
           {expandedModuleId === 'new' && (
             <div className="bg-[#fed5ab] shadow p-4 mb-6">
               <div className="flex justify-between items-center mb-2">
@@ -273,7 +283,6 @@ export default function ModuleManagement() {
         </div>
       )}
 
-      {/* Floating "Add Module" button at bottom right */}
       <button
         onClick={() => setExpandedModuleId('new')}
         className="bg-blue-600 text-white rounded p-4 shadow-lg hover:bg-blue-700 transition-all duration-300"
