@@ -11,6 +11,7 @@ return (
         <li><a href="#">References</a></li>
         <li><a href="#">FAQs</a></li>
         </ul>
+        
     </div>
     </footer>
 );
