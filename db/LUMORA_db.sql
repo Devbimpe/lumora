@@ -76,9 +76,9 @@ INSERT INTO KnowledgeChecks (ContentID, Question, Answer) VALUES
 -- Insert into StudentSubmissions
 INSERT INTO StudentSubmissions (KnowledgeCheckID, StudentID, SubmissionAnswer, Grade) VALUES
 (1, 1, "JSX is a syntax for React.", 90.00),
-(2, 1, "State changes, props don't.", 85.00),
-(3, 2, "Server-side rendering is rendering on the server.", NULL),
-(4, 2, "API routes are in pages/api folder.", 95.00);
+(1, 1, "State changes, props don't.", 85.00),
+(1, 2, "Server-side rendering is rendering on the server.", NULL),
+(1, 2, "API routes are in pages/api folder.", 95.00);
 
 
 -- Update User table for the email activation flow
