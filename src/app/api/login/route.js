@@ -2,7 +2,6 @@ import pool from "../../../../db/db.js"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
 
-const JWT_SECRET = "lumora-secret-key-2024"
 
 export async function POST(request) {
   try {
@@ -50,7 +49,7 @@ export async function POST(request) {
         username: user.Username,
         role: user.Role,
       },
-      JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "24h" },
     )
 
