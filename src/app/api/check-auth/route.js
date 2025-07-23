@@ -1,7 +1,5 @@
 import jwt from "jsonwebtoken"
 
-const JWT_SECRET = "lumora-secret-key-2024"
-
 export async function GET(request) {
   try {
     // Get the auth token from cookies
@@ -23,7 +21,8 @@ export async function GET(request) {
     }
 
     // Verify the token
-    const decoded = jwt.verify(token, JWT_SECRET)
+    const decoded = jwt.verify(token,process.env.JWT_SECRET,
+)
     return Response.json({
       authenticated: true,
       user: {

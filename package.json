@@ -1,6 +1,7 @@
 {
   "scripts": {
     "dev": "next dev",
+    "db": "node scripts/run-sql.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -8,14 +9,16 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@emotion/react": "^11.14.0",
-    "bcrypt": "^6.0.0",
+    "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "@emotion/react": "^11.14.0",
+    "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.512.0",
-    "mysql2": "^3.14.1",
+    "mysql2": "^3.14.2",
     "next": "^15.3.3",
+    "nodemailer": "^7.0.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -24,5 +27,17 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.7"
-  }
+  },
+  "name": "lumora",
+  "version": "1.0.0",
+  "description": "LUMORA is an interactive e-learning platform designed to deliver training modules on key themes relevant to software development. The web application presents users with scenario-based questions and responses, guiding them through structured learning content in a way that is engaging and accessible. It also allows for managing training content, questions and answers, as well as tracking user progress.",
+  "main": "next.config.js",
+  "repository": {
+    "type": "git",
+    "url": "https://git.cs.dal.ca/courses/csci-x691/lumora.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+  
 }

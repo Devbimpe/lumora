@@ -11,6 +11,8 @@ const pool = mysql.createPool({
     queueLimit: 0,
 });
 
+
+
 export async function testConnection() {
     try {
         const connection = await pool.getConnection();
@@ -22,4 +24,13 @@ export async function testConnection() {
         throw error;
     }
 }
+
+export async function getModuleContent(moduleId) {
+    const [rows] = await pool.query(
+    'SELECT * FROM modulecontent WHERE module_id = ? ORDER BY section_order',
+    [moduleId]
+    );
+    return rows;
+    }
 export default pool;
+
