@@ -1,4 +1,4 @@
-import pool from '../../../../../db/db.js';
+import pool from '@db/db.js';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';

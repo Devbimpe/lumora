@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from "../../../db/db.js"
+import pool from "@db/db.js"
 
 export async function getUsers() {
   try {

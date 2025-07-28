@@ -1,4 +1,3 @@
-import AdminLayout from '../../../../admin/layout.js';
 
 export default async function AdminPage({ params }) {
   const path = params.path?.join('/') || 'dashboard';

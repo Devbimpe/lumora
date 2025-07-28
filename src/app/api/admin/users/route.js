@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUsers } from '../../../../../admin/api/users/route';
+import { getUsers } from '@admin-root/api/users/route';
 
 export async function GET() {
   try {
@@ -13,7 +13,7 @@ export async function GET() {
   }
 }
 
-import { deleteUser } from '../../../../../admin/api/users/route';
+import { deleteUser } from '@admin-root/api/users/route';
 
 export async function DELETE(req) {
   try {
@@ -35,7 +35,7 @@ export async function DELETE(req) {
   }
 }
 
-import { toggleUserActivation } from '../../../../../admin/api/users/route';
+import { toggleUserActivation } from '@admin-root/api/users/route';
 export async function PUT(req) {
   try {
     const { userId, isActivated } = await req.json();
