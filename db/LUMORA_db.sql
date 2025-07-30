@@ -69,7 +69,7 @@ INSERT INTO Content (ModuleID, Overview, Reading) VALUES
 (1, "Correction","Every developer, designer, and tester should contribute to sustainability decision"),
 (1, "Knowledge Check", "A. Ensuring software runs as fast and efficiently as possible to meet user expectations B. Designing systems that can adapt and endure over time while minimizing negative social, environmental, technical, and economic impacts C. Reducing development costs by limiting scope and cutting unnecessary features D. Building digital systems that prioritize environmental goals above all else"),
 
--- Module 2 Content
+-- Module 2 dummy content (need to be changed)
 (2, "Introduction to Sustainable Design", "Sustainable software design ensures that systems are efficient, resilient, and adaptable while minimizing negative impacts. It considers energy use, maintainability, and socio-technical responsibility."),
 (2, "Design Principles", "Key principles include modularity, simplicity, reusability, and separation of concerns. These help systems remain maintainable, adaptable, and resource-efficient over time."),
 (2, "Benefits of Sustainable Design", "Sustainable design can reduce maintenance costs, increase user satisfaction, extend product life, and contribute to broader societal and environmental goals."),
@@ -86,12 +86,12 @@ INSERT INTO Content (ModuleID, Overview, Reading) VALUES
 -- Insert into KnowledgeChecks
 INSERT INTO KnowledgeChecks (ContentID, Question, Answer) VALUES
 (10, "Which of the following best captures the meaning of sustainability in software engineering?", "B");
--- Module 2 KnowledgeCheck (assumes the last inserted ContentID is the knowledge check)
+-- Module 2 KnowledgeCheck (need to change the content based on client request ) 
 INSERT INTO KnowledgeChecks (ContentID, Question, Answer)
 SELECT ContentID, "Which of the following reflects a sustainable software design practice?", "C"
 FROM Content
 WHERE ModuleID = 2 AND Overview = "Knowledge Check";
--- View the dummy data in the table
+
 
 -- Insert into StudentSubmissions
 INSERT INTO StudentSubmissions (KnowledgeCheckID, StudentID, SubmissionAnswer, Grade) VALUES
@@ -106,9 +106,6 @@ ALTER TABLE Users
 ADD COLUMN activationTokenExpires DATETIME,
 ADD COLUMN isActivated BOOLEAN DEFAULT FALSE,
 ADD COLUMN ActivationToken VARCHAR(255);
-
-
--- Insert into KnowledgeChecks for Module 2
 
 SELECT * FROM Users;
 SELECT * FROM Modules;
