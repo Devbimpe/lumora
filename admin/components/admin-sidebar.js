@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default function Sidebar({ activeSection }) {
+export default function AdminSidebar({ activeSection }) {
   const sections = [
     { id: 'dashboard', label: 'Dashboard', path: '/admin' },
     { id: 'user-management', label: 'User Management', path: '/admin/user-management' },
