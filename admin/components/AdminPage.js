@@ -1,4 +1,4 @@
-export default function Dashboard() {
+export default function AdminPage() {
   return (
     <div className="w-full flex flex-col items-center gap-4">
       <div className="bg-green-500 h-24 w-5/6 rounded text-white text-center flex items-center justify-center">
