@@ -1,4 +1,4 @@
-import pool from '../../../../db/db.js';
+import pool from '@db/db.js';
 import { cookies as getCookies } from 'next/headers'; 
 import { serialize } from 'cookie'; // npm install cookie
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getModules } from '../../../../../admin/api/modules/route';
+import { getModules } from '@admin-root/api/modules/route';
 
 export async function GET() {
   try {
@@ -13,7 +13,7 @@ export async function GET() {
   }
 }
 
-import { addModule } from '../../../../../admin/api/modules/route'; // adjust path if needed
+import { addModule } from '@admin-root/api/modules/route'; // adjust path if needed
 
 export async function POST(req) {
   try {
@@ -40,7 +40,7 @@ export async function POST(req) {
   }
 }
 
-import { deleteModule } from '../../../../../admin/api/modules/route';
+import { deleteModule } from '@admin-root/api/modules/route';
 
 export async function DELETE(req) {
   try {
@@ -62,7 +62,7 @@ export async function DELETE(req) {
   }
 }
 
-import { updateModule } from '../../../../../admin/api/modules/route';
+import { updateModule } from '@admin-root/api/modules/route';
 
 export async function PUT(req) {
   try {

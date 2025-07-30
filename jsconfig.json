@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@admin-root/*": ["admin/*"],
+      "@admin-app/*": ["src/app/admin/*"],
+      "@admin-api/*": ["src/app/api/admin/*"],
+      "@db/*": ["db/*"]
+    }
+  }
+}

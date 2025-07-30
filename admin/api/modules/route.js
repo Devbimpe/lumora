@@ -1,5 +1,5 @@
 import mysql from 'mysql2/promise';
-import pool from "../../../db/db.js"
+import pool from "@db/db.js"
 // Export a function that can be imported by the bridge
 export async function getModules() {
   try {
