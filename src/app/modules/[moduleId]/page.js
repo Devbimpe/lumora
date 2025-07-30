@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import '../Module.css';
 
-export default function Module1() {
+export default function ModulePage() {
+  const { moduleId } = useParams();
   const [rawContent, setRawContent] = useState([]);
   const [slides, setSlides] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -29,7 +31,8 @@ export default function Module1() {
   useEffect(() => {
     async function fetchContent() {
       try {
-        const res = await fetch('/api/Module?moduleId=1');
+        // Fetch content for the current moduleId
+        const res = await fetch(`/api/Module?moduleId=${moduleId.replace('module', '')}`);
         if (!res.ok) throw new Error('Network response was not ok');
         const data = await res.json();
         setRawContent(data);
@@ -40,63 +43,38 @@ export default function Module1() {
       }
     }
     fetchContent();
-  }, []);
+  }, [moduleId]);
 
   useEffect(() => {
     if (!rawContent.length) return;
 
     const moduleHeading = rawContent[0]?.Heading ?? 'Module';
+    const out = [];
 
-    const byOverview = (ov) =>
-      rawContent.filter((r) => (r.Overview || '').trim().toLowerCase() === ov.toLowerCase());
+    // Reading slides
+    rawContent.forEach((item) => {
+      if (item.Reading && !item.Question && (!item.Overview || !['common misconceptions', 'correction'].includes(item.Overview.trim().toLowerCase()))) {
+        out.push({
+          type: 'reading',
+          heading: moduleHeading,
+          overview: item.Overview,
+          text: item.Reading,
+        });
+      }
+    });
 
-    const overviewSlide = byOverview('overview')[0];
-    const whatIsSlide = byOverview('What is Sustainability in Software Engineering?')[0];
-    const whySlide = byOverview('Why Sustainability Matters in Software')[0];
-    const knowledgeSlide = rawContent.find((r) => r.Question && r.Question.trim().length > 0);
-
+    // Misconceptions and corrections
     const misRows = rawContent.filter(
       (r) => (r.Overview || '').trim().toLowerCase() === 'common misconceptions'
     );
     const corRows = rawContent.filter(
       (r) => (r.Overview || '').trim().toLowerCase() === 'correction'
     );
-
-    const misPairs = misRows.map((m, i) => ({
-      misconception: m.Reading?.trim() ?? '',
-      correction: corRows[i]?.Reading?.trim() ?? '',
-    }));
-
-    const out = [];
-
-    if (overviewSlide) {
-      out.push({
-        type: 'reading',
-        heading: moduleHeading,
-        overview: overviewSlide.Overview,
-        text: overviewSlide.Reading,
-      });
-    }
-
-    if (whatIsSlide) {
-      out.push({
-        type: 'reading',
-        heading: moduleHeading,
-        overview: whatIsSlide.Overview,
-        text: whatIsSlide.Reading,
-      });
-    }
-
-    if (whySlide) {
-      out.push({
-        type: 'reading',
-        heading: moduleHeading,
-        overview: whySlide.Overview,
-        text: whySlide.Reading,
-      });
-    }
-
-    if (misPairs.length) {
+    if (misRows.length && corRows.length) {
+      const misPairs = misRows.map((m, i) => ({
+        misconception: m.Reading?.trim() ?? '',
+        correction: corRows[i]?.Reading?.trim() ?? '',
+      }));
       out.push({
         type: 'misTable',
         heading: moduleHeading,
@@ -105,18 +83,21 @@ export default function Module1() {
       });
     }
 
-    if (knowledgeSlide) {
-      out.push({
-        type: 'quiz',
-        heading: moduleHeading,
-        overview: knowledgeSlide.Overview || 'Knowledge Check',
-        question: knowledgeSlide.Question,
-        options: knowledgeSlide.Reading
-          ? knowledgeSlide.Reading.split(/(?=[A-D]\.\s)/g).map((s) => s.trim()).filter(Boolean)
-          : [],
-        answer: knowledgeSlide.Answer?.trim() ?? '',
-      });
-    }
+    // Quiz slides
+    rawContent.forEach((item) => {
+      if (item.Question && item.Question.trim().length > 0) {
+        out.push({
+          type: 'quiz',
+          heading: moduleHeading,
+          overview: item.Overview || 'Knowledge Check',
+          question: item.Question,
+          options: item.Reading
+            ? item.Reading.split(/(?=[A-D]\.\s)/g).map((s) => s.trim()).filter(Boolean)
+            : [],
+          answer: item.Answer?.trim() ?? '',
+        });
+      }
+    });
 
     setSlides(out);
   }, [rawContent]);

@@ -23,6 +23,7 @@ const TrainingModule = () => (
     <p className="text-green-700 text-center mb-4">
       Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
     </p>
+    <ModuleWrapper>
    <Module 
     title="MODULE 1: What Is Sustainability" 
     subtitle="Introduction to sustainability and its relevance in tech" 
@@ -74,7 +75,15 @@ const TrainingModule = () => (
     borderColor="border-white" 
     href="/modules/module7"
     icon="/M7.jpg" />
+    </ModuleWrapper>
   </div>
 );
-
+// Modified ModuleWrapper to accept components as props and render children
+const ModuleWrapper = ({ children, component: Component = 'div', ...props }) => (
+  <Component
+    {...props}
+  >
+    {children}
+  </Component>
+);
 export default TrainingModule;
