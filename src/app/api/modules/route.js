@@ -12,7 +12,7 @@ async function getDbConnection() {
   });
   return connection;
 }
-
+// Get the module ID, Heading and Subheading from the Modules table
 export async function GET() {
   const connection = await getDbConnection();
   try {
