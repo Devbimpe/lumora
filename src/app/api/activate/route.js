@@ -1,6 +1,7 @@
-import pool from '../../../../db/db.js';
+import pool from '@db/db.js';
 import { cookies as getCookies } from 'next/headers'; 
-import { serialize } from 'cookie'; // npm install cookie
+// Install cookie with command "npm install cookie" before running this code
+import { serialize } from 'cookie'; 
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);

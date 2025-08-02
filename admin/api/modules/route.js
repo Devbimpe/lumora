@@ -1,11 +1,13 @@
+// Import MySQL library for promise-based database operations
 import mysql from 'mysql2/promise';
-import pool from "../../../db/db.js"
+// Import database connection pool from custom configuration
+import pool from "@db/db.js"
 // Export a function that can be imported by the bridge
 export async function getModules() {
   try {
     
     console.log('✅ Database connected');
-    
+    // Execute query to fetch all modules, selecting ModuleID as 'id' and Heading
     const [modules] = await pool.query(`
       SELECT ModuleID AS id, Heading
       FROM modules
@@ -29,11 +31,14 @@ export async function getModules() {
   }
 }
 
-
+// Adds a new module to the database
+// Expects an object with 'heading' and 'subHeading' properties
+// Returns the inserted module's ID on success
 export async function addModule({ heading, subHeading }) {
   try {
     console.log('📥 Inserting new module...');
-
+    
+    // Insert new module into the database 
     const [result] = await pool.query(
       `INSERT INTO modules (Heading, SubHeading) VALUES (?, ?)`,
       [heading, subHeading]
@@ -51,7 +56,9 @@ export async function addModule({ heading, subHeading }) {
   }
 }
 
-
+// Deletes a module and its related data (submissions, knowledge checks, content)
+// Expects a module ID as input
+// Uses a transaction to ensure data consistency
 export async function deleteModule(id) {
   const connection = await pool.getConnection();
   try {
@@ -104,7 +111,9 @@ export async function deleteModule(id) {
     console.error(`❌ Module deletion failed: ${error.message}`);}
 
 }
-
+// Updates an existing module's heading and subheading
+// Expects an object with 'id', 'heading', and 'subHeading' properties
+// Returns success status and module ID on success
 export async function updateModule({ id, heading, subHeading }) {
   try {
     const [result] = await pool.query(

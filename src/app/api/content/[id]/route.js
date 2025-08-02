@@ -12,12 +12,15 @@ async function getDbConnection() {
   });
   return connection;
 }
+// PUT handler: Updates content for a specific ContentID
+// Expects a JSON body with 'Overview' and 'Reading' fields, and a ContentID from route parameters
 export async function PUT(req, context) {
   const { Overview, Reading } = await req.json();
   const params = await context.params;
   const id = params.id;
   const connection = await getDbConnection();
   try {
+     // Execute query to update the Overview and Reading fields for the specified ContentID
     await connection.execute(
       'UPDATE Content SET Overview = ?, Reading = ? WHERE ContentID = ?',
       [Overview, Reading, id]
@@ -29,9 +32,11 @@ export async function PUT(req, context) {
     await connection.end();
   }
 }
+// GET handler: Retrieves all modules with their ModuleID, Heading, and Subheading
 export async function GET() {
   const connection = await getDbConnection();
   try {
+     // Execute query to fetch ModuleID, Heading, and Subheading from the Modules table
     const [rows] = await connection.query('SELECT ModuleID, Heading, Subheading FROM Modules');
     return NextResponse.json(rows);
   } catch (error) {

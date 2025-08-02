@@ -1,9 +1,8 @@
-import AdminLayout from '../../../../admin/layout.js';
 
+  // Dynamically import the correct admin page component based on the path
 export default async function AdminPage({ params }) {
   const path = params.path?.join('/') || 'dashboard';
   
-  // Dynamically import the correct page component
   let PageComponent;
   try {
     PageComponent = (await import(`../../../../admin/${path}/page`)).default;

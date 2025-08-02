@@ -17,7 +17,8 @@ async function getDbConnection() {
     throw new Error('Failed to connect to database');
   }
 }
-
+// GET handler: Retrieves all content for a specific module
+// Expects a 'moduleId' query parameter in the request URL
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
