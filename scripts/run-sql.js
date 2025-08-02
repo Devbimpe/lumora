@@ -1,3 +1,5 @@
+//** This is the script to run the db by using command npm run db in Terminal*/
+// Load environment variables from .env.local file
 require("dotenv").config({ path: ".env.local" });
 const fs = require("fs");
 const mysql = require("mysql2/promise");

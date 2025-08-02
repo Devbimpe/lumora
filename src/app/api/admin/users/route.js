@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getUsers } from '@admin-root/api/users/route';
-
+import { deleteUser } from '@admin-root/api/users/route';
+import { toggleUserActivation } from '@admin-root/api/users/route';
+// GET handler: Retrieves all users
+// Calls the getUsers function from the bridge and returns its result
 export async function GET() {
   try {
     return await getUsers();
@@ -13,8 +16,8 @@ export async function GET() {
   }
 }
 
-import { deleteUser } from '@admin-root/api/users/route';
-
+// DELETE handler: Deletes a user by ID
+// Expects a JSON body with an 'id' field
 export async function DELETE(req) {
   try {
     const { id } = await req.json();
@@ -35,7 +38,8 @@ export async function DELETE(req) {
   }
 }
 
-import { toggleUserActivation } from '@admin-root/api/users/route';
+// PUT handler: Toggles a user's activation status
+// Expects a JSON body with 'userId' and 'isActivated' fields
 export async function PUT(req) {
   try {
     const { userId, isActivated } = await req.json();

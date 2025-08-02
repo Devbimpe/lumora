@@ -1,5 +1,7 @@
 import pool from '@db/db.js';
 
+// GET handler: Retrieves module details, associated content, and knowledge checks
+// Supports optional filtering by moduleId via query parameter
 export async function GET(request) {
   try {
     const url = new URL(request.url);
@@ -21,14 +23,14 @@ export async function GET(request) {
     `;
 
     const params = [];
-
+    // If moduleId is provided, add a WHERE clause to filter by ModuleID
     if (moduleId) {
       query += ' WHERE Modules.ModuleID = ?';
       params.push(moduleId);
     }
 
     query += ' ORDER BY Content.ContentID ASC';
-
+    // Execute the query with the provided parameters
     const [rows] = await pool.query(query, params);
 
     return new Response(JSON.stringify(rows), {

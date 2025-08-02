@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from "@db/db.js"
-
+// Retrieves all users from the database
+// Returns a JSON response with user data
 export async function getUsers() {
   try {
     
@@ -28,7 +29,9 @@ export async function getUsers() {
     });
   }
 }
-
+// Deletes a user and their related student submissions
+// Expects a user ID as input
+// Uses a transaction to ensure data consistency
 export async function deleteUser(userId) {
   const connection = await pool.getConnection();
   try {
@@ -81,7 +84,9 @@ export async function deleteUser(userId) {
     connection.release();
   }
 }
-
+// Toggles a user's activation status
+// Expects a user ID and new activation status (boolean)
+// Uses a transaction to ensure data consistency
 export async function toggleUserActivation(userId, newStatus) {
   const connection = await pool.getConnection();
   try {
