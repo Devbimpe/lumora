@@ -26,7 +26,7 @@ export const functions = getFunctions(app);
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
 export async function testFirebaseConnections() {
-  console.log('🔥 Testing Firebase connections...');
+  console.log('Testing Firebase connections...');
   
   const requiredEnvVars = [
     'NEXT_PUBLIC_FIREBASE_API_KEY',
@@ -40,7 +40,7 @@ export async function testFirebaseConnections() {
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {
-    console.error('❌ Missing Firebase environment variables:', missingVars);
+    console.error('Missing Firebase environment variables:', missingVars);
     console.log('ℹ️  Please add these variables to your .env.local file');
     return false;
   }
@@ -49,23 +49,23 @@ export async function testFirebaseConnections() {
     console.log('Testing Client Firestore...');
     if (db && typeof db.collection === 'function') {
       const clientTestDoc = await db.collection('_test').doc('connection-test').get();
-      console.log('✅ Firebase Client Firestore connection successful!');
+      console.log('Firebase Client Firestore connection successful!');
     } else {
-      console.log('⚠️  Firestore not properly initialized');
+      console.log('Firestore not properly initialized');
     }
     
     console.log('Testing Client Auth...');
     if (auth) {
-      console.log('✅ Firebase Client Auth connection successful!');
+      console.log('Firebase Client Auth connection successful!');
     } else {
-      console.log('⚠️  Auth not properly initialized');
+      console.log('Auth not properly initialized');
     }
     
-    console.log('🎉 Firebase client connections successful!');
-    console.log('ℹ️  Admin SDK disabled due to Node.js version (requires >= 20.0.0)');
+    console.log('Firebase client connections successful!');
+    console.log('Admin SDK disabled due to Node.js version (requires >= 20.0.0)');
     return true;
   } catch (error) {
-    console.error('❌ Firebase connection failed:', error.message);
+    console.error('Firebase connection failed:', error.message);
     console.error('Full error:', error);
     return false;
   }
