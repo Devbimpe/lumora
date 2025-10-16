@@ -1,4 +1,4 @@
-import pool from '@db/db.js';
+import { getUserByActivationToken, updateUser } from '@db/db.js';
 import { cookies as getCookies } from 'next/headers'; 
 // Install cookie with command "npm install cookie" before running this code
 import { serialize } from 'cookie'; 
@@ -12,32 +12,35 @@ export async function GET(req) {
   }
 
   // Find user by token and check expiry
-  const [users] = await pool.query(
-    `SELECT * FROM Users WHERE activationToken = ? AND isActivated = FALSE AND activationTokenExpires > NOW()`,
-    [token]
-  );
+  const user = await getUserByActivationToken(token);
 
-  if (users.length === 0) {
+  if (!user) {
     // Token invalid or expired
     return Response.json({
       error: 'Activation link has expired. Please sign up again.'
     }, { status: 400 });
   }
 
-  const user = users[0];
+  // Check if token is expired
+  if (user.activationTokenExpires && user.activationTokenExpires.toDate() < new Date()) {
+    return Response.json({
+      error: 'Activation link has expired. Please sign up again.'
+    }, { status: 400 });
+  }
 
   // Activate user and clear token
-  await pool.query(
-    `UPDATE Users SET isActivated = TRUE, activationToken = NULL, activationTokenExpires = NULL WHERE UserID = ?`,
-    [user.UserID]
-  );
+  await updateUser(user.id, {
+    isActivated: true,
+    activationToken: null,
+    activationTokenExpires: null
+  });
 
   // Set a session cookie (simple example, use secure session in production)
   const sessionCookie = serialize('user', JSON.stringify({
-    id: user.UserID,
-    name: user.Name,
-    email: user.Email,
-    userName: user.Username,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    userName: user.username,
   }), {
     httpOnly: true,
     path: '/',

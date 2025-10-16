@@ -1,21 +1,23 @@
-// Import MySQL library for promise-based database operations
-import mysql from 'mysql2/promise';
-// Import database connection pool from custom configuration
-import pool from "@db/db.js"
+// Import database functions from Firestore
+import { getAllModules } from "@db/db.js"
+
 // Export a function that can be imported by the bridge
 export async function getModules() {
   try {
-    
     console.log('✅ Database connected');
-    // Execute query to fetch all modules, selecting ModuleID as 'id' and Heading
-    const [modules] = await pool.query(`
-      SELECT ModuleID AS id, Heading
-      FROM modules
-    `);
+    
+    // Fetch all modules from Firestore
+    const modules = await getAllModules();
+    
+    // Transform to match expected format
+    const formattedModules = modules.map(module => ({
+      id: module.moduleId,
+      Heading: module.heading
+    }));
     
     console.log(`📊 Found ${modules.length} modules`);
     
-    return new Response(JSON.stringify(modules), {
+    return new Response(JSON.stringify(formattedModules), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -38,17 +40,16 @@ export async function addModule({ heading, subHeading }) {
   try {
     console.log('📥 Inserting new module...');
     
-    // Insert new module into the database 
-    const [result] = await pool.query(
-      `INSERT INTO modules (Heading, SubHeading) VALUES (?, ?)`,
-      [heading, subHeading]
-    );
+    const { createModule } = await import("@db/db.js");
+    
+    // Create new module in Firestore
+    const result = await createModule({ heading, subheading: subHeading });
 
-    console.log(`✅ Inserted with ID: ${result.insertId}`);
+    console.log(`✅ Inserted with ID: ${result.moduleId}`);
 
     return {
       success: true,
-      id: result.insertId,
+      id: result.moduleId,
     };
   } catch (error) {
     console.error('❌ Insert failed:', error);
@@ -58,74 +59,33 @@ export async function addModule({ heading, subHeading }) {
 
 // Deletes a module and its related data (submissions, knowledge checks, content)
 // Expects a module ID as input
-// Uses a transaction to ensure data consistency
+// Uses Firestore batch operations to ensure data consistency
 export async function deleteModule(id) {
-  const connection = await pool.getConnection();
   try {
-    await connection.beginTransaction();
-
     console.log(`🗑️ Starting deletion for module ID: ${id}`);
 
-    // 1. Delete student submissions related to this module
-    await connection.query(`
-      DELETE ss
-      FROM StudentSubmissions ss
-      JOIN KnowledgeChecks kc ON ss.KnowledgeCheckID = kc.KnowledgeCheckID
-      JOIN Content c ON kc.ContentID = c.ContentID
-      WHERE c.ModuleID = ?
-    `, [id]);
-    console.log('✅ Deleted related student submissions');
-
-    // 2. Delete knowledge checks related to this module
-    await connection.query(`
-      DELETE kc
-      FROM KnowledgeChecks kc
-      JOIN Content c ON kc.ContentID = c.ContentID
-      WHERE c.ModuleID = ?
-    `, [id]);
-    console.log('✅ Deleted related knowledge checks');
-
-    // 3. Delete content related to this module
-    await connection.query(`
-      DELETE FROM Content
-      WHERE ModuleID = ?
-    `, [id]);
-    console.log('✅ Deleted related content');
-
-    // 4. Finally delete the module itself
-    const [result] = await connection.query(`
-      DELETE FROM Modules
-      WHERE ModuleID = ?
-    `, [id]);
-
-    if (result.affectedRows === 0) {
-      throw new Error('Module not found');
-    }
-    console.log('✅ Deleted module');
-
-    await connection.commit();
-    console.log(` Module ${id} deleted successfully`);
+    // This function handles deletion of module and all related data
+    await (await import("@db/db.js")).deleteModule(id);
+    
+    console.log(`✅ Module ${id} deleted successfully`);
     return { success: true };
   } catch (error) {
-    await connection.rollback();
-    console.error(`❌ Module deletion failed: ${error.message}`);}
-
+    console.error(`❌ Module deletion failed: ${error.message}`);
+    throw error;
+  }
 }
+
 // Updates an existing module's heading and subheading
 // Expects an object with 'id', 'heading', and 'subHeading' properties
 // Returns success status and module ID on success
 export async function updateModule({ id, heading, subHeading }) {
   try {
-    const [result] = await pool.query(
-      `UPDATE modules 
-       SET Heading = ?, SubHeading = ?
-       WHERE ModuleID = ?`,
-      [heading, subHeading, id]
-    );
+    const dbModule = await import("@db/db.js");
     
-    if (result.affectedRows === 0) {
-      throw new Error('Module not found');
-    }
+    await dbModule.updateModule(id, { 
+      heading, 
+      subheading: subHeading 
+    });
     
     return { success: true, id };
   } catch (error) {

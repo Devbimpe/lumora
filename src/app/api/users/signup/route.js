@@ -1,11 +1,12 @@
-// Import database connection pool from custom configuration
-import pool from '@db/db.js';
+// Import database functions
+import { getUserByEmail, getUserByUsername, createUser } from '@db/db.js';
 // Import bcrypt for password hashing
 import bcrypt from 'bcryptjs';
 // Import nodemailer for sending activation emails
 import nodemailer from 'nodemailer';
 // Import crypto for generating secure random tokens
 import crypto from 'crypto';
+import { Timestamp } from 'firebase/firestore';
 
 // POST handler: Handles user signup
 // Expects a JSON body with 'name', 'userName', 'email', and 'password' fields
@@ -20,11 +21,10 @@ export async function POST(req) {
     }
 
     // Check if a user with the provided username or email already exists
-    const [existing] = await pool.query(
-      'SELECT * FROM Users WHERE Username = ? OR Email = ?',
-      [userName, email]
-    );
-    if (existing.length > 0) {
+    const existingByEmail = await getUserByEmail(email);
+    const existingByUsername = await getUserByUsername(userName);
+    
+    if (existingByEmail || existingByUsername) {
       return Response.json({ error: 'Username or email already exists.' }, { status: 400 });
     }
 
@@ -33,14 +33,18 @@ export async function POST(req) {
     // Generate a random activation token (48 bytes, hex-encoded)
     const activationToken = crypto.randomBytes(48).toString('hex');
     // Set token expiration to 30 minutes from now
-    const expires = new Date(Date.now() + 30 * 60 * 1000);
+    const expires = Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000));
 
-    // Insert the new user into the Users table with inactive status
-    await pool.query(
-      `INSERT INTO Users (Username, Password, Email, isActivated, activationToken, activationTokenExpires)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [userName, hashedPassword, email, false, activationToken, expires]
-    );
+    // Create the new user with inactive status
+    await createUser({
+      name: name,
+      username: userName,
+      password: hashedPassword,
+      email: email,
+      isActivated: false,
+      activationToken: activationToken,
+      activationTokenExpires: expires
+    });
 
     // Configure nodemailer transporter for sending emails via Gmail
     const transporter = nodemailer.createTransport({

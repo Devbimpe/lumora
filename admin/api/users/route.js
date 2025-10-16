@@ -1,20 +1,29 @@
 import { NextResponse } from 'next/server';
-import pool from "@db/db.js"
+import { getAllUsers } from "@db/db.js"
+
 // Retrieves all users from the database
 // Returns a JSON response with user data
 export async function getUsers() {
   try {
-    
     console.log('✅ Database connected');
     
-    const [users] = await pool.query(`
-      SELECT *
-      FROM users
-    `);
+    const users = await getAllUsers();
+    
+    // Transform to match expected format with SQL-style field names
+    const formattedUsers = users.map(user => ({
+      UserID: user.id,
+      Username: user.username,
+      Email: user.email,
+      Role: user.role,
+      PercentModulesCompleted: user.percentModulesCompleted || 0,
+      isActivated: user.isActivated,
+      activationToken: user.activationToken,
+      activationTokenExpires: user.activationTokenExpires
+    }));
     
     console.log(`📊 Found ${users.length} users`);
     
-    return new Response(JSON.stringify(users), {
+    return new Response(JSON.stringify(formattedUsers), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -31,81 +40,46 @@ export async function getUsers() {
 }
 // Deletes a user and their related student submissions
 // Expects a user ID as input
-// Uses a transaction to ensure data consistency
+// Uses Firestore batch operations to ensure data consistency
 export async function deleteUser(userId) {
-  const connection = await pool.getConnection();
   try {
-    await connection.beginTransaction();
-
     console.log(`🗑️ Starting deletion for user ID: ${userId}`);
 
-    // 1. Delete student submissions (handles foreign key to KnowledgeChecks)
-    await connection.query(
-      `DELETE FROM StudentSubmissions WHERE StudentID = ?`,
-      [userId]
-    );
-    console.log('✅ Deleted student submissions');
-
-    // Note: The user_modules table isn't in your schema, but if it exists in your actual DB:
-    // await connection.query(
-    //   `DELETE FROM user_modules WHERE UserID = ?`,
-    //   [userId]
-    // );
-    // console.log('✅ Deleted user-module associations');
-
-    // 2. Delete the user
-    const [result] = await connection.query(
-      `DELETE FROM Users WHERE UserID = ?`,
-      [userId]
-    );
-
-    if (result.affectedRows === 0) {
-      throw new Error('User not found');
-    }
-
-    await connection.commit();
+    // This function handles deletion of user and related submissions
+    await (await import("@db/db.js")).deleteUser(userId);
+    
     console.log(`User ${userId} deleted successfully`);
     return { success: true };
   } catch (error) {
-    await connection.rollback();
     console.error(`❌ User deletion failed: ${error.message}`);
     
-    // Handle specific foreign key constraint error
-    if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.errno === 1451) {
-      const newError = new Error(
-        'Cannot delete user. Remove all related records first.'
-      );
-      newError.statusCode = 409;
+    if (error.message.includes('not found')) {
+      const newError = new Error('User not found');
+      newError.statusCode = 404;
       throw newError;
     }
     
     throw error;
-  } finally {
-    connection.release();
   }
 }
+
 // Toggles a user's activation status
 // Expects a user ID and new activation status (boolean)
-// Uses a transaction to ensure data consistency
 export async function toggleUserActivation(userId, newStatus) {
-  const connection = await pool.getConnection();
   try {
-    await connection.beginTransaction();
-
-    const [result] = await connection.query(
-      'UPDATE Users SET isActivated = ? WHERE UserID = ?',
-      [newStatus, userId]
-    );
-
-    if (result.affectedRows === 0) {
+    const { getUserById, updateUser } = await import("@db/db.js");
+    
+    // Check if user exists
+    const user = await getUserById(userId);
+    
+    if (!user) {
       throw new Error('User not found');
     }
 
-    await connection.commit();
+    // Update activation status
+    await updateUser(userId, { isActivated: newStatus });
+    
   } catch (error) {
-    await connection.rollback();
     throw error;
-  } finally {
-    connection.release();
   }
 }

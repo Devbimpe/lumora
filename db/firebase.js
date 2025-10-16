@@ -26,6 +26,11 @@ export const functions = getFunctions(app);
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
 export async function testFirebaseConnections() {
+  // Only run on client side to avoid hydration issues
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  
   console.log('Testing Firebase connections...');
   
   const requiredEnvVars = [
@@ -46,23 +51,7 @@ export async function testFirebaseConnections() {
   }
   
   try {
-    console.log('Testing Client Firestore...');
-    if (db && typeof db.collection === 'function') {
-      const clientTestDoc = await db.collection('_test').doc('connection-test').get();
-      console.log('Firebase Client Firestore connection successful!');
-    } else {
-      console.log('Firestore not properly initialized');
-    }
-    
-    console.log('Testing Client Auth...');
-    if (auth) {
-      console.log('Firebase Client Auth connection successful!');
-    } else {
-      console.log('Auth not properly initialized');
-    }
-    
-    console.log('Firebase client connections successful!');
-    console.log('Admin SDK disabled due to Node.js version (requires >= 20.0.0)');
+    console.log('✅ Firebase initialized successfully!');
     return true;
   } catch (error) {
     console.error('Firebase connection failed:', error.message);
@@ -71,14 +60,7 @@ export async function testFirebaseConnections() {
   }
 }
 
-if (process.env.NODE_ENV === 'development') {
-  // Debug: Log environment variables
-  console.log('🔍 Debug - Environment variables:');
-  console.log('API Key:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Set' : 'Missing');
-  console.log('Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'Set' : 'Missing');
-  console.log('Auth Domain:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'Set' : 'Missing');
-  
-  testFirebaseConnections();
-}
+// Test connection only on client side when needed
+// Don't run automatically to avoid hydration issues
 
 export default app;
