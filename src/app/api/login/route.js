@@ -1,4 +1,4 @@
-import pool from "@db/db.js"
+import { getUserByEmail } from "@db/db.js"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
 
@@ -15,26 +15,25 @@ export async function POST(request) {
     }
 
     // Look for user in database
-    const [users] = await pool.query("SELECT * FROM Users WHERE Email = ?", [email])
+    const user = await getUserByEmail(email)
 
     // Check if user exists
-    if (users.length === 0) {
+    if (!user) {
       console.log("❌ User not found:", email)
       return Response.json({ success: false, message: "Invalid email or password" }, { status: 401 })
     }
 
-    const user = users[0]
-    console.log("👤 Found user:", user.Username)
+    console.log("👤 Found user:", user.username)
     
     //Check if user is Activated
     if(!user.isActivated){
-       if (user.activationTokenExpires && new Date(user.activationTokenExpires) < new Date()) {
+       if (user.activationTokenExpires && user.activationTokenExpires.toDate() < new Date()) {
         return Response.json({ success: false, message: "Activation link expired. Please sign up again." }, { status: 403 })
       }
       return Response.json({ success: false, message: "Account not activated. Please check your email for the activation link." }, { status: 403 })
     }
     // Use bcrypt to compare password with hashed password from database
-    const isPasswordValid = await bcrypt.compare(password, user.Password)
+    const isPasswordValid = await bcrypt.compare(password, user.password)
 
     if (!isPasswordValid) {
       console.log("❌ Invalid password for:", email)
@@ -44,27 +43,27 @@ export async function POST(request) {
     // Create login token
     const token = jwt.sign(
       {
-        userId: user.UserID,
-        email: user.Email,
-        username: user.Username,
-        role: user.Role,
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
       },
       process.env.JWT_SECRET,
       { expiresIn: "24h" },
     )
 
-    console.log("✅ Login successful for:", user.Username)
+    console.log("✅ Login successful for:", user.username)
 
     // Create response with user data
     const response = Response.json({
       success: true,
       message: "Login successful!",
       user: {
-        id: user.UserID,
-        username: user.Username,
-        email: user.Email,
-        role: user.Role,
-        percentCompleted: user.PercentModulesCompleted,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        percentCompleted: user.percentModulesCompleted || 0,
       },
     })
 
