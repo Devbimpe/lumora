@@ -1,8 +1,9 @@
 // Import database functions
 import { getUserByEmail, getUserByUsername, createUser } from '@db/db.js';
-// Import bcrypt for password hashing
-import bcrypt from 'bcryptjs';
-// Import nodemailer for sending activation emails
+// Import Firebase Auth functions
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@db/firebase.js';
+// Import nodemailer for sending custom activation emails
 import nodemailer from 'nodemailer';
 // Import crypto for generating secure random tokens
 import crypto from 'crypto';
@@ -20,39 +21,48 @@ export async function POST(req) {
       return Response.json({ error: 'All fields are required.' }, { status: 400 });
     }
 
-    // Check if a user with the provided username or email already exists
-    const existingByEmail = await getUserByEmail(email);
+    // Check if a user with the provided username already exists in Firestore
     const existingByUsername = await getUserByUsername(userName);
     
-    if (existingByEmail || existingByUsername) {
-      return Response.json({ error: 'Username or email already exists.' }, { status: 400 });
+    if (existingByUsername) {
+      return Response.json({ error: 'Username already exists.' }, { status: 400 });
     }
 
-    // Hash the password with bcrypt (using 10 salt rounds)
-    const hashedPassword = await bcrypt.hash(password, 10);
-    // Generate a random activation token (48 bytes, hex-encoded)
+    // Create Firebase Auth user
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
+
+    // Generate a random activation token for our custom flow (48 bytes, hex-encoded)
     const activationToken = crypto.randomBytes(48).toString('hex');
     // Set token expiration to 30 minutes from now
     const expires = Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000));
 
-    // Create the new user with inactive status
+    // Create the user document in Firestore with our custom fields
     await createUser({
+      firebaseUid: firebaseUser.uid, // Link to Firebase Auth user
       name: name,
       username: userName,
-      password: hashedPassword,
       email: email,
-      isActivated: false,
+      isActivated: false, // We'll set this to true after email verification
       activationToken: activationToken,
-      activationTokenExpires: expires
+      activationTokenExpires: expires,
+      role: 'Student',
+      percentModulesCompleted: 0
     });
 
     // Configure nodemailer transporter for sending emails via Gmail
     const transporter = nodemailer.createTransport({
       service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587, // Use port 587 instead of 465
+      secure: false, // Use TLS instead of SSL
       auth: {
         user: process.env.EMAIL_USER, // Gmail user from environment variables
         pass: process.env.EMAIL_PASS, // Gmail password/app-specific password from environment variables
       },
+      tls: {
+        rejectUnauthorized: false // Allow self-signed certificates
+      }
     });
 
     // Define the activation URL for development environment
@@ -60,18 +70,25 @@ export async function POST(req) {
     const activationUrl = `http://localhost:3000/activate?token=${activationToken}`;
     
     // Send activation email to the user
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER, // Sender email
-      to: email, // Recipient email
-      subject: 'Activate your Lumora Account', // Email subject
-      html: `
-        <p>Hello ${name},</p>
-        <p>Thank you for registering with Lumora!</p>
-        <p>To complete your registration, please click the link below within 30 minutes:</p>
-        <p><a href="${activationUrl}">Activate your account</a></p>
-        <p>If you did not sign up, you can ignore this email.</p>
-      `, // Email body with activation link
-    });
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER, // Sender email
+        to: email, // Recipient email
+        subject: 'Activate your Lumora Account', // Email subject
+        html: `
+          <p>Hello ${name},</p>
+          <p>Thank you for registering with Lumora!</p>
+          <p>To complete your registration, please click the link below within 30 minutes:</p>
+          <p><a href="${activationUrl}">Activate your account</a></p>
+          <p>If you did not sign up, you can ignore this email.</p>
+        `, // Email body with activation link
+      });
+      console.log('✅ Activation email sent successfully');
+    } catch (emailError) {
+      console.error('❌ Failed to send activation email:', emailError.message);
+      // Don't fail the signup if email fails - user can still be created
+      console.log('⚠️ User created but activation email failed to send');
+    }
 
     // Return successful response with instructions for the user
     return Response.json({

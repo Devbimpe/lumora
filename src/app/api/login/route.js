@@ -1,6 +1,7 @@
-import { getUserByEmail } from "@db/db.js"
+import { getUserByFirebaseUid } from "@db/db.js"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@db/firebase.js"
 import jwt from "jsonwebtoken"
-import bcrypt from "bcryptjs"
 
 
 export async function POST(request) {
@@ -14,36 +15,34 @@ export async function POST(request) {
       return Response.json({ success: false, message: "Email and password are required" }, { status: 400 })
     }
 
-    // Look for user in database
-    const user = await getUserByEmail(email)
+    // Authenticate with Firebase Auth
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    const firebaseUser = userCredential.user
 
-    // Check if user exists
+    // Get user data from Firestore using Firebase UID
+    const user = await getUserByFirebaseUid(firebaseUser.uid)
+
+    // Check if user exists in our Firestore
     if (!user) {
-      console.log("❌ User not found:", email)
-      return Response.json({ success: false, message: "Invalid email or password" }, { status: 401 })
+      console.log("❌ User not found in Firestore:", email)
+      return Response.json({ success: false, message: "User data not found. Please contact support." }, { status: 401 })
     }
 
     console.log("👤 Found user:", user.username)
     
-    //Check if user is Activated
+    // Check if user is activated (our custom activation flow)
     if(!user.isActivated){
        if (user.activationTokenExpires && user.activationTokenExpires.toDate() < new Date()) {
         return Response.json({ success: false, message: "Activation link expired. Please sign up again." }, { status: 403 })
       }
       return Response.json({ success: false, message: "Account not activated. Please check your email for the activation link." }, { status: 403 })
     }
-    // Use bcrypt to compare password with hashed password from database
-    const isPasswordValid = await bcrypt.compare(password, user.password)
 
-    if (!isPasswordValid) {
-      console.log("❌ Invalid password for:", email)
-      return Response.json({ success: false, message: "Invalid email or password" }, { status: 401 })
-    }
-
-    // Create login token
+    // Create JWT token for your existing system
     const token = jwt.sign(
       {
         userId: user.id,
+        firebaseUid: firebaseUser.uid,
         email: user.email,
         username: user.username,
         role: user.role,
@@ -67,7 +66,7 @@ export async function POST(request) {
       },
     })
 
-    // Set login cookie
+    // Set login cookie (your existing approach)
     response.headers.set("Set-Cookie", `auth-token=${token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`)
 
     return response
