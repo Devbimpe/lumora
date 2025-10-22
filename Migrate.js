@@ -37,7 +37,7 @@ async function migrate() {
     console.log(`Users migration complete: ${users.length} users migrated\n`);
 
     // ==================== MIGRATE MODULES ====================
-    console.log('📚 Starting Modules migration...');
+    console.log('Starting Modules migration...');
     const [modules] = await conn.execute('SELECT * FROM Modules');
     console.log(`Found ${modules.length} modules.`);
     
