@@ -154,7 +154,7 @@ export default function Login() {
                   />
                   Remember me
                 </label>
-                <a href="#">Forgot password?</a>
+                <a href="/forgot-password">Forgot password?</a>
               </div>
 
               <div className="button">
