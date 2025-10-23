@@ -9,6 +9,37 @@ export default function ForgotPassword() {
     const [message, setMessage] = useState("")
     const [error, setError] = useState("")
 
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+        setError("")
+        setMessage("")
+    
+        try {
+            const response = await fetch("/api/forgot-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            })
+          
+            let data
+            try {
+                data = await response.json()
+            } catch {
+                data = { success: false, message: "Invalid server response" }
+            }
+          
+            if (data.success) {
+                setMessage(data.message)
+            } else {
+                setError(data.message)
+            }
+        } catch (err) {
+            console.error("Network error:", err)
+            setError("Network error. Please try again.")
+        }      
+    }
+
     return (
         <div className="page">
             <main>
