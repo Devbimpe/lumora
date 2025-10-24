@@ -52,9 +52,9 @@ export default function ResetPassword() {
         } catch (err) {
             console.error(err)
             setError("Something went wrong.")
-        }
+        } 
     }
-
+    
     return (
         <div className="page">
             <main>
