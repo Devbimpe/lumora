@@ -15,9 +15,45 @@ export default function ResetPassword() {
 
     useEffect(() => {
         if (!token) {
-        setError("Invalid or missing token.")
+            setError("Invalid or missing token.")
         }
     }, [token])
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setError("")
+        setMessage("")
+    
+        if (!token) {
+            setError("Invalid reset token.")
+            return
+        }
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.")
+            return
+        }
+    
+        setLoading(true)
+
+        try {
+            const response = await fetch("/api/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token, password }),
+            })
+    
+            const data = await response.json()
+            if (data.success) {
+                setMessage("Password reset successful! You can now log in.")
+            } else {
+                setError(data.message)
+            }
+        } catch (err) {
+            console.error(err)
+            setError("Something went wrong.")
+        }
+    }
 
     return (
         <div className="page">
