@@ -1,4 +1,6 @@
+import { getUserByFirebaseUid } from "@db/db.js"
 import jwt from "jsonwebtoken"
+
 
 export async function GET(request) {
   try {
@@ -20,19 +22,33 @@ export async function GET(request) {
       return Response.json({ authenticated: false })
     }
 
-    // Verify the token
-    const decoded = jwt.verify(token,process.env.JWT_SECRET,
-)
-    return Response.json({
-      authenticated: true,
-      user: {
-        id: decoded.userId,
-        username: decoded.username,
-        email: decoded.email,
-        role: decoded.role,
-      },
-    })
+    try {
+      // Verify the JWT token (your existing approach)
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      
+      // Get user data from Firestore using the user ID from JWT
+      const user = await getUserByFirebaseUid(decoded.firebaseUid || decoded.userId);
+      
+      if (!user) {
+        return Response.json({ authenticated: false })
+      }
+
+      return Response.json({
+        authenticated: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          percentCompleted: user.percentModulesCompleted || 0,
+        }
+      })
+    } catch (jwtError) {
+      console.error("JWT verification error:", jwtError);
+      return Response.json({ authenticated: false })
+    }
   } catch (error) {
+    console.error("Auth check error:", error)
     return Response.json({ authenticated: false })
   }
 }

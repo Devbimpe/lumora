@@ -56,6 +56,22 @@ export async function getUserByEmail(email) {
 }
 
 /**
+ * Get user by Firebase UID
+ */
+export async function getUserByFirebaseUid(firebaseUid) {
+  const usersRef = collection(db, COLLECTIONS.USERS);
+  const q = query(usersRef, where('firebaseUid', '==', firebaseUid));
+  const querySnapshot = await getDocs(q);
+  
+  if (querySnapshot.empty) {
+    return null;
+  }
+  
+  const userDoc = querySnapshot.docs[0];
+  return { id: userDoc.id, ...userDoc.data() };
+}
+
+/**
  * Get user by username
  */
 export async function getUserByUsername(username) {

@@ -13,31 +13,33 @@ When Setting up a dev enviroment the developer needs to:
 4. in web browser of your choice go to: http://localhost:3000
 5. You have now successfully set up your development enviroment!! You're one cool dev :D
 
-### Steps on how to set up your database on the local host.
-1. **Install MySQL** (if you have not installed it yet)  
-   You can follow this guide: https://www.youtube.com/watch?v=u96rVINbAUI
+### Steps on how to set up Firebase for your project.
+1. **Create a Firebase project**  
+   - Go to firebase console in Lumora google account
+   - Invite members to the database
+   - Put in a .env.local in the root directory 
 
-2. **Set up the database**  
-   - Open MySQL Workbench and connect to your local MySQL server.
-   - Copy the code from `LUMORA_db.sql` and run it in MySQL Workbench to create the database and tables.
-   - Ensure the SQL runs without errors.
-
-3. **Configure environment variables**  
-   - Open the `.env.local` file in the `lumora` directory.
-   - Replace the placeholder values with your MySQL database information. For example:
+2. **Configure environment variables**  
+   - Create a `.env.local` file in the `lumora` directory.
+   - Add your Firebase configuration variables:
      ```
-     DB_HOST=localhost
-     DB_USER=your_mysql_username
-     DB_PASSWORD=your_mysql_password
-     DB_NAME=lumora_db
+     NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+     NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+     NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
      ```
    - Save the file.
 
-4. **Restart your development server**  
-   - If your dev server is running, restart it to apply the new environment variables.
+3. **Set up Firestore Database**  
+   - In Firebase Console, go to Firestore Database
+   - Create database in production mode
+   - Set up security rules as needed
 
-5. **Test the connection**  
-   - Run the application and verify it connects to your local MySQL database without errors.
+4. **Test the connection**  
+   - Run the application and verify it connects to Firebase without errors.
 
 ### Deploying Lumora
 TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed and a production build has been created.
