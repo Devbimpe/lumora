@@ -4,23 +4,23 @@ import Link from "next/link";
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref>
     <div
-      className={`p-4 ${bgColor} ${borderColor} border-4 mb-4 cursor-pointer hover:bg-opacity-90 flex items-center transition duration-200 hover:scale-105`}
+      className={`p-6 ${bgColor} ${borderColor} border-2 cursor-pointer hover:bg-opacity-80 flex items-center transition duration-300 hover:scale-105 rounded-2xl shadow-lg hover:shadow-xl`}
     >
       {icon && (
-        <img src={icon} alt={title} className="w-16 h-16 mb-2 object-contain mr-4" />
+        <img src={icon} alt={title} className="w-20 h-20 object-contain mr-5" />
       )}
       <div>
         <h2 className="text-xl font-bold text-green-700">{title}</h2>
-        {subtitle && <p className="text-green-700">{subtitle}</p>}
+        {subtitle && <p className="text-green-700 mt-1">{subtitle}</p>}
       </div>
     </div>
   </Link>
 );
 
 const TrainingModule = () => (
-  <div className="container mx-auto p-4">
-    <h1 className="text-3xl font-bold text-green-700 text-center my-4">THE TRAINING MODULES</h1>
-    <p className="text-green-700 text-center mb-4">
+  <div className="container mx-auto p-6 max-w-7xl">
+    <h1 className="text-5xl font-bold text-green-700 text-center my-6">THE TRAINING MODULES</h1>
+    <p className="text-green-700 text-center mb-8 text-lg">
       Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
     </p>
     <ModuleWrapper>
@@ -78,9 +78,10 @@ const TrainingModule = () => (
     </ModuleWrapper>
   </div>
 );
-// Modified ModuleWrapper to accept components as props and render children
+// Modified ModuleWrapper to display modules in a 2-column grid
 const ModuleWrapper = ({ children, component: Component = 'div', ...props }) => (
   <Component
+    className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-7xl mx-auto"
     {...props}
   >
     {children}
