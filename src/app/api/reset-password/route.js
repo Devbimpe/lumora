@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt"
 import { NextResponse } from "next/server"
 import { getAllUsers, updateUser } from "../../../../db/db.js"
-import { adminAuth } from "../../../..//firebaseAdmin.js"
+import { adminAuth } from "../../../../firebaseAdmin.js"
 
 export async function POST(req) {
   const { token, password } = await req.json()
