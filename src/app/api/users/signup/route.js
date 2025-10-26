@@ -72,7 +72,7 @@ export async function POST(req) {
     // Send activation email to the user
     try {
       await transporter.sendMail({
-        from: process.env.EMAIL_USER, // Sender email
+        from: `"Lumora Support" <${process.env.EMAIL_USER}>`, // Sender email
         to: email, // Recipient email
         subject: 'Activate your Lumora Account', // Email subject
         html: `
