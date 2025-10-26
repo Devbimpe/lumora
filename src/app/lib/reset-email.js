@@ -14,7 +14,7 @@ export async function sendResetEmail(to, token) {
 
   // Took the reference from src/app/api/users/signup/route.js
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"Lumora Support" <${process.env.EMAIL_USER}>`,
     to,
     subject: "Reset Your Lumora Account Password",
     html: `
