@@ -45,7 +45,7 @@ export function Header() {
           </Link>
         </div>
         <div className="right">
-          <Link href="/" className="home">
+          <Link href="/" className="about">
             Home
           </Link>
 

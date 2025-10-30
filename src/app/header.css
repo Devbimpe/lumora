@@ -31,14 +31,14 @@ Image{
 }
 .about{
   float: left;
-  font-size: 18;
+  font-size: 18px;
   margin: 20px;
   display: flex;   
   justify-content: center; 
   align-items: center;
 }
 .trainingmodule{
-  font-size: 18;
+  font-size: 18px;
   margin: 20px;
   display: flex;         
   justify-content: center; 
@@ -53,8 +53,8 @@ Image{
 
 .user-welcome {
   color: #333;
-  font-size: 14px;
-  font-weight: 500;
+  margin: 20px;
+  font-size: 18px;
 }
 
 .logout-btn {
@@ -64,7 +64,7 @@ Image{
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 18px;
   margin-left: 20px;
   transition: background-color 0.3s;
 }
