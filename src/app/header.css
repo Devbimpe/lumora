@@ -58,14 +58,16 @@ Image{
 }
 
 .logout-btn {
-  background-color: #ff6b35;
+  background-color: #ff8201;
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
+  width: 150px; 
+  height: 50px; 
   cursor: pointer;
   font-size: 18px;
-  margin-left: 20px;
+  margin: 20px;
   transition: background-color 0.3s;
 }
 
