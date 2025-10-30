@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import Image from 'next/image';
-import './signup.css';
+import '../globals.css';
 
 export default function Page() {
   const [form, setForm] = useState({
@@ -85,120 +85,127 @@ export default function Page() {
   };
 
   return (
-    <div className="container">
-      <h2>Sign up to your account</h2>
-      <div className="form-card">
-        <form
-          className="form"
-          onSubmit={handleSubmit}
-          aria-describedby={error ? 'form-error' : undefined}
-        >
-          <div className="input-group">
-            <label htmlFor="name" className="label">
-              Full Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              placeholder="Enter your full name"
-              className="input"
-              value={form.name}
-              onChange={handleChange}
-              required
-              aria-required="true"
-            />
+    <div className="page">
+      <main>
+        <div className="LoginPage">
+          <h1>Sign up to your account</h1>
+          <div className="Maininfo">
+            <form
+              className="form"
+              onSubmit={handleSubmit}
+              aria-describedby={error ? 'form-error' : undefined}
+            >
+              <div className="info">
+                <label htmlFor="name">
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                />
+              </div>
+              <div className="info">
+                <label htmlFor="userName">
+                  Username
+                </label>
+                <input
+                  id="userName"
+                  name="userName"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={form.userName}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                />
+              </div>
+              <div className="info">
+                <label htmlFor="email">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  aria-describedby={error && error.includes('email') ? 'form-error' : undefined}
+                />
+              </div>
+              <div className="info">
+                <label htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  aria-describedby={error && error.includes('Password') ? 'form-error' : undefined}
+                />
+              </div>
+              <div className="info" style={{ textAlign: "center" }}>
+                {/* Password requirements message */}
+                {!validatePassword(form.password) && form.password && (
+                  <p style= {{ color: "red" }}>
+                    Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).
+                  </p>
+                )}
+              </div>
+              <div className="info">
+                <label htmlFor="confirmPassword">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  aria-describedby={error && error.includes('Passwords do not match') ? 'form-error' : undefined}
+                />
+              </div>
+              <div className="button" style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  aria-busy={isLoading}
+                  aria-label={isLoading ? 'Signing up, please wait' : 'Sign up'}
+                >
+                  {isLoading ? 'Signing up...' : 'Signup'}
+                </button>
+              </div>
+            </form>
+            {/* Move alerts here, below the form */}
+            {error && (
+              <p id="form-error" style={{ color: "red" }} role="alert" aria-live="assertive">
+                {error}
+              </p>
+            )}
+            {success && (
+              <p id="form-success" style={{ color: "green" }} role="alert" aria-live="assertive">
+                {success}
+              </p>
+            )}
           </div>
-          <div className="input-group">
-            <label htmlFor="userName" className="label">
-              Username
-            </label>
-            <input
-              id="userName"
-              type="text"
-              placeholder="Enter your username"
-              className="input"
-              value={form.userName}
-              onChange={handleChange}
-              required
-              aria-required="true"
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="email" className="label">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              className="input"
-              value={form.email}
-              onChange={handleChange}
-              required
-              aria-required="true"
-              aria-describedby={error && error.includes('email') ? 'form-error' : undefined}
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="password" className="label">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              className="input"
-              value={form.password}
-              onChange={handleChange}
-              required
-              aria-required="true"
-              aria-describedby={error && error.includes('Password') ? 'form-error' : undefined}
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="confirmPassword" className="label">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              className="input"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              required
-              aria-required="true"
-              aria-describedby={error && error.includes('Passwords do not match') ? 'form-error' : undefined}
-            />
-          </div>
-          <button
-            type="submit"
-            className="submit-button"
-            disabled={isLoading}
-            aria-busy={isLoading}
-            aria-label={isLoading ? 'Signing up, please wait' : 'Sign up'}
-          >
-            {isLoading ? 'Signing up...' : 'Signup'}
-          </button>
-        </form>
-        {/* Move alerts here, below the form */}
-        {error && (
-          <p id="form-error" className="error" role="alert" aria-live="assertive">
-            {error}
-          </p>
-        )}
-        {success && (
-          <p id="form-success" className="success" role="alert" aria-live="assertive">
-            {success}
-          </p>
-        )}
-        {/* Password requirements message */}
-        {!validatePassword(form.password) && form.password && (
-          <p className="password-requirements">
-            Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).
-          </p>
-        )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
