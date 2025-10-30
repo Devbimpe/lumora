@@ -139,7 +139,7 @@ export default function Login() {
                   disabled={loading}
                   minLength="8"
                 />
-                <small style={{ color: "#666", fontSize: "12px", display: "block", marginTop: "5px" }}>
+                <small style={{ color: "#666", fontSize: "12px", display: "block", marginTop: "5px", textAlign: "center" }}>
                   Password must be 8+ characters with uppercase, lowercase, number, and special character
                 </small>
               </div>
@@ -149,6 +149,7 @@ export default function Login() {
                   <input
                     type="checkbox"
                     id="rememberMe"
+                    style={{ marginRight: "5px" }}
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                   />
@@ -173,7 +174,7 @@ export default function Login() {
 
               <div className="register_link">
                 Don’t have an account?
-                <a href="\signup"> Sign up</a>
+                <a href="\signup">Sign up</a>
               </div>
             </form>
           </div>
