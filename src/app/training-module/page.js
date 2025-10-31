@@ -24,57 +24,30 @@ const TrainingModule = () => (
       Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
     </p>
     <ModuleWrapper>
-   <Module 
-    title="MODULE 1: What Is Sustainability" 
-    subtitle="Introduction to sustainability and its relevance in tech" 
-    bgColor="bg-green-100" 
-    borderColor="border-white" 
-    href="/modules/module1" 
-    icon="/M1.jpg" 
-/>
-    <Module 
-      title="MODULE 2: Dimensions of Sustainability" 
-      subtitle="Environmental, economic, technical and social sustainability" 
-      bgColor="bg-orange-100" 
-      borderColor="border-white" 
-      href="/modules/module2"
-      icon="/M2.jpg" 
+      <Module 
+        title="MODULE 1: Sustainability & Its Dimensions" 
+        subtitle="Understanding sustainability and its three core dimensions in tech" 
+        bgColor="bg-green-100" 
+        borderColor="border-white" 
+        href="/modules/module1" 
+        icon="/M1.jpg" 
       />
-    <Module 
-    title="MODULE 3: Social Sustainability" 
-    subtitle="Understanding the tech industry's social impact and ethical obligations" 
-    bgColor="bg-green-100" 
-    borderColor="border-white"
-    href="/modules/module3" 
-    icon="/M3.jpg" />
-    <Module 
-    title="MODULE 4: Environmental Impact"
-    subtitle="Understanding environmental implications of software development" 
-    bgColor="bg-orange-100" 
-    borderColor="border-white"
-    href="/modules/module4"
-    icon="/M4.jpg"  />
-    <Module 
-    title="MODULE 5: Dimensions of Sustainability" 
-    subtitle="Balancing economic factors with sustainable development practices" 
-    bgColor="bg-green-100" 
-    borderColor="border-white" 
-    href="/modules/module5" 
-    icon="/M5.jpg" />
-    <Module 
-    title="MODULE 6: Social Sustainability" 
-    subtitle="Ethical considerations in technical decision-making processes" 
-    bgColor="bg-orange-100" 
-    borderColor="border-white"
-     href="/modules/module6" 
-     icon="/M6.jpg" />
-    <Module 
-    title="MODULE 7: Implementation Strategies" 
-    subtitle="Practical approaches to implementing sustainable software practices" 
-    bgColor="bg-green-100" 
-    borderColor="border-white" 
-    href="/modules/module7"
-    icon="/M7.jpg" />
+      <Module 
+        title="MODULE 2: Dimensions of Social Sustainability" 
+        subtitle="Exploring equity, well-being, community, and long-term impact" 
+        bgColor="bg-orange-100" 
+        borderColor="border-white" 
+        href="/modules/module2"
+        icon="/M2.jpg" 
+      />
+      <Module 
+        title="MODULE 3: Case Scenarios & Reflective Exercises" 
+        subtitle="Apply your learning through realistic case studies" 
+        bgColor="bg-green-100" 
+        borderColor="border-white"
+        href="/modules/module3" 
+        icon="/M3.jpg" 
+      />
     </ModuleWrapper>
   </div>
 );
