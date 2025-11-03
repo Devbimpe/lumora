@@ -165,11 +165,12 @@ export default function Dashboard() {
         <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
           <div className="flex items-center space-x-2 mb-4">
             <svg
-              className="w-6 h-6"
-              style={{ color: "#16803D" }}
+              className="w-6 h-6 flex-shrink-0"
+              style={{ color: "#16803D", marginTop: "-2px" }}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
             >
               <path
                 strokeLinecap="round"
@@ -180,7 +181,7 @@ export default function Dashboard() {
             </svg>
             <h2 
               className="text-2xl font-bold"
-              style={{ color: "#16803D" }}
+              style={{ color: "#16803D", margin: 0, padding: 0, lineHeight: "1.5rem" }}
             >
               Contact Admin
             </h2>
