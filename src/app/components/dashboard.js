@@ -1,26 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function Dashboard() {
   const [message, setMessage] = useState("")
+  const [modules, setModules] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // Dummy data for modules
-  const modules = [
-    { id: 1, title: "Introduction to React", status: "completed" },
-    { id: 2, title: "Understanding Components", status: "completed" },
-    { id: 3, title: "State Management", status: "completed" },
-    { id: 4, title: "Hooks Deep Dive", status: "not-started" },
-    { id: 5, title: "React Router", status: "not-started" },
-    { id: 6, title: "Performance Optimization", status: "not-started" },
-    { id: 7, title: "Testing React Apps", status: "not-started" },
-    { id: 8, title: "Advanced Patterns", status: "not-started" },
-  ]
+  // Fetch modules from Firebase
+  useEffect(() => {
+    fetchModules()
+  }, [])
+
+  const fetchModules = async () => {
+    try {
+      const response = await fetch("/api/modules")
+      if (!response.ok) {
+        throw new Error("Failed to fetch modules")
+      }
+      const data = await response.json()
+      
+      // Map the modules from API format to dashboard format
+      // Set all modules as "not-started" by default
+      const formattedModules = data.map((module) => ({
+        id: module.ModuleID,
+        title: module.Heading,
+        status: "not-started" // Default to not completed
+      }))
+      
+      setModules(formattedModules)
+    } catch (error) {
+      console.error("Error fetching modules:", error)
+      // Keep empty array on error
+      setModules([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const completedCount = modules.filter(m => m.status === "completed").length
   const notCompletedCount = modules.filter(m => m.status === "not-started").length
   const totalModules = modules.length
-  const progressPercentage = Math.round((completedCount / totalModules) * 100)
+  const progressPercentage = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -120,7 +141,16 @@ export default function Dashboard() {
           </h2>
           
           <div className="space-y-3">
-            {modules.map((module) => (
+            {loading ? (
+              <div className="text-center py-8 text-gray-600">
+                Loading modules...
+              </div>
+            ) : modules.length === 0 ? (
+              <div className="text-center py-8 text-gray-600">
+                No modules available
+              </div>
+            ) : (
+              modules.map((module) => (
               <div
                 key={module.id}
                 className="bg-green-50 rounded-lg p-4 flex items-center justify-between border border-green-200 hover:shadow-md transition-shadow"
@@ -157,7 +187,8 @@ export default function Dashboard() {
                   {module.status === "completed" ? "Completed" : "Not Started"}
                 </span>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
