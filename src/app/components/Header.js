@@ -59,7 +59,9 @@ export function Header() {
             <span className="login">Loading...</span>
           ) : user ? (
             <div className="user-section">
-              <span className="user-welcome">Hi, {user.username}</span>
+              <Link href="/user-profile" className="user-welcome">
+                Hi, {user.username}
+              </Link>
               <button onClick={handleLogout} className="logout-btn">
                 Logout
               </button>
