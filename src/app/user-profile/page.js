@@ -1,5 +1,9 @@
 "use client";
 import { useState } from 'react';
+import PersonalInfo from "./PersonalInfo";
+import Demographics from "./Demographics";
+import Portfolio from "./Portfolio";
+import Settings from "./Settings";
 
 export default function Page() {
     const [activeTab, setActiveTab] = useState("Personal Info");
@@ -32,10 +36,10 @@ export default function Page() {
 
         {/* Tab Content */}
         <div className="mt-10 text-center text-gray-700">
-            {activeTab === "Personal Info"}
-            {activeTab === "Demographics"}
-            {activeTab === "Portfolio"}
-            {activeTab === "Settings"}
+            {activeTab === "Personal Info" && <PersonalInfo />}
+            {activeTab === "Demographics" && <Demographics />}
+            {activeTab === "Portfolio" && <Portfolio />}
+            {activeTab === "Settings" && <Settings />}
         </div>
       </div>
     );
