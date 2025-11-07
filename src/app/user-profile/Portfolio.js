@@ -71,6 +71,25 @@ export default function Portfolio() {
         <input type="text" value={website} onChange={(e) => {setWebsite(e.target.value); validateWebsite(e.target.value)}} placeholder="URL" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
         {websiteError && <p className="text-red-600 text-sm mt-1">{websiteError}</p>}
       </div>
+
+      {/* Preview Links */}
+      {(linkedIn || github || website) && (
+        <div>
+          <hr className="my-6" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">Preview Links</h3>
+          <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
+            {linkedIn && !linkedInError && (
+              <a href={linkedIn} target="_blank" className="flex items-center gap-2 text-green-700 hover:underline mb-2"><Linkedin size={18}/>LinkedIn Profile</a>
+            )}
+            {github && !githubError && (
+              <a href={github} target="_blank" className="flex items-center gap-2 text-green-700 hover:underline mb-2"><Github size={18}/>GitHub Profile</a>
+            )}
+            {website && !websiteError && (
+              <a href={website} target="_blank" className="flex items-center gap-2 text-green-700 hover:underline"><Globe size={18}/> Personal Website</a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
