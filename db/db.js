@@ -21,7 +21,8 @@ export const COLLECTIONS = {
   MODULES: 'modules',
   CONTENT: 'content',
   KNOWLEDGE_CHECKS: 'knowledgeChecks',
-  STUDENT_SUBMISSIONS: 'studentSubmissions'
+  STUDENT_SUBMISSIONS: 'studentSubmissions',
+  FEEDBACK: 'feedback'
 };
 
 // Tests the Firestore connection
@@ -475,6 +476,38 @@ export async function getSubmissionsByStudentId(studentId) {
   }));
 }
 
+// ==================== FEEDBACK OPERATIONS ====================
+
+/**
+ * Create a feedback entry
+ */
+export async function createFeedback(feedbackData) {
+  const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
+  
+  const docRef = await addDoc(feedbackRef, {
+    userId: feedbackData.userId,
+    message: feedbackData.message,
+    type: feedbackData.type, // 'General' (string) or module ID (number/string)
+    createdAt: Timestamp.now()
+  });
+  
+  return docRef.id;
+}
+
+/**
+ * Get feedback by user ID
+ */
+export async function getFeedbackByUserId(userId) {
+  const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
+  const q = query(feedbackRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+
 // For backward compatibility with existing code
 export default {
   testConnection,
@@ -498,5 +531,7 @@ export default {
   getKnowledgeChecksByContentId,
   getModuleWithContent,
   createStudentSubmission,
-  getSubmissionsByStudentId
+  getSubmissionsByStudentId,
+  createFeedback,
+  getFeedbackByUserId
 };
