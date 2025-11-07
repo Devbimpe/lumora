@@ -71,6 +71,9 @@ export default function Dashboard() {
     setSubmitStatus(null)
 
     try {
+      // Convert "general" to "General", otherwise use the module ID as-is
+      const feedbackType = selectedModule === "general" ? "General" : selectedModule
+      
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: {
@@ -78,7 +81,7 @@ export default function Dashboard() {
         },
         body: JSON.stringify({
           message: message.trim(),
-          type: selectedModule
+          type: feedbackType
         })
       })
 

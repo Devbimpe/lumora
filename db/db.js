@@ -487,7 +487,7 @@ export async function createFeedback(feedbackData) {
   const docRef = await addDoc(feedbackRef, {
     userId: feedbackData.userId,
     message: feedbackData.message,
-    type: feedbackData.type, // 'general' or module ID
+    type: feedbackData.type, // 'General' (string) or module ID (number/string)
     createdAt: Timestamp.now()
   });
   
