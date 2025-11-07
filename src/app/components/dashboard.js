@@ -4,13 +4,30 @@ import { useState, useEffect } from "react"
 
 export default function Dashboard() {
   const [message, setMessage] = useState("")
+  const [selectedModule, setSelectedModule] = useState("")
   const [modules, setModules] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState(null) // 'success' or 'error'
+  const [user, setUser] = useState(null)
 
-  // Fetch modules from Firebase
+  // Fetch modules from Firebase and get current user
   useEffect(() => {
     fetchModules()
+    checkAuthStatus()
   }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch("/api/check-auth")
+      const data = await response.json()
+      if (data.authenticated) {
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error)
+    }
+  }
 
   const fetchModules = async () => {
     try {
@@ -43,13 +60,51 @@ export default function Dashboard() {
   const totalModules = modules.length
   const progressPercentage = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Handle form submission here
-    console.log("Message sent:", message)
-    setMessage("")
-    alert("Message sent successfully!")
+    
+    if (!isFormValid || !user) {
+      return
+    }
+
+    setSubmitting(true)
+    setSubmitStatus(null)
+
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message.trim(),
+          type: selectedModule
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setSubmitStatus("success")
+        setMessage("")
+        setSelectedModule("")
+        // Clear status message after 3 seconds
+        setTimeout(() => {
+          setSubmitStatus(null)
+        }, 3000)
+      } else {
+        setSubmitStatus("error")
+        console.error("Failed to submit feedback:", data.message)
+      }
+    } catch (error) {
+      setSubmitStatus("error")
+      console.error("Error submitting feedback:", error)
+    } finally {
+      setSubmitting(false)
+    }
   }
+
+  const isFormValid = selectedModule !== "" && message.trim() !== ""
 
   return (
     <div className="min-h-screen py-8 px-4" style={{ backgroundColor: "#FFF8E1" }}>
@@ -192,7 +247,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Contact Admin Section */}
+        {/* Feedback Section */}
         <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
           <div className="flex items-center space-x-2 mb-4">
             <svg
@@ -214,11 +269,35 @@ export default function Dashboard() {
               className="text-2xl font-bold"
               style={{ color: "#16803D", margin: 0, padding: 0, lineHeight: "1.5rem" }}
             >
-              Contact Admin
+              Feedback
             </h2>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="module"
+                className="block font-medium mb-2 text-gray-800"
+              >
+                Select Module
+              </label>
+              <select
+                id="module"
+                value={selectedModule}
+                onChange={(e) => setSelectedModule(e.target.value)}
+                className="w-full px-4 py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                required
+              >
+                <option value="">-- Select a module --</option>
+                <option value="general">General</option>
+                {modules.map((module) => (
+                  <option key={module.id} value={module.id}>
+                    {module.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label
                 htmlFor="message"
@@ -237,11 +316,27 @@ export default function Dashboard() {
               ></textarea>
             </div>
 
+            {submitStatus === "success" && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+                Feedback submitted successfully!
+              </div>
+            )}
+            {submitStatus === "error" && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+                Failed to submit feedback. Please try again.
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-orange-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-orange-600 transition-colors duration-200"
+              disabled={!isFormValid || submitting}
+              className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 ${
+                isFormValid && !submitting
+                  ? "bg-orange-500 text-white hover:bg-orange-600 cursor-pointer"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
             >
-              Send Message
+              {submitting ? "Submitting..." : "Send Message"}
             </button>
           </form>
         </div>
