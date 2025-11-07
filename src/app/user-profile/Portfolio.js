@@ -9,6 +9,7 @@ export default function Portfolio() {
   const [linkedInError, setLinkedInError] = useState("");
   const [githubError, setGithubError] = useState("");
   const [websiteError, setWebsiteError] = useState("");
+  const [save, setSave] = useState("");
 
   const validateLinkedIn = (value) => {
     const regex = /^https:\/\/(www\.)?linkedin\.com\/in\/.+$/; // Took the reference from https://regex101.com/library
@@ -36,7 +37,44 @@ export default function Portfolio() {
       setWebsiteError("");
     }
   };
-  
+
+  const handleSave = async () => {
+    if (!userId) {
+      setSave("User not logged in.");
+      return;
+    }
+    
+    if (linkedInError || githubError || websiteError) {
+      setSave("Fix errors before saving.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/user-profile-portfolio", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          linkedIn,
+          github,
+          website,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSave("Saved successfully!");
+      } else {
+        setSave(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error(error);
+      setSave("Error saving links.");
+    }
+  };
+
   return (
     <div className="bg-white p-6 text-left rounded-xl shadow-sm border border-gray-200">
       <p className="text-xl text-green-700 mb-2">Portfolio Links</p>
@@ -71,6 +109,12 @@ export default function Portfolio() {
         <input type="text" value={website} onChange={(e) => {setWebsite(e.target.value); validateWebsite(e.target.value)}} placeholder="URL" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
         {websiteError && <p className="text-red-600 text-sm mt-1">{websiteError}</p>}
       </div>
+
+      {/* Save Button */}
+      <div className="flex justify-center">
+        <button onClick={handleSave} className="bg-green-700 text-white px-5 py-2 rounded-lg hover:bg-green-800 transition">Save</button>
+      </div>
+      {save && <p className="mt-2 text-sm text-gray-700 text-center">{save}</p>}
 
       {/* Preview Links */}
       {(linkedIn || github || website) && (
