@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Globe, Linkedin, Github} from "lucide-react"; // Took the reference from https://lucide.dev/icons/
 
-export default function Portfolio() {
+export default function Portfolio({ userId }) {
   const [linkedIn, setLinkedIn] = useState("");
   const [github, setGithub] = useState("");
   const [website, setWebsite] = useState("");
@@ -37,6 +37,24 @@ export default function Portfolio() {
       setWebsiteError("");
     }
   };
+
+  useEffect(() => {
+    async function loadData() {
+      if (!userId) return;
+  
+      const res = await fetch(`/api/user-profile-portfolio?userId=${userId}`);
+      if (!res.ok) return;
+  
+      const data = await res.json();
+      const portfolio = data.user.portfolio || {};
+  
+      setLinkedIn(portfolio.linkedIn || "");
+      setGithub(portfolio.github || "");
+      setWebsite(portfolio.website || "");
+    }
+  
+    loadData();
+  }, [userId]);  
 
   const handleSave = async () => {
     if (!userId) {
