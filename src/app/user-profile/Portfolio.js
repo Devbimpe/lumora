@@ -6,7 +6,37 @@ export default function Portfolio() {
   const [linkedIn, setLinkedIn] = useState("");
   const [github, setGithub] = useState("");
   const [website, setWebsite] = useState("");
+  const [linkedInError, setLinkedInError] = useState("");
+  const [githubError, setGithubError] = useState("");
+  const [websiteError, setWebsiteError] = useState("");
 
+  const validateLinkedIn = (value) => {
+    const regex = /^https:\/\/(www\.)?linkedin\.com\/in\/.+$/; // Took the reference from https://regex101.com/library
+    if (!regex.test(value) && value !== "") {
+      setLinkedInError("Enter a valid LinkedIn URL (https://linkedin.com/in/username)");
+    } else {
+      setLinkedInError("");
+    }
+  };
+
+  const validateGitHub = (value) => {
+    const regex = /^https:\/\/(www\.)?github\.com\/.+$/; // Took the reference from https://regex101.com/library
+    if (!regex.test(value) && value !== "") {
+      setGithubError("Enter a valid GitHub URL (https://github.com/username)");
+    } else {
+      setGithubError("");
+    }
+  };
+
+  const validateWebsite = (value) => {
+    const regex = /^(https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9](\/.*)?$/i; // Took the reference from https://regexr.com/3au3g
+    if (!regex.test(value) && value !== "") {
+      setWebsiteError("Enter a valid website URL (e.g., https://yourwebsite.com)");
+    } else {
+      setWebsiteError("");
+    }
+  };
+  
   return (
     <div className="bg-white p-6 text-left rounded-xl shadow-sm border border-gray-200">
       <p className="text-xl text-green-700 mb-2">Portfolio Links</p>
@@ -18,7 +48,8 @@ export default function Portfolio() {
           <Linkedin size={18} className="text-green-700" />
           <b>LinkedIn Profile</b>
         </p>
-        <input type="text" value={linkedIn} onChange={(e) => setLinkedIn(e.target.value)} placeholder="https://linkedin.com/in/username" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        <input type="text" value={linkedIn} onChange={(e) => {setLinkedIn(e.target.value); validateLinkedIn(e.target.value);}} placeholder="https://linkedin.com/in/username" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        {linkedInError && <p className="text-red-600 text-sm mt-1">{linkedInError}</p>}
       </div>
 
       {/* GitHub */}
@@ -27,7 +58,8 @@ export default function Portfolio() {
           <Github size={18} className="text-green-700" />
           <b>GitHub Profile</b>
         </p>
-        <input type="text" value={github} onChange={(e) => setGithub(e.target.value)} placeholder="https://github.com/username" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        <input type="text" value={github} onChange={(e) => {setGithub(e.target.value); validateGitHub(e.target.value);}} placeholder="https://github.com/username" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        {githubError && <p className="text-red-600 text-sm mt-1">{githubError}</p>}
       </div>
 
       {/* Website */}
@@ -36,7 +68,8 @@ export default function Portfolio() {
           <Globe size={18} className="text-green-700" />
           <b>Personal Website</b>
         </p>
-        <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="URL" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        <input type="text" value={website} onChange={(e) => {setWebsite(e.target.value); validateWebsite(e.target.value)}} placeholder="URL" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        {websiteError && <p className="text-red-600 text-sm mt-1">{websiteError}</p>}
       </div>
     </div>
   );
