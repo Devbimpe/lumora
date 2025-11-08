@@ -10,6 +10,7 @@ export default function Portfolio({ userId }) {
   const [githubError, setGithubError] = useState("");
   const [websiteError, setWebsiteError] = useState("");
   const [save, setSave] = useState("");
+  const [saveError, setSaveError] = useState("red");
 
   const validateLinkedIn = (value) => {
     const regex = /^https:\/\/(www\.)?linkedin\.com\/in\/.+$/; // Took the reference from https://regex101.com/library
@@ -59,11 +60,13 @@ export default function Portfolio({ userId }) {
   const handleSave = async () => {
     if (!userId) {
       setSave("User not logged in.");
+      setSaveError("red");
       return;
     }
     
     if (linkedInError || githubError || websiteError) {
       setSave("Fix errors before saving.");
+      setSaveError("red");
       return;
     }
 
@@ -83,13 +86,16 @@ export default function Portfolio({ userId }) {
 
       const data = await res.json();
       if (res.ok) {
-        setSave("Saved successfully!");
+        setSave("Saved Successfully!");
+        setSaveError("green");
       } else {
         setSave(`Error: ${data.error}`);
+        setSaveError("red");
       }
     } catch (error) {
       console.error(error);
       setSave("Error saving links.");
+      setSaveError("red");
     }
   };
 
@@ -132,7 +138,7 @@ export default function Portfolio({ userId }) {
       <div className="flex justify-center">
         <button onClick={handleSave} className="bg-green-700 text-white px-5 py-2 rounded-lg hover:bg-green-800 transition">Save</button>
       </div>
-      {save && <p className="mt-2 text-sm text-gray-700 text-center">{save}</p>}
+      {save && <p className={`mt-2 text-sm text-center ${saveError === "red" ? "text-red-600" : "text-green-700"}`}>{save}</p>}
 
       {/* Preview Links */}
       {(linkedIn || github || website) && (
