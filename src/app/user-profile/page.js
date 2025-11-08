@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PersonalInfo from "./PersonalInfo";
 import Demographics from "./Demographics";
 import Portfolio from "./Portfolio";
@@ -8,7 +8,22 @@ import Settings from "./Settings";
 export default function Page() {
     const [activeTab, setActiveTab] = useState("Personal Info");
     const tabs = ["Personal Info", "Demographics", "Portfolio", "Settings"];
+    const [userId, setUserId] = useState(null);
 
+    useEffect(() => {
+      async function loadUser() {
+        const res = await fetch("/api/check-auth");
+        const data = await res.json();
+    
+        if (data.authenticated) {
+          setUserId(data.user.id); 
+        } else {
+          console.log("User not logged in");
+        }
+      }
+    
+      loadUser();
+    }, []);
 
     return (
       <div className="container mx-auto p-6 max-w-7xl">
@@ -38,7 +53,7 @@ export default function Page() {
         <div className="mt-10 text-center text-gray-700">
             {activeTab === "Personal Info" && <PersonalInfo />}
             {activeTab === "Demographics" && <Demographics />}
-            {activeTab === "Portfolio" && <Portfolio />}
+            {activeTab === "Portfolio" && <Portfolio userId={userId}/>}
             {activeTab === "Settings" && <Settings />}
         </div>
       </div>
