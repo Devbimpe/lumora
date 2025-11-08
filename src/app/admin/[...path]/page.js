@@ -1,7 +1,6 @@
-
-  // Dynamically import the correct admin page component based on the path
 export default async function AdminPage({ params }) {
-  const path = params.path?.join('/') || 'dashboard';
+  const resolvedParams = await params;
+  const path = resolvedParams.path?.join('/') || 'dashboard';
   
   let PageComponent;
   try {
@@ -11,6 +10,6 @@ export default async function AdminPage({ params }) {
   }
 
   return (
-      <PageComponent /> 
+    <PageComponent /> 
   );
 }
