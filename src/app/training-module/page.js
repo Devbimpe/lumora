@@ -1,4 +1,6 @@
-import React from "react";
+"use client"
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
@@ -17,40 +19,6 @@ const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   </Link>
 );
 
-const TrainingModule = () => (
-  <div className="container mx-auto p-6 max-w-7xl">
-    <h1 className="text-5xl font-bold text-green-700 text-center my-6">THE TRAINING MODULES</h1>
-    <p className="text-green-700 text-center mb-8 text-lg">
-      Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
-    </p>
-    <ModuleWrapper>
-      <Module 
-        title="MODULE 1: Sustainability & Its Dimensions" 
-        subtitle="Understanding sustainability and its three core dimensions in tech" 
-        bgColor="bg-green-100" 
-        borderColor="border-white" 
-        href="/modules/module1" 
-        icon="/M1.jpg" 
-      />
-      <Module 
-        title="MODULE 2: Dimensions of Social Sustainability" 
-        subtitle="Exploring equity, well-being, community, and long-term impact" 
-        bgColor="bg-orange-100" 
-        borderColor="border-white" 
-        href="/modules/module2"
-        icon="/M2.jpg" 
-      />
-      <Module 
-        title="MODULE 3: Case Scenarios & Reflective Exercises" 
-        subtitle="Apply your learning through realistic case studies" 
-        bgColor="bg-green-100" 
-        borderColor="border-white"
-        href="/modules/module3" 
-        icon="/M3.jpg" 
-      />
-    </ModuleWrapper>
-  </div>
-);
 // Modified ModuleWrapper to display modules in a 2-column grid
 const ModuleWrapper = ({ children, component: Component = 'div', ...props }) => (
   <Component
@@ -60,4 +28,73 @@ const ModuleWrapper = ({ children, component: Component = 'div', ...props }) => 
     {children}
   </Component>
 );
+
+const TrainingModule = () => {
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchModules() {
+      try {
+        const response = await fetch("/api/modules");
+        if (!response.ok) {
+          throw new Error("Failed to fetch modules");
+        }
+        const data = await response.json();
+        
+        // Map API data to component format
+        const formattedModules = data.map((module, index) => ({
+          id: module.ModuleID,
+          title: `MODULE ${module.ModuleID}: ${module.Heading}`,
+          subtitle: module.Subheading || "",
+          href: `/modules/module${module.ModuleID}`,
+          icon: `/M${module.ModuleID}.jpg`,
+          bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
+        }));
+        
+        setModules(formattedModules);
+      } catch (error) {
+        console.error("Error fetching modules:", error);
+        setModules([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchModules();
+  }, []);
+
+  return (
+    <div className="container mx-auto p-6 max-w-7xl">
+      <h1 className="text-5xl font-bold text-green-700 text-center my-6">THE TRAINING MODULES</h1>
+      <p className="text-green-700 text-center mb-8 text-lg">
+        Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
+      </p>
+      {loading ? (
+        <div className="text-center py-8 text-gray-600">
+          Loading modules...
+        </div>
+      ) : modules.length === 0 ? (
+        <div className="text-center py-8 text-gray-600">
+          No modules available
+        </div>
+      ) : (
+        <ModuleWrapper>
+          {modules.map((module) => (
+            <Module
+              key={module.id}
+              title={module.title}
+              subtitle={module.subtitle}
+              bgColor={module.bgColor}
+              borderColor="border-white"
+              href={module.href}
+              icon={module.icon}
+            />
+          ))}
+        </ModuleWrapper>
+      )}
+    </div>
+  );
+};
+
 export default TrainingModule;
