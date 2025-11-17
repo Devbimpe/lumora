@@ -22,7 +22,8 @@ export const COLLECTIONS = {
   CONTENT: 'content',
   KNOWLEDGE_CHECKS: 'knowledgeChecks',
   STUDENT_SUBMISSIONS: 'studentSubmissions',
-  FEEDBACK: 'feedback'
+  FEEDBACK: 'feedback',
+  USER_PROGRESS: 'userProgress'
 };
 
 // Tests the Firestore connection
@@ -474,6 +475,132 @@ export async function getSubmissionsByStudentId(studentId) {
     id: doc.id,
     ...doc.data()
   }));
+}
+
+// ==================== USER PROGRESS OPERATIONS ====================
+
+/**
+ * Get user progress for all modules
+ */
+export async function getUserProgress(userId) {
+  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
+  const q = query(progressRef, where('userId', '==', userId));
+  const querySnapshot = await getDocs(q);
+  
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+
+/**
+ * Get user progress for a specific module
+ */
+export async function getUserModuleProgress(userId, moduleId) {
+  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
+  const q = query(
+    progressRef, 
+    where('userId', '==', userId),
+    where('moduleId', '==', parseInt(moduleId))
+  );
+  const querySnapshot = await getDocs(q);
+  
+  if (querySnapshot.empty) {
+    return null;
+  }
+  
+  return {
+    id: querySnapshot.docs[0].id,
+    ...querySnapshot.docs[0].data()
+  };
+}
+
+/**
+ * Update or create user progress for a module
+ */
+export async function updateUserModuleProgress(userId, moduleId, progressData) {
+  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
+  const q = query(
+    progressRef,
+    where('userId', '==', userId),
+    where('moduleId', '==', parseInt(moduleId))
+  );
+  const querySnapshot = await getDocs(q);
+  
+  const progressDataWithTimestamp = {
+    ...progressData,
+    userId,
+    moduleId: parseInt(moduleId),
+    updatedAt: Timestamp.now()
+  };
+  
+  if (querySnapshot.empty) {
+    // Create new progress entry
+    progressDataWithTimestamp.createdAt = Timestamp.now();
+    const docRef = await addDoc(progressRef, progressDataWithTimestamp);
+    return docRef.id;
+  } else {
+    // Update existing progress entry
+    const docRef = querySnapshot.docs[0].ref;
+    await updateDoc(docRef, progressDataWithTimestamp);
+    return docRef.id;
+  }
+}
+
+/**
+ * Mark content as viewed
+ */
+export async function markContentViewed(userId, moduleId, contentId) {
+  const progress = await getUserModuleProgress(userId, moduleId);
+  
+  const viewedContent = progress?.viewedContent || [];
+  if (!viewedContent.includes(parseInt(contentId))) {
+    viewedContent.push(parseInt(contentId));
+  }
+  
+  const completedContent = progress?.completedContent || [];
+  const isCompleted = completedContent.includes(parseInt(contentId));
+  
+  return await updateUserModuleProgress(userId, moduleId, {
+    viewedContent,
+    completedContent: isCompleted ? completedContent : [...completedContent],
+    lastViewedContentId: parseInt(contentId),
+    lastViewedAt: Timestamp.now()
+  });
+}
+
+/**
+ * Mark content as completed (for quizzes, when answered correctly)
+ */
+export async function markContentCompleted(userId, moduleId, contentId) {
+  const progress = await getUserModuleProgress(userId, moduleId);
+  
+  const completedContent = progress?.completedContent || [];
+  if (!completedContent.includes(parseInt(contentId))) {
+    completedContent.push(parseInt(contentId));
+  }
+  
+  const viewedContent = progress?.viewedContent || [];
+  if (!viewedContent.includes(parseInt(contentId))) {
+    viewedContent.push(parseInt(contentId));
+  }
+  
+  return await updateUserModuleProgress(userId, moduleId, {
+    viewedContent,
+    completedContent,
+    lastCompletedContentId: parseInt(contentId),
+    lastCompletedAt: Timestamp.now()
+  });
+}
+
+/**
+ * Mark module as completed
+ */
+export async function markModuleCompleted(userId, moduleId) {
+  return await updateUserModuleProgress(userId, moduleId, {
+    isCompleted: true,
+    completedAt: Timestamp.now()
+  });
 }
 
 // ==================== FEEDBACK OPERATIONS ====================
