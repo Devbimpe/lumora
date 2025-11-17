@@ -21,7 +21,9 @@ export const COLLECTIONS = {
   MODULES: 'modules',
   CONTENT: 'content',
   KNOWLEDGE_CHECKS: 'knowledgeChecks',
-  STUDENT_SUBMISSIONS: 'studentSubmissions'
+  STUDENT_SUBMISSIONS: 'studentSubmissions',
+  FEEDBACK: 'feedback', 
+  USER_PROGRESS: 'userProgress',
 };
 
 // Tests the Firestore connection
@@ -461,6 +463,76 @@ export async function createStudentSubmission(submissionData) {
   return docRef.id;
 }
 
+// Fetch Feedback for Admin Dashboard 
+
+/**
+ * Get all feedback with merged user details
+ */
+export async function getAllFeedbackWithUsers() {
+  const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
+  const usersRef = collection(db, COLLECTIONS.USERS);
+
+  const [feedbackSnap, usersSnap] = await Promise.all([
+    getDocs(feedbackRef),
+    getDocs(usersRef),
+  ]);
+
+  const usersMap = {};
+  usersSnap.forEach((u) => (usersMap[u.id] = u.data()));
+
+  return feedbackSnap.docs.map((doc) => {
+    const f = doc.data();
+    const user = usersMap[f.userId] || {};
+
+    let readableType = "Unknown";
+
+    if (f.type === "General") {
+      readableType = "General Feedback";
+    } else if (!isNaN(f.type)) {
+      readableType = `Module ${f.type} Feedback`;
+    }
+
+    return {
+      id: doc.id,
+      ...f,
+      displayType: readableType,
+      userName: user.username || "N/A",
+      fullName: user.name || "N/A",
+    };
+  });
+}
+
+// Fetch User-Progress for Admin Dashboard 
+
+/**
+ * Get all user module progress with merged user details
+ */
+export async function getAllModuleProgressWithUsers() {
+  const progressRef = collection(db, "userProgress");
+  const usersRef = collection(db, COLLECTIONS.USERS);
+
+  const [progressSnap, usersSnap] = await Promise.all([
+    getDocs(progressRef),
+    getDocs(usersRef),
+  ]);
+
+  const usersMap = {};
+  usersSnap.forEach((u) => (usersMap[u.id] = u.data()));
+
+  return progressSnap.docs.map((doc) => {
+    const p = doc.data();
+    const user = usersMap[p.userId] || {};
+
+    return {
+      id: doc.id,
+      ...p,
+      userName: user.username || "N/A",
+      fullName: user.name || "N/A",
+    };
+  });
+}
+
+
 /**
  * Get submissions by student ID
  */
@@ -498,5 +570,7 @@ export default {
   getKnowledgeChecksByContentId,
   getModuleWithContent,
   createStudentSubmission,
-  getSubmissionsByStudentId
+  getSubmissionsByStudentId,
+  getAllModuleProgressWithUsers,
+  getAllFeedbackWithUsers,
 };
