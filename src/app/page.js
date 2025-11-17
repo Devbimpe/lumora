@@ -38,7 +38,7 @@ export default function HomePage() {
   }
 
   if (user) {
-    return <Dashboard />
+    return <Dashboard user={user} />
   }
 
   return (

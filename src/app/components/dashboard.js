@@ -1,21 +1,34 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { 
+  Trophy, 
+  Zap, 
+  Target, 
+  BookOpen, 
+  Award, 
+  Star, 
+  Crown, 
+  CheckCircle2,
+  TrendingUp,
+  Sparkles,
+  Flame,
+  PartyPopper,
+  BarChart3,
+  Rocket,
+  BookMarked,
+  MessageSquare
+} from "lucide-react"
 
-export default function Dashboard() {
+export default function Dashboard({ user: userProp }) {
   const [message, setMessage] = useState("")
   const [selectedModule, setSelectedModule] = useState("")
   const [modules, setModules] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState(null) // 'success' or 'error'
-  const [user, setUser] = useState(null)
-
-  // Fetch modules from Firebase and get current user
-  useEffect(() => {
-    fetchModules()
-    checkAuthStatus()
-  }, [])
+  const [user, setUser] = useState(userProp || null)
+  const fetchingRef = useRef(false) // Prevent duplicate calls
 
   const checkAuthStatus = async () => {
     try {
@@ -29,36 +42,170 @@ export default function Dashboard() {
     }
   }
 
-  const fetchModules = async () => {
+  const fetchModules = useCallback(async () => {
+    // Prevent duplicate calls
+    if (fetchingRef.current) {
+      return
+    }
+    
+    if (!user) {
+      return
+    }
+
+    fetchingRef.current = true
+    setLoading(true)
+    
     try {
-      const response = await fetch("/api/modules")
-      if (!response.ok) {
+      // Batch all API calls together
+      const [modulesResponse, progressResponse, contentCountsResponse] = await Promise.all([
+        fetch("/api/modules"),
+        fetch(`/api/progress?userId=${user.id}`),
+        fetch("/api/module-content-counts") // Get all counts in one call
+      ])
+      
+      if (!modulesResponse.ok) {
         throw new Error("Failed to fetch modules")
       }
-      const data = await response.json()
+      const modulesData = await modulesResponse.json()
       
-      // Map the modules from API format to dashboard format
-      // Set all modules as "not-started" by default
-      const formattedModules = data.map((module) => ({
-        id: module.ModuleID,
-        title: module.Heading,
-        status: "not-started" // Default to not completed
-      }))
+      let progressData = []
+      if (progressResponse && progressResponse.ok) {
+        progressData = await progressResponse.json()
+      }
       
-      setModules(formattedModules)
+      let contentCounts = {}
+      if (contentCountsResponse && contentCountsResponse.ok) {
+        contentCounts = await contentCountsResponse.json()
+      }
+      
+      // Create a map of module progress for quick lookup
+      const progressMap = {}
+      progressData.forEach(progress => {
+        progressMap[progress.moduleId] = progress
+      })
+      
+      // Map the modules from API format to dashboard format with progress
+      const modulesWithProgress = modulesData.map((module) => {
+        const progress = progressMap[module.ModuleID] || null
+        const isCompleted = progress?.isCompleted || false
+        const viewedContent = progress?.viewedContent || []
+        const completedContent = progress?.completedContent || []
+        
+        // Get content count from the batch response
+        const totalContent = contentCounts[module.ModuleID] || 0
+        
+        // Combine viewed and completed, removing duplicates
+        const uniqueViewedContent = [...new Set([...viewedContent, ...completedContent])]
+        const actualViewedCount = uniqueViewedContent.length
+        
+        return {
+          id: module.ModuleID,
+          title: module.Heading,
+          status: isCompleted ? "completed" : viewedContent.length > 0 ? "in-progress" : "not-started",
+          progress: progress,
+          viewedCount: actualViewedCount,
+          completedCount: completedContent.length,
+          totalContent: totalContent,
+          progressPercentage: totalContent > 0 
+            ? Math.round((actualViewedCount / totalContent) * 100)
+            : 0
+        }
+      })
+      
+      setModules(modulesWithProgress)
     } catch (error) {
       console.error("Error fetching modules:", error)
       // Keep empty array on error
       setModules([])
     } finally {
       setLoading(false)
+      fetchingRef.current = false
     }
-  }
+  }, [user])
+
+  // Update user if prop changes
+  useEffect(() => {
+    if (userProp) {
+      setUser(userProp)
+    }
+  }, [userProp])
+
+  // Only check auth if user prop not provided (for direct dashboard access)
+  useEffect(() => {
+    if (!userProp) {
+      checkAuthStatus()
+    }
+  }, [userProp])
+
+  useEffect(() => {
+    if (user && !fetchingRef.current) {
+      fetchModules()
+    }
+  }, [user, fetchModules])
 
   const completedCount = modules.filter(m => m.status === "completed").length
   const notCompletedCount = modules.filter(m => m.status === "not-started").length
+  const inProgressCount = modules.filter(m => m.status === "in-progress").length
   const totalModules = modules.length
   const progressPercentage = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0
+  
+  // Calculate achievements
+  const totalContentViewed = modules.reduce((sum, m) => sum + (m.viewedCount || 0), 0)
+  const totalContentCompleted = modules.reduce((sum, m) => sum + (m.completedCount || 0), 0)
+  
+  // Achievement badges
+  const achievements = [
+    {
+      id: 'first-steps',
+      unlocked: inProgressCount > 0,
+      Icon: Rocket,
+      title: 'First Steps',
+      description: 'Started your learning journey!',
+      color: 'from-blue-400 to-blue-600'
+    },
+    {
+      id: 'module-master',
+      unlocked: completedCount >= 1,
+      Icon: Star,
+      title: 'Module Master',
+      description: 'Completed your first module!',
+      color: 'from-yellow-400 to-yellow-600'
+    },
+    {
+      id: 'halfway-hero',
+      unlocked: progressPercentage >= 50,
+      Icon: Trophy,
+      title: 'Halfway Hero',
+      description: 'You\'re halfway there!',
+      color: 'from-purple-400 to-purple-600'
+    },
+    {
+      id: 'completion-champion',
+      unlocked: completedCount === totalModules && totalModules > 0,
+      Icon: Crown,
+      title: 'Completion Champion',
+      description: 'All modules completed!',
+      color: 'from-orange-400 to-orange-600'
+    },
+    {
+      id: 'content-crusher',
+      unlocked: totalContentViewed >= 10,
+      Icon: BookMarked,
+      title: 'Content Crusher',
+      description: 'Viewed 10+ content items!',
+      color: 'from-green-400 to-green-600'
+    },
+    {
+      id: 'quiz-queen',
+      unlocked: totalContentCompleted >= 5,
+      Icon: Target,
+      title: 'Quiz Queen',
+      description: 'Aced 5+ quizzes!',
+      color: 'from-pink-400 to-pink-600'
+    }
+  ]
+  
+  const unlockedAchievements = achievements.filter(a => a.unlocked)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -113,88 +260,178 @@ export default function Dashboard() {
     <div className="min-h-screen py-8 px-4" style={{ backgroundColor: "#FFF8E1" }}>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header Section */}
-        <div>
-          <h1 
-            className="text-4xl font-bold mb-2"
-            style={{ color: "#16803D" }}
-          >
-            My Learning Progress
-          </h1>
-          <p className="text-gray-700 text-lg">
-            Track your progress and communicate with your instructor
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 
+              className="text-4xl font-bold"
+              style={{ color: "#16803D" }}
+            >
+              My Learning Progress
+            </h1>
+            {progressPercentage === 100 ? (
+              <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
+            ) : progressPercentage >= 50 ? (
+              <Flame className="w-8 h-8 text-orange-500" />
+            ) : (
+              <Sparkles className="w-8 h-8 text-green-500" />
+            )}
+          </div>
+          <p className="text-gray-700 text-lg flex items-center gap-2">
+            <span>Track your progress and communicate with your instructor</span>
+            {unlockedAchievements.length > 0 && (
+              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold flex items-center gap-1">
+                <Award className="w-3 h-3" />
+                {unlockedAchievements.length} Achievement{unlockedAchievements.length !== 1 ? 's' : ''} Unlocked!
+              </span>
+            )}
           </p>
         </div>
 
         {/* Overall Progress Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-          <h2 
-            className="text-2xl font-bold"
-            style={{ color: "#16803D" }}
-          >
-            Overall Progress
-          </h2>
+        <div className="bg-white rounded-lg shadow-md p-6 space-y-6 border-2 border-green-200">
+          <div className="flex items-center justify-between">
+            <h2 
+              className="text-2xl font-bold flex items-center gap-2"
+              style={{ color: "#16803D" }}
+            >
+              <BarChart3 className="w-7 h-7" />
+              Overall Progress
+            </h2>
+            {progressPercentage === 100 && (
+              <PartyPopper className="w-6 h-6 text-yellow-500 animate-pulse" />
+            )}
+          </div>
           
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="w-full bg-green-100 rounded-full h-4 overflow-hidden">
-              <div
-                className="bg-green-600 h-full rounded-full transition-all duration-300"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
+          {/* Progress Bar with Level Indicator */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                Level {Math.floor(progressPercentage / 25) + 1}
+              </span>
+              <span className="text-2xl font-bold" style={{ color: "#16803D" }}>
+                {progressPercentage}%
+              </span>
             </div>
-            <div className="flex justify-end">
-              <span className="font-medium" style={{ color: "#16803D" }}>{progressPercentage}%</span>
+            <div className="relative w-full bg-green-100 rounded-full h-6 overflow-hidden shadow-inner">
+              <div
+                className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full transition-all duration-500 ease-out relative"
+                style={{ width: `${progressPercentage}%` }}
+              >
+                {progressPercentage > 0 && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+                )}
+              </div>
+              {progressPercentage > 0 && progressPercentage < 100 && (
+                <div 
+                  className="absolute top-0 flex items-center justify-center h-full"
+                  style={{ left: `${progressPercentage}%`, transform: 'translateX(-50%)' }}
+                >
+                  <Target className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </div>
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>{completedCount} / {totalModules} modules completed</span>
+              <span className="flex items-center gap-1">
+                <BookOpen className="w-3 h-3" />
+                <span>{totalContentViewed} viewed</span>
+              </span>
             </div>
           </div>
 
-          {/* Status Cards */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Status Cards with Fun Icons */}
+          <div className="grid grid-cols-3 gap-4">
             {/* Completed Card */}
-            <div className="bg-orange-100 rounded-lg p-4 flex items-start space-x-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-gray-700 text-sm mb-1">Completed</p>
-                <p className="text-xl font-semibold" style={{ color: "#16803D" }}>
-                  {completedCount} modules
-                </p>
+            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-4 border-2 border-orange-300 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
+                  <Trophy className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-gray-600 text-xs mb-1 font-medium">Completed</p>
+                  <p className="text-2xl font-bold" style={{ color: "#16803D" }}>
+                    {completedCount}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Not Completed Card */}
-            <div className="bg-green-100 rounded-lg p-4 flex items-start space-x-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full border-2 border-green-600 flex items-center justify-center">
-                <div className="w-4 h-4 rounded-full border-2 border-green-600"></div>
+            {/* In Progress Card */}
+            <div className="bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-lg p-4 border-2 border-yellow-300 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-gray-600 text-xs mb-1 font-medium">In Progress</p>
+                  <p className="text-2xl font-bold" style={{ color: "#16803D" }}>
+                    {inProgressCount}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-gray-700 text-sm mb-1">Not Completed</p>
-                <p className="text-xl font-semibold" style={{ color: "#16803D" }}>
-                  {notCompletedCount} modules
-                </p>
+            </div>
+
+            {/* Not Started Card */}
+            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-lg p-4 border-2 border-green-300 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-gray-600 text-xs mb-1 font-medium">Not Started</p>
+                  <p className="text-2xl font-bold" style={{ color: "#16803D" }}>
+                    {notCompletedCount}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Achievements Section */}
+        {unlockedAchievements.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 border-2 border-yellow-200">
+            <h2 
+              className="text-2xl font-bold mb-4 flex items-center gap-2"
+              style={{ color: "#16803D" }}
+            >
+              <Award className="w-7 h-7" />
+              Achievements Unlocked
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {unlockedAchievements.map((achievement) => {
+                const IconComponent = achievement.Icon;
+                return (
+                  <div
+                    key={achievement.id}
+                    className={`bg-gradient-to-br ${achievement.color} rounded-lg p-4 text-white shadow-lg transform hover:scale-105 transition-all border-2 border-white/20`}
+                  >
+                    <div className="flex justify-center mb-2">
+                      <IconComponent className="w-10 h-10" />
+                    </div>
+                    <h3 className="font-bold text-sm mb-1 text-center">{achievement.title}</h3>
+                    <p className="text-xs text-center opacity-90">{achievement.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+            {achievements.filter(a => !a.unlocked).length > 0 && (
+              <p className="text-xs text-gray-500 mt-4 text-center flex items-center justify-center gap-1">
+                <Target className="w-3 h-3" />
+                {achievements.filter(a => !a.unlocked).length} more achievement{achievements.filter(a => !a.unlocked).length !== 1 ? 's' : ''} to unlock!
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Course Modules Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+        <div className="bg-white rounded-lg shadow-md p-6 space-y-4 border-2 border-green-200">
           <h2 
-            className="text-2xl font-bold mb-4"
+            className="text-2xl font-bold mb-4 flex items-center gap-2"
             style={{ color: "#16803D" }}
           >
+            <BookOpen className="w-7 h-7" />
             Course Modules
           </h2>
           
@@ -211,39 +448,101 @@ export default function Dashboard() {
               modules.map((module) => (
               <div
                 key={module.id}
-                className="bg-green-50 rounded-lg p-4 flex items-center justify-between border border-green-200 hover:shadow-md transition-shadow"
+                className={`rounded-lg p-4 border-2 hover:shadow-lg transition-all transform hover:scale-[1.02] ${
+                  module.status === "completed"
+                    ? "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300"
+                    : module.status === "in-progress"
+                    ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300"
+                    : "bg-gradient-to-br from-green-50 to-green-100 border-green-300"
+                }`}
               >
-                <div className="flex items-center space-x-3 flex-1">
-                  {module.status === "completed" ? (
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
-                      <svg
-                        className="w-4 h-4 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                  ) : (
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-green-600"></div>
-                  )}
-                  <span className="font-medium text-gray-800">{module.title}</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3 flex-1">
+                    {module.status === "completed" ? (
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
+                        <Trophy className="w-5 h-5 text-white" />
+                      </div>
+                    ) : module.status === "in-progress" ? (
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse">
+                        <Zap className="w-5 h-5 text-white" />
+                      </div>
+                    ) : (
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full border-2 border-green-600 flex items-center justify-center bg-white">
+                        <Target className="w-5 h-5 text-green-600" />
+                      </div>
+                    )}
+                    <span className="font-semibold text-gray-800 text-lg">{module.title}</span>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
+                      module.status === "completed"
+                        ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white"
+                        : module.status === "in-progress"
+                        ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white"
+                        : "bg-gradient-to-r from-green-100 to-green-200 text-green-700"
+                    }`}
+                  >
+                    {module.status === "completed" 
+                      ? <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Completed</span>
+                      : module.status === "in-progress"
+                      ? <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> In Progress</span>
+                      : <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Not Started</span>}
+                  </span>
                 </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    module.status === "completed"
-                      ? "bg-orange-500 text-white"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {module.status === "completed" ? "Completed" : "Not Started"}
-                </span>
+                
+                {/* Progress Details with Fun Elements */}
+                {module.status !== "not-started" && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-gray-700 flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" />
+                        <span>Content Progress</span>
+                      </span>
+                      <span className="text-gray-700 font-bold">
+                        {module.viewedCount || 0} / {module.totalContent} viewed
+                      </span>
+                    </div>
+                    <div className="relative w-full bg-gray-200 rounded-full h-3 shadow-inner overflow-hidden">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-500 relative ${
+                          module.status === "completed"
+                            ? "bg-gradient-to-r from-orange-400 to-orange-600"
+                            : "bg-gradient-to-r from-yellow-400 to-yellow-600"
+                        }`}
+                        style={{ width: `${module.progressPercentage}%` }}
+                      >
+                        {module.progressPercentage > 0 && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+                        )}
+                      </div>
+                      {module.progressPercentage > 0 && module.progressPercentage < 100 && (
+                        <div 
+                          className="absolute top-0 flex items-center justify-center h-full"
+                          style={{ left: `${module.progressPercentage}%`, transform: 'translateX(-50%)' }}
+                        >
+                          <Target className="w-3 h-3 text-gray-600" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      {module.completedCount > 0 && (
+                        <p className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-green-600" />
+                          <span>{module.completedCount} quiz{module.completedCount !== 1 ? 'zes' : ''} aced!</span>
+                        </p>
+                      )}
+                      <span className="text-xs font-bold" style={{ color: "#16803D" }}>
+                        {module.progressPercentage}% complete
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {module.status === "not-started" && (
+                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    <span>Ready to start your learning adventure!</span>
+                  </p>
+                )}
               </div>
               ))
             )}
@@ -253,21 +552,10 @@ export default function Dashboard() {
         {/* Feedback Section */}
         <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
           <div className="flex items-center space-x-2 mb-4">
-            <svg
+            <MessageSquare 
               className="w-6 h-6 flex-shrink-0"
-              style={{ color: "#16803D", marginTop: "-2px" }}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
+              style={{ color: "#16803D" }}
+            />
             <h2 
               className="text-2xl font-bold"
               style={{ color: "#16803D", margin: 0, padding: 0, lineHeight: "1.5rem" }}
