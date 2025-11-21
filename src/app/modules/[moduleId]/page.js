@@ -414,8 +414,8 @@ export default function ModulePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-gray-200 shadow-sm fixed left-0 top-0 h-screen overflow-y-auto">
-        <div className="p-4 sticky top-0 bg-white border-b border-gray-200 z-10">
+      <aside className="w-64 bg-white border-r border-gray-200 shadow-sm fixed left-0 top-0 h-screen flex flex-col overflow-hidden">
+        <div className="p-4 bg-white border-b border-gray-200 z-10">
           <Link href="/training-module" className="inline-flex items-center text-green-700 hover:text-green-800 mb-4 text-sm">
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -428,8 +428,8 @@ export default function ModulePage() {
           )}
         </div>
         
-        <nav className="p-2">
-          <div className="space-y-1">
+        <nav className="flex-1 flex flex-col overflow-y-auto p-2">
+          <div className="space-y-1 flex-1">
             {sidebarItems.map((item, index) => {
               const isActive = currentContent.contentId === item.contentId;
               const isCompleted = index < currentIndex; // Simple completion tracking
@@ -460,6 +460,18 @@ export default function ModulePage() {
                 </button>
               );
             })}
+          </div>
+          
+          {/* Track Progress Button */}
+          <div className="pt-4 border-t border-gray-200 pb-2">
+            <button
+              onClick={() => {
+                router.push('/#course-modules');
+              }}
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+            >
+              Track Progress
+            </button>
           </div>
         </nav>
       </aside>

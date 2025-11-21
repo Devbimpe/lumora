@@ -39,7 +39,7 @@ export default function TrainingModulesSection() {
   const secondRow = modules.slice(3, 5) 
 
   return (
-    <section className="bg-green-100 py-16">
+    <section id="training-modules" className="bg-green-100 py-16">
       <div className="max-w-6xl mx-auto px-4">
         <h2
           className="text-5xl font-bold text-center text-green-700 mb-16"
