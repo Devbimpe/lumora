@@ -10,6 +10,9 @@ export default function ContentPage() {
   const [editingId, setEditingId] = useState(null);
   const [editOverview, setEditOverview] = useState('');
   const [editReading, setEditReading] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newOverview, setNewOverview] = useState('');
+  const [newReading, setNewReading] = useState('');
 
   // Fetch modules
   useEffect(() => {
@@ -73,6 +76,67 @@ export default function ContentPage() {
     }
   };
 
+  // Delete content
+  const deleteContent = async (contentId) => {
+    if (!confirm('Are you sure you want to delete this content?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/content/${contentId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete content');
+
+      // Refresh content list
+      const updatedContent = await fetch(`/api/content?moduleId=${selectedModule}`);
+      const data = await updatedContent.json();
+      setContent(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create new content
+  const createNewContent = async () => {
+    if (!newOverview.trim() || !newReading.trim()) {
+      setError('Both Overview and Reading fields are required');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch('/api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moduleId: selectedModule,
+          overview: newOverview,
+          reading: newReading,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create content');
+
+      // Refresh content list
+      const updatedContent = await fetch(`/api/content?moduleId=${selectedModule}`);
+      const data = await updatedContent.json();
+      setContent(data);
+
+      // Reset form
+      setShowCreateForm(false);
+      setNewOverview('');
+      setNewReading('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 px-2 py-8 md:px-16">
       <div className="max-w-7xl mx-auto">
@@ -112,6 +176,66 @@ export default function ContentPage() {
             ))}
           </select>
         </div>
+
+        {/* Add Content Button */ }
+        <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium"
+          >
+            + Add Content Page
+          </button>
+
+        {/* Create New Content Form */}
+        {showCreateForm && (
+          <div className="bg-white shadow rounded-lg p-6 mb-6">
+            <h3 className="text-xl font-semibold mb-4 text-gray-900">New Page for Module {selectedModule}</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Overview
+              </label>
+              <textarea
+                placeholder="This is the heading of the page"
+                value={newOverview}
+                onChange={(e) => setNewOverview(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                rows="3"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reading
+              </label>
+              <textarea
+                placeholder="This is the actual content of the page"
+                value={newReading}
+                onChange={(e) => setNewReading(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                rows="6"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={createNewContent}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              >
+                Save Page
+              </button>
+              <button
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setNewOverview('');
+                  setNewReading('');
+                }}
+                className="px-6 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Loading Spinner */}
         {loading ? (
@@ -179,12 +303,21 @@ export default function ContentPage() {
                           <h4 className="text-sm font-medium text-gray-600">Reading:</h4>
                           <p className="text-gray-700 mt-1">{item.Reading}</p>
                         </div>
+
+                        <div className="flex gap-2 mt-2">
                         <button
-                          className="mt-2 px-3 py-1 bg-yellow-400 text-gray-900 rounded"
+                          className="px-3 py-1 bg-yellow-400 text-gray-900 rounded hover:bg-yellow-500 transition"
                           onClick={() => startEdit(item)}
                         >
                           Edit
                         </button>
+                        <button
+                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                          onClick={() => deleteContent(item.ContentID)}
+                        >
+                          Delete
+                        </button>
+                        </div>
                       </>
                     )}
                   </div>
