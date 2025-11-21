@@ -1,11 +1,16 @@
 "use client"
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 
 export function Header() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const pathname = usePathname()
+
+  // Hide header on module pages
+  const isModulePage = pathname?.startsWith('/modules/')
 
   useEffect(() => {
     checkAuthStatus()
@@ -34,6 +39,11 @@ export function Header() {
     } catch (error) {
       console.error("Logout failed:", error)
     }
+  }
+
+  // Don't render header on module pages
+  if (isModulePage) {
+    return null
   }
 
   return (
@@ -66,7 +76,9 @@ export function Header() {
             <span className="login">Loading...</span>
           ) : user ? (
             <div className="user-section">
-              <span className="user-welcome">Hi, {user.username}</span>
+              <Link href="/user-profile" className="user-welcome">
+                Hi, {user.username}
+              </Link>
               <button onClick={handleLogout} className="logout-btn">
                 Logout
               </button>
