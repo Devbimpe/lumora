@@ -7,7 +7,6 @@ export default function Sidebar({ activeSection }) {
     { id: 'feedback', label: 'Feedback', path: '/admin/feedback' },
     { id: 'progress', label: 'Module Progress', path: '/admin/module-progress' },
     { id: 'management', label: 'Module Management', path: '/admin/module-management' },
-    { id: 'settings', label: 'Settings', path: '/admin/settings' },
   ];
 
   return (
@@ -23,9 +22,6 @@ export default function Sidebar({ activeSection }) {
           {section.label}
         </Link>
       ))}
-      <button className="text-2xl rounded m-2 py-2 text-center text-black hover:bg-[#ff9851] hover:scale-105 transition duration-300">
-        Logout
-      </button>
     </div>
   );
 }

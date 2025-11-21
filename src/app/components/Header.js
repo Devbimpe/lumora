@@ -22,6 +22,7 @@ export function Header() {
       const data = await response.json()
       if (data.authenticated) {
         setUser(data.user)
+        console.log("User loaded in header:", data.user.username, "| Role:", data.user.role)
       }
     } catch (error) {
       console.error("Auth check failed:", error)
@@ -55,13 +56,19 @@ export function Header() {
           </Link>
         </div>
         <div className="right">
-          <Link href="/" className="about">
+          <Link href={"/"} className="about">
             Home
           </Link>
 
           {user && ( 
             <Link href="/training-module" className="trainingmodule">
               Training Module
+            </Link>
+          )}
+
+          {user && user.role == "Admin" && (
+            <Link href="/admin" className="admin-dashboard">
+              Admin Dashboard
             </Link>
           )}
 

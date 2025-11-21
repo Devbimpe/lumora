@@ -1,6 +1,8 @@
 // This is the code for edit the content 
 import { NextResponse } from 'next/server';
-import { updateContent, getAllModules } from '@db/db.js';
+import { updateContent, getAllModules, COLLECTIONS } from '@db/db.js';
+import { collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { db } from '@db/firebase.js';
 
 // PUT handler: Updates content for a specific ContentID
 // Expects a JSON body with 'Overview' and 'Reading' fields, and a ContentID from route parameters
@@ -34,5 +36,33 @@ export async function GET() {
     return NextResponse.json(formattedModules);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE handler: Deletes content by ContentID
+export async function DELETE(req, context) {
+  try {
+    const params = await context.params;
+    const contentId = parseInt(params.id);
+
+    //Find and delete the content 
+    const contentRef = collection(db, COLLECTIONS.CONTENT);
+    const q = query(contentRef, where('contentId', '==', contentId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return NextResponse.json({ error: 'Content not found' }, { status: 404 });
+    }
+
+    // Delete the document
+    await deleteDoc(querySnapshot.docs[0].ref);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Delete API Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to delete content',
+      details: error.message 
+    }, { status: 500 });  
   }
 }

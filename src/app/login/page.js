@@ -76,14 +76,16 @@ export default function Login() {
       const data = await response.json()
 
       if (data.success) {
-        console.log("✅ Login successful!")
+        console.log("Login successful!")
+        console.log("User role:", data.user.role)
+        console.log("Redirecting to:", data.redirectUrl)
         // Redirect to home page immediately
-        window.location.href = "/"
+        window.location.href = data.redirectUrl || "/"
       } else {
         setError(data.message)
       }
     } catch (error) {
-      console.error("💥 Network error:", error)
+      console.error("Network error:", error)
       setError("Network error. Please check your connection.")
     } finally {
       setLoading(false)
