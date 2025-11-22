@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import '../globals.css';
+import '../login/login.css';
 
 export default function Page() {
   const [form, setForm] = useState({
@@ -88,13 +89,26 @@ export default function Page() {
     <div className="page">
       <main>
         <div className="LoginPage">
-          <h1>Sign up to your account</h1>
+          <div className="login-header">
+            <h1>Sign up to your account</h1>
+            <p className="login-subtitle">Create your account to get started with Lumora.</p>
+          </div>
           <div className="Maininfo">
             <form
               className="form"
               onSubmit={handleSubmit}
               aria-describedby={error ? 'form-error' : undefined}
             >
+              {error && (
+                <div className="error-message" id="form-error" role="alert" aria-live="assertive">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="success-message" id="form-success" role="alert" aria-live="assertive">
+                  {success}
+                </div>
+              )}
               <div className="info">
                 <label htmlFor="name">
                   Full Name
@@ -156,13 +170,10 @@ export default function Page() {
                   aria-required="true"
                   aria-describedby={error && error.includes('Password') ? 'form-error' : undefined}
                 />
-              </div>
-              <div className="info" style={{ textAlign: "center" }}>
-                {/* Password requirements message */}
                 {!validatePassword(form.password) && form.password && (
-                  <p style= {{ color: "red" }}>
+                  <small style={{ color: "#dc2626" }}>
                     Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).
-                  </p>
+                  </small>
                 )}
               </div>
               <div className="info">
@@ -181,28 +192,20 @@ export default function Page() {
                   aria-describedby={error && error.includes('Passwords do not match') ? 'form-error' : undefined}
                 />
               </div>
-              <div className="button" style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>
+              <div className="button">
                 <button
                   type="submit"
                   disabled={isLoading}
                   aria-busy={isLoading}
                   aria-label={isLoading ? 'Signing up, please wait' : 'Sign up'}
                 >
-                  {isLoading ? 'Signing up...' : 'Signup'}
+                  {isLoading ? 'Signing up...' : 'Sign up'}
                 </button>
               </div>
             </form>
-            {/* Move alerts here, below the form */}
-            {error && (
-              <p id="form-error" style={{ color: "red" }} role="alert" aria-live="assertive">
-                {error}
-              </p>
-            )}
-            {success && (
-              <p id="form-success" style={{ color: "green" }} role="alert" aria-live="assertive">
-                {success}
-              </p>
-            )}
+            <div className="register_link">
+              Already have an account? <a href="/login">Login</a>
+            </div>
           </div>
         </div>
       </main>

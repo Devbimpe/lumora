@@ -1,4 +1,4 @@
-import { Button } from "./button"
+import { Button } from "../components/button"
 
 export default function LandingSection() {
   return (
