@@ -1,11 +1,48 @@
 "use client";
 import { useState } from "react";
-import { Trash2, AlertTriangle } from "lucide-react";
+import { Trash2, AlertTriangle } from "lucide-react"; // Took the reference from https://lucide.dev/icons/
+import { useRouter } from "next/navigation";
 
 export default function Settings({ userId }) {
   const [status, setStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const router = useRouter(); 
+  
+  const handleDelete = async () => {
+    if (!userId) {
+      setStatus("User not logged in.");
+      setShowModal(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/user-profile-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await res.json();
+      setShowModal(false);
+      if (res.ok) {
+        setStatus("Account deleted successfully.");
+        document.cookie = "auth-token=; Max-Age=0; path=/;";
+        window.dispatchEvent(new Event("auth-changed"));
+        router.push("/login");
+      } else {
+        setStatus(`Error: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("Error deleting account.");
+      setShowModal(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="bg-white p-6 text-left rounded-xl shadow-sm border border-gray-200">
@@ -41,7 +78,7 @@ export default function Settings({ userId }) {
 
             <div className="flex justify-end gap-4 mt-6">
               <button onClick={() => setShowModal(false)} className="bg-white border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-100 transition">Cancel</button>
-              <button disabled={loading} className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700 transition">{loading ? "Deleting..." : <><Trash2 size={16} /> Yes, Delete my account</>}</button>
+              <button onClick={handleDelete} disabled={loading} className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700 transition">{loading ? "Deleting..." : <><Trash2 size={16} /> Yes, Delete my account</>}</button>
             </div>
           </div>
         </div>
