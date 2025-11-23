@@ -41,6 +41,7 @@ export async function GET(request) {
           email: user.email,
           role: user.role,
           percentCompleted: user.percentModulesCompleted || 0,
+          lastLoginTime: user.previousLoginTime || null,
         }
       })
     } catch (jwtError) {

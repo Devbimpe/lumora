@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import "../globals.css"
+import "../login/login.css"
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("")
@@ -37,6 +38,8 @@ export default function ForgotPassword() {
         } catch (err) {
             console.error("Network error:", err)
             setError("Network error. Please try again.")
+        } finally {
+            setLoading(false)
         }      
     }
 
@@ -44,23 +47,48 @@ export default function ForgotPassword() {
         <div className="page">
             <main>
                 <div className="LoginPage">
-                    <h1>Forgot Password</h1>
+                    <div className="login-header">
+                        <h1>Forgot Password</h1>
+                        <p className="login-subtitle">Enter your email address and we'll send you a link to reset your password.</p>
+                    </div>
                     <div className="Maininfo">
                         <form onSubmit={handleSubmit}>
-                            {error && (<div style={{ color: "red", marginBottom: "10px" }}>{error}</div>)}
-                            {message && (<div style={{ color: "green", marginBottom: "10px" }}>{message}</div>)}
+                            {error && (
+                                <div className="error-message">
+                                    {error}
+                                </div>
+                            )}
+                            {message && (
+                                <div className="success-message">
+                                    {message}
+                                </div>
+                            )}
 
                             <div className="info">
-                                <label htmlFor="email">Enter your email</label>
-                                <input type="email" id="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading}/>
+                                <label htmlFor="email">Email</label>
+                                <input 
+                                    type="email" 
+                                    id="email" 
+                                    name="email"
+                                    placeholder="Enter your email"
+                                    required 
+                                    value={email} 
+                                    onChange={(e) => setEmail(e.target.value)} 
+                                    disabled={loading}
+                                />
                             </div>
 
                             <div className="button">
-                                <button type="submit" disabled={loading} style={{ opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer", }}> {loading ? "Sending..." : "Send Reset Link"} </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={loading}
+                                >
+                                    {loading ? "Sending..." : "Send Reset Link"}
+                                </button>
                             </div>
 
                             <div className="register_link">
-                                <a href="/login">Back to Login</a>
+                                Remember your password? <a href="/login">Back to Login</a>
                             </div>
                         </form>
                     </div>

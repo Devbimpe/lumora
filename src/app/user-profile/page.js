@@ -54,7 +54,7 @@ export default function Page() {
             {activeTab === "Personal Info" && <PersonalInfo />}
             {activeTab === "Demographics" && <Demographics />}
             {activeTab === "Portfolio" && <Portfolio userId={userId}/>}
-            {activeTab === "Settings" && <Settings />}
+            {activeTab === "Settings" && <Settings userId={userId}/>}
         </div>
       </div>
     );

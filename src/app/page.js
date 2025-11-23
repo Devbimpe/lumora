@@ -1,10 +1,11 @@
 "use client"
 import { useState, useEffect } from "react"
-import CarouselSection from "./components/carousel-section"
-import WhyThisMattersSection from "./components/why-this-matters-section"
-import HowItWorksSection from "./components/how-it-works-section"
-import TrainingModulesSection from "./components/training-modules-section"
-import WhoIsThisForSection from "./components/who-is-this-for-section"
+import CarouselSection from "./landingpage/carousel-section"
+import WhyThisMattersSection from "./landingpage/why-this-matters-section"
+import HowItWorksSection from "./landingpage/how-it-works-section"
+import TrainingModulesSection from "./landingpage/training-modules-section"
+import WhoIsThisForSection from "./landingpage/who-is-this-for-section"
+import FAQSection from "./landingpage/faq-section"
 import Dashboard from "./components/dashboard" 
 
 export default function HomePage() {
@@ -13,6 +14,17 @@ export default function HomePage() {
 
   useEffect(() => {
     checkAuthStatus()
+    
+    // Handle scrolling to FAQ section when navigating with hash
+    if (window.location.hash === '#faq') {
+      // Small delay to ensure the page has rendered
+      setTimeout(() => {
+        const faqSection = document.getElementById('faq');
+        if (faqSection) {
+          faqSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
   }, [])
 
   // Handle hash navigation to scroll to sections
@@ -69,7 +81,8 @@ export default function HomePage() {
       <WhyThisMattersSection />
       <TrainingModulesSection />
       <HowItWorksSection />
-      <WhoIsThisForSection /> 
+      <WhoIsThisForSection />
+      <FAQSection />
     </div>
   )
 }

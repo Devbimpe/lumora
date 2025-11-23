@@ -1,31 +1,51 @@
+'use client';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
-export default function AdminSidebar({ activeSection }) {
-  const sections = [
-    { id: 'dashboard', label: 'Dashboard', path: '/admin' },
-    { id: 'user-management', label: 'User Management', path: '/admin/user-management' },
-    { id: 'feedback', label: 'Feedback', path: '/admin/feedback' },
-    { id: 'progress', label: 'Module Progress', path: '/admin/module-progress' },
-    { id: 'management', label: 'Module Management', path: '/admin/module-management' },
-    { id: 'settings', label: 'Settings', path: '/admin/settings' },
+export default function Sidebar() {
+  const pathname = usePathname();
+  const menuItems = [
+    { name: 'Dashboard', path: '/admin' },
+    { name: 'User Management', path: '/admin/user-management' },
+    { name: 'Feedback', path: '/admin/feedback' },
+    { name: 'Module Progress', path: '/admin/module-progress' },
+    { name: 'Module Management', path: '/admin/module-management' },
   ];
 
+  const handleLogout = async (e, path) => {
+    if (path === '/api/logout') {
+      e.preventDefault();
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    }
+  };
+
   return (
-    <div className="bg-[#f97316] flex flex-col w-1/7 min-h-screen m-10">
-      {sections.map((section) => (
-        <Link
-          key={section.id}
-          href={section.path}
-          className={`text-2xl rounded m-2 py-2 text-center text-black hover:bg-[#ff9851] hover:scale-105 transition duration-300 ${
-            activeSection === section.id ? 'bg-[#ff9851]' : ''
-          }`}
-        >
-          {section.label}
-        </Link>
-      ))}
-      <button className="text-2xl rounded m-2 py-2 text-center text-black hover:bg-[#ff9851] hover:scale-105 transition duration-300">
-        Logout
-      </button>
+    <div className="w-64 bg-orange-500 min-h-screen shadow-xl">
+      <div className="p-6">
+        {menuItems.map((item) => {
+          const isActive = pathname === item.path;
+          
+          return (
+            <Link
+              key={item.path}
+              href={item.path}
+              onClick={(e) => handleLogout(e, item.path)}
+              className={`block px-6 py-4 mb-2 rounded-lg text-center text-lg transition-all duration-200 ${
+                isActive
+                  ? 'bg-orange-600 text-white font-bold shadow-lg'
+                  : 'text-white hover:bg-orange-400'
+              }`}
+            >
+              {item.name}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
