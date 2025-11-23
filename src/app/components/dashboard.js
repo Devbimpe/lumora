@@ -143,6 +143,21 @@ export default function Dashboard({ user: userProp }) {
     }
   }, [user, fetchModules])
 
+  // Handle hash navigation to scroll to course-modules section
+  useEffect(() => {
+    if (!loading) {
+      const hash = window.location.hash
+      if (hash === '#course-modules') {
+        setTimeout(() => {
+          const element = document.getElementById('course-modules')
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 300)
+      }
+    }
+  }, [loading])
+
   const completedCount = modules.filter(m => m.status === "completed").length
   const notCompletedCount = modules.filter(m => m.status === "not-started").length
   const inProgressCount = modules.filter(m => m.status === "in-progress").length
@@ -426,7 +441,7 @@ export default function Dashboard({ user: userProp }) {
         )}
 
         {/* Course Modules Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-4 border-2 border-green-200">
+        <div id="course-modules" className="bg-white rounded-lg shadow-md p-6 space-y-4 border-2 border-green-200">
           <h2 
             className="text-2xl font-bold mb-4 flex items-center gap-2"
             style={{ color: "#16803D" }}

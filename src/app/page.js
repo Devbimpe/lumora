@@ -27,6 +27,28 @@ export default function HomePage() {
     }
   }, [])
 
+  // Handle hash navigation to scroll to sections
+  useEffect(() => {
+    if (!loading) {
+      const hash = window.location.hash
+      if (hash === '#training-modules') {
+        setTimeout(() => {
+          const element = document.getElementById('training-modules')
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 100)
+      } else if (hash === '#course-modules') {
+        setTimeout(() => {
+          const element = document.getElementById('course-modules')
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 100)
+      }
+    }
+  }, [loading, user])
+
   const checkAuthStatus = async () => {
     try {
       const response = await fetch("/api/check-auth")
