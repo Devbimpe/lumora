@@ -15,6 +15,14 @@ export function Header() {
 
   useEffect(() => {
     checkAuthStatus()
+    
+    function refreshAuth() {
+      checkAuthStatus()
+    }
+  
+    window.addEventListener("auth-changed", refreshAuth)
+  
+    return () => window.removeEventListener("auth-changed", refreshAuth)
   }, [])
 
   const checkAuthStatus = async () => {
@@ -24,9 +32,12 @@ export function Header() {
       if (data.authenticated) {
         setUser(data.user)
         console.log("User loaded in header:", data.user.username, "| Role:", data.user.role)
+      } else {
+        setUser(null)  
       }
     } catch (error) {
       console.error("Auth check failed:", error)
+      setUser(null)  
     } finally {
       setLoading(false)
     }
