@@ -51,8 +51,8 @@ export default function Page() {
 
         {/* Tab Content */}
         <div className="mt-10 text-center text-gray-700">
-            {activeTab === "Personal Info" && <PersonalInfo />}
-            {activeTab === "Demographics" && <Demographics />}
+            {activeTab === "Personal Info" && <PersonalInfo userId={userId}/>}
+            {activeTab === "Demographics" && <Demographics userId={userId}/>}
             {activeTab === "Portfolio" && <Portfolio userId={userId}/>}
             {activeTab === "Settings" && <Settings userId={userId}/>}
         </div>
