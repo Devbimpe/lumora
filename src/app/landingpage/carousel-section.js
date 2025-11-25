@@ -6,7 +6,7 @@ import { Button } from "../components/button"
 
 const slides = [
   {
-    title: "What is LUMORA?",
+    title: "LUMORA",
     content:
       "A scenario-based learning platform helping you explore the social dimensions of software engineering. Learn how your development choices affect people's lives and design more inclusive, responsible systems.",
   },

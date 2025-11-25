@@ -10,8 +10,9 @@ export function Header() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Hide header on module pages
+  // Hide header on module pages and admin pages
   const isModulePage = pathname?.startsWith('/modules/')
+  const isAdminPage = pathname?.startsWith('/admin')
 
   useEffect(() => {
     checkAuthStatus()
@@ -53,8 +54,8 @@ export function Header() {
     }
   }
 
-  // Don't render header on module pages
-  if (isModulePage) {
+  // Don't render header on module pages or admin pages
+  if (isModulePage || isAdminPage) {
     return null
   }
 

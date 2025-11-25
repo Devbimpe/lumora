@@ -5,6 +5,10 @@ import { usePathname } from 'next/navigation';
 export default function Footer() {
   const pathname = usePathname();
 
+  // Hide footer on module and admin pages
+  const isModulePage = pathname?.startsWith('/modules/');
+  const isAdminPage = pathname?.startsWith('/admin');
+
   const handleFAQClick = (e) => {
     e.preventDefault();
     
@@ -19,6 +23,11 @@ export default function Footer() {
       window.location.href = '/#faq';
     }
   };
+
+  // Don't render footer on module or admin pages
+  if (isModulePage || isAdminPage) {
+    return null;
+  }
 
   return (
     <footer className="bg-white border-t border-gray-200">
