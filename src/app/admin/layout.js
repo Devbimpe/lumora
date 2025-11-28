@@ -31,16 +31,11 @@ export default async function AdminLayout({ children }) {
 
   // User is authenticated admin 
   return (
-    <div className="flex bg-gray-200 min-h-screen">
-      {/* Sticky Sidebar */}
+    <div className="flex bg-gray-50 min-h-screen">
       <Sidebar />
-      
-      {/* Main Content Area */}
-      <main className="flex-1">
-        <div className="p-6">
-          {children}
-        </div>
-      </main>
+      <div className="flex-1 flex flex-col p-3 sm:p-6 lg:p-8 pt-20 lg:pt-8 w-full overflow-x-hidden">
+        {children}
+      </div>
     </div>
   );
 }

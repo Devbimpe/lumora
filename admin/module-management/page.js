@@ -117,11 +117,48 @@ export default function ModuleManagementPage() {
   };
 
   useEffect(() => {
-    fetchModules();
+    let isMounted = true;
+
+    const loadModules = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('/api/admin/modules');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to load modules');
+        }
+        const data = await response.json();
+        if (isMounted) {
+          setModules(data);
+        }
+      } catch (error) {
+        console.error('Fetch error:', error);
+        if (isMounted) {
+          setError(error.message);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadModules();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 relative pb-16 min-h-screen">
+    <div className="w-full max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Module Management</h1>
+        <p className="text-sm sm:text-base text-gray-600">Create, edit, and manage training modules</p>
+      </div>
+
       <StatusMessage message={submitStatus} />
 
       {loading && <LoadingSpinner message="Loading modules..." />}
@@ -130,34 +167,20 @@ export default function ModuleManagementPage() {
 
       {!loading && !error && (
         <div>
-          <table className="w-full table-fixed">
-            <tbody>
-              {modules.length > 0 ? (
-                modules.map((module) => (
-                  <ModuleRow
-                    key={module.id}
-                    module={module}
-                    isExpanded={expandedModuleId === module.id}
-                    heading={heading}
-                    subHeading={subHeading}
-                    onHeadingChange={(e) => setHeading(e.target.value)}
-                    onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-                    onEdit={(id) => setExpandedModuleId(id)}
-                    onDelete={handleDeleteClick}
-                    onSubmit={handleSubmit}
-                    onModuleClick={handleModuleClick}
-                  />
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="2" className="py-6 px-4 text-center text-gray-500">
-                    No modules found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {/* Add Module Button */}
+          <div className="mb-4 sm:mb-6">
+            <button
+              onClick={() => setExpandedModuleId('new')}
+              className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg hover:bg-green-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add New Module
+            </button>
+          </div>
 
+          {/* Add Module Form */}
           {expandedModuleId === 'new' && (
             <AddModuleForm
               heading={heading}
@@ -165,26 +188,64 @@ export default function ModuleManagementPage() {
               onHeadingChange={(e) => setHeading(e.target.value)}
               onSubHeadingChange={(e) => setSubHeading(e.target.value)}
               onSubmit={handleSubmit}
-              onClose={() => setExpandedModuleId(null)}
+              onClose={() => {
+                setExpandedModuleId(null);
+                setHeading('');
+                setSubHeading('');
+              }}
             />
           )}
+
+          {/* Modules List */}
+          <div className="space-y-3 sm:space-y-4">
+            {modules.length > 0 ? (
+              modules.map((module) => (
+                <ModuleRow
+                  key={module.id}
+                  module={module}
+                  isExpanded={expandedModuleId === module.id}
+                  heading={heading}
+                  subHeading={subHeading}
+                  onHeadingChange={(e) => setHeading(e.target.value)}
+                  onSubHeadingChange={(e) => setSubHeading(e.target.value)}
+                  onEdit={(id) => {
+                    setExpandedModuleId(id);
+                    setHeading(module.Heading);
+                    setSubHeading(module.SubHeading);
+                  }}
+                  onDelete={handleDeleteClick}
+                  onSubmit={handleSubmit}
+                  onModuleClick={handleModuleClick}
+                  onClose={() => {
+                    setExpandedModuleId(null);
+                    setHeading('');
+                    setSubHeading('');
+                  }}
+                />
+              ))
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg p-8 sm:p-12 text-center">
+                <div className="text-gray-400 mb-4">
+                  <svg
+                    className="mx-auto h-12 w-12 sm:h-16 sm:w-16"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-sm sm:text-base lg:text-lg">No modules found. Create your first module!</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
-
-      <button
-        onClick={() => setExpandedModuleId('new')}
-        className="bg-blue-600 text-white rounded p-4 shadow-lg hover:bg-blue-700 transition-all duration-300"
-        style={{
-          width: '150px',
-          height: '80px',
-          fontSize: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        Add Module
-      </button>
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
