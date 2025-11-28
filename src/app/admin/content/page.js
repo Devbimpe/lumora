@@ -357,7 +357,7 @@ export default function ContentPage() {
                             className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
                             onClick={saveEdit}
                           >
-                            Save Changes
+                            Save changes
                           </button>
                           <button
                             className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
