@@ -5,7 +5,8 @@ import { Inbox } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner'; 
 import ErrorMessage from '../components/ErrorMessage';     
 import StatusMessage from '../components/StatusMessage';   
-import UserRow from '../components/UserRow';              
+import UserRow from '../components/UserRow';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function UserManagementPage() { 
   const [users, setUsers] = useState([]);
@@ -15,8 +16,31 @@ export default function UserManagementPage() {
   const [submitStatus, setSubmitStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
+  
+  // Modal states
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, userId: null, username: '' });
+  const [deactivateModal, setDeactivateModal] = useState({ isOpen: false, userId: null, username: '', currentStatus: null });
 
   const handleToggleActivation = async (userId, currentStatus) => {
+    const user = users.find(u => u.UserID === userId);
+    const username = user?.Username || user?.username || user?.userName || 'this user';
+    
+    // Show confirmation modal for deactivation only
+    if (currentStatus === 1) {
+      setDeactivateModal({ 
+        isOpen: true, 
+        userId, 
+        username, 
+        currentStatus 
+      });
+      return;
+    }
+
+    // If activating, proceed without confirmation
+    await performToggleActivation(userId, currentStatus);
+  };
+
+  const performToggleActivation = async (userId, currentStatus) => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
       const response = await fetch('/api/admin/users', {
@@ -38,7 +62,7 @@ export default function UserManagementPage() {
       }
 
       setUsers(prev => prev.map(user => user.UserID === userId ? { ...user, isActivated: newStatus } : user));
-      setSubmitStatus('User status updated successfully!');
+      setSubmitStatus(newStatus === 1 ? 'User activated successfully!' : 'User deactivated successfully!');
       setTimeout(() => setSubmitStatus(''), 3000);
     } catch (error) {
       console.error('Toggle error:', error);
@@ -47,20 +71,30 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm('Are you sure you want to delete this user? This action cannot be undone.');
-    if (!confirmed) return;
+  const handleDeleteClick = (userId) => {
+    const user = users.find(u => u.UserID === userId);
+    const username = user?.Username || user?.username || user?.userName || 'this user';
+    
+    setDeleteModal({ 
+      isOpen: true, 
+      userId, 
+      username 
+    });
+  };
 
+  const performDelete = async () => {
+    const { userId } = deleteModal;
+    
     try {
       const response = await fetch('/api/admin/users', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id: userId }),
       });
 
       if (!response.ok) throw new Error('Failed to delete user');
 
-      setUsers(prev => prev.filter(user => user.UserID !== id));
+      setUsers(prev => prev.filter(user => user.UserID !== userId));
       setSubmitStatus('User deleted successfully!');
       setTimeout(() => setSubmitStatus(''), 3000);
     } catch (error) {
@@ -208,7 +242,7 @@ export default function UserManagementPage() {
                       key={user.UserID ?? index}
                       user={user}
                       onToggleActivation={handleToggleActivation}
-                      onDelete={handleDelete}
+                      onDelete={handleDeleteClick}
                     />
                   ))
                 ) : (
@@ -240,6 +274,30 @@ export default function UserManagementPage() {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, userId: null, username: '' })}
+        onConfirm={performDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete "${deleteModal.username}"? This action cannot be undone and will permanently remove all user data.`}
+        confirmText="Delete User"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* Deactivate Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deactivateModal.isOpen}
+        onClose={() => setDeactivateModal({ isOpen: false, userId: null, username: '', currentStatus: null })}
+        onConfirm={() => performToggleActivation(deactivateModal.userId, deactivateModal.currentStatus)}
+        title="Deactivate User"
+        message={`Are you sure you want to deactivate "${deactivateModal.username}"? They will lose access to the system until reactivated.`}
+        confirmText="Deactivate"
+        cancelText="Cancel"
+        type="warning"
+      />
     </div>
   );
 }
