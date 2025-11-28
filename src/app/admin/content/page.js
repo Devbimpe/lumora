@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function ContentPage() {
   const [content, setContent] = useState([]);
@@ -13,6 +14,13 @@ export default function ContentPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
+
+  // Modal state
+  const [deleteModal, setDeleteModal] = useState({ 
+    isOpen: false, 
+    contentId: null, 
+    contentName: '' 
+  });
 
   // Fetch modules
   useEffect(() => {
@@ -99,12 +107,22 @@ export default function ContentPage() {
     }
   };
 
-  // Delete content
-  const deleteContent = async (contentId) => {
-    if (!confirm('Are you sure you want to delete this content?')) {
-      return;
-    }
+  // Open delete modal
+  const handleDeleteClick = (contentId) => {
+    const item = content.find(c => c.ContentID === contentId);
+    const contentName = item?.Overview || `Item #${contentId}`;
+    
+    setDeleteModal({ 
+      isOpen: true, 
+      contentId, 
+      contentName 
+    });
+  };
 
+  // Perform delete
+  const performDelete = async () => {
+    const { contentId } = deleteModal;
+    
     try {
       setLoading(true);
       const res = await fetch(`/api/content/${contentId}`, {
@@ -392,7 +410,7 @@ export default function ContentPage() {
                           </button>
                           <button
                             className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-xs sm:text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
-                            onClick={() => deleteContent(item.ContentID)}
+                            onClick={() => handleDeleteClick(item.ContentID)}
                           >
                             Delete
                           </button>
@@ -431,6 +449,18 @@ export default function ContentPage() {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, contentId: null, contentName: '' })}
+        onConfirm={performDelete}
+        title="Delete Content"
+        message={`Are you sure you want to delete "${deleteModal.contentName}"? This action cannot be undone and will permanently remove this content page.`}
+        confirmText="Delete Content"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }

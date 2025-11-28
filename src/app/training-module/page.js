@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
-  <Link href={href} passHref>
+  <Link href={href} passHref className="h-full block">
     <div
-      className={`p-6 ${bgColor} ${borderColor} border-2 cursor-pointer hover:bg-opacity-80 flex items-center transition duration-300 hover:scale-105 rounded-2xl shadow-lg hover:shadow-xl`}
+      className={`p-6 ${bgColor} ${borderColor} border-2 cursor-pointer hover:bg-opacity-80 flex items-center transition duration-300 hover:scale-105 rounded-2xl shadow-lg hover:shadow-xl h-full`}
     >
       {icon && (
         <img src={icon} alt={title} className="w-20 h-20 object-contain mr-5" />

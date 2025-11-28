@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -8,6 +9,11 @@ export default function Footer() {
   // Hide footer on module and admin pages
   const isModulePage = pathname?.startsWith('/modules/');
   const isAdminPage = pathname?.startsWith('/admin');
+
+  useEffect(() => {
+    // Ensure the body has the necessary classes for the footer to stick to the bottom
+    document.body.classList.add('flex', 'flex-col', 'min-h-screen');
+  }, []);
 
   const handleFAQClick = (e) => {
     e.preventDefault();
@@ -30,7 +36,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-white border-t border-gray-200">
+    <footer className="bg-white border-t border-gray-200 mt-auto">
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Links */}

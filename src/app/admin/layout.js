@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import jwt from 'jsonwebtoken';
-import Sidebar from '../components/admin-sidebar';
+import Sidebar from './components/admin-sidebar';
 
 export default async function AdminLayout({ children }) {
   // Serverside auth check
