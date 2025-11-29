@@ -18,6 +18,7 @@ export default function ModulePage() {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [allModules, setAllModules] = useState([]);
   const [user, setUser] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Refs to prevent duplicate API calls
   const trackedContentViews = useRef(new Set());
@@ -318,6 +319,8 @@ export default function ModulePage() {
 
   const handleSidebarClick = (contentId) => {
     router.push(`/modules/${moduleId}?content=${contentId}`);
+    // Close mobile sidebar after clicking
+    setSidebarOpen(false);
     // Don't track here - let the useEffect handle it to avoid duplicates
   };
 
@@ -413,10 +416,43 @@ export default function ModulePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
+      {/* Mobile Header with Hamburger */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-50 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 text-gray-700 hover:text-green-700 transition-colors"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {sidebarOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+          <h2 className="text-sm font-bold text-green-700 truncate flex-1 mx-3">{moduleHeading}</h2>
+          <Link href="/training-module" className="text-green-700 hover:text-green-800 text-xs whitespace-nowrap">
+            Back
+          </Link>
+        </div>
+      </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-gray-200 shadow-sm fixed left-0 top-0 h-screen flex flex-col overflow-hidden">
+      <aside className={`w-64 bg-white border-r border-gray-200 shadow-sm fixed left-0 top-0 h-screen flex flex-col overflow-hidden z-50 transition-transform duration-300 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
         <div className="p-4 bg-white border-b border-gray-200 z-10">
-          <Link href="/training-module" className="inline-flex items-center text-green-700 hover:text-green-800 mb-4 text-sm">
+          <Link href="/training-module" className="hidden lg:inline-flex items-center text-green-700 hover:text-green-800 mb-4 text-sm">
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -477,11 +513,11 @@ export default function ModulePage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 ml-64">
-        <div className="max-w-4xl mx-auto px-8 py-12">
+      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
 
           {/* Content Display */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+          <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
             {currentContent.type === 'reading' && (
               <div className="prose prose-lg max-w-none">
                 {formatAsList(currentContent.text)}
@@ -513,8 +549,8 @@ export default function ModulePage() {
 
             {currentContent.type === 'quiz' && (
               <>
-                <p className="text-lg font-semibold text-gray-800 mb-6">{currentContent.question}</p>
-                <ul className="space-y-3">
+                <p className="text-base sm:text-lg font-semibold text-gray-800 mb-4 sm:mb-6">{currentContent.question}</p>
+                <ul className="space-y-2 sm:space-y-3">
                   {currentContent.options.map((opt, idx) => {
                     const letter = opt.charAt(0);
                     const isSelected = selectedAnswers[currentContent.contentId] === letter;
@@ -524,7 +560,7 @@ export default function ModulePage() {
                     return (
                       <li
                         key={idx}
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        className={`p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
                           !showFeedback
                             ? 'border-gray-300 hover:border-green-400 bg-white hover:bg-green-50'
                             : isCorrect
@@ -537,12 +573,12 @@ export default function ModulePage() {
                       >
                         <div className="flex items-start">
                           {showFeedback && isCorrect && (
-                            <span className="text-green-600 mr-3 text-xl">✓</span>
+                            <span className="text-green-600 mr-2 sm:mr-3 text-lg sm:text-xl flex-shrink-0">✓</span>
                           )}
                           {showFeedback && isSelected && !isCorrect && (
-                            <span className="text-red-600 mr-3 text-xl">✗</span>
+                            <span className="text-red-600 mr-2 sm:mr-3 text-lg sm:text-xl flex-shrink-0">✗</span>
                           )}
-                          <span className="text-gray-800">{opt}</span>
+                          <span className="text-sm sm:text-base text-gray-800">{opt}</span>
                         </div>
                       </li>
                     );
@@ -554,51 +590,53 @@ export default function ModulePage() {
 
           {/* Navigation Buttons */}
           <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2 sm:gap-4">
               <button
                 onClick={handlePrev}
                 disabled={currentIndex === 0}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                   currentIndex === 0
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
-                ← Previous
+                <span className="hidden sm:inline">← Previous</span>
+                <span className="sm:hidden">←</span>
               </button>
               
-              <span className="text-sm text-gray-600">
-                {currentIndex + 1} of {sidebarItems.length}
+              <span className="text-xs sm:text-sm text-gray-600 font-medium">
+                {currentIndex + 1} / {sidebarItems.length}
               </span>
               
               {!showNextModuleButton && (
                 <button
                   onClick={handleNext}
                   disabled={currentIndex === sidebarItems.length - 1}
-                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                     currentIndex === sidebarItems.length - 1
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
                 >
-                  Next →
+                  <span className="hidden sm:inline">Next →</span>
+                  <span className="sm:hidden">→</span>
                 </button>
               )}
             </div>
 
             {/* Go to Next Module Button */}
             {showNextModuleButton && (
-              <div className="mt-4 p-6 bg-green-50 border-2 border-green-500 rounded-lg">
+              <div className="mt-4 p-4 sm:p-6 bg-green-50 border-2 border-green-500 rounded-lg">
                 <div className="text-center">
-                  <p className="text-lg font-semibold text-green-700 mb-2">
+                  <p className="text-base sm:text-lg font-semibold text-green-700 mb-2">
                     🎉 Congratulations! You've completed this module!
                   </p>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-4">
                     Ready to continue your learning journey?
                   </p>
                   <button
                     onClick={handleGoToNextModule}
-                    className="px-8 py-4 bg-green-600 text-white rounded-lg font-semibold text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
                   >
                     Go to Next Module →
                   </button>

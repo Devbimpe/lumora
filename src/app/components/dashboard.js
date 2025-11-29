@@ -272,26 +272,26 @@ export default function Dashboard({ user: userProp }) {
   const isFormValid = selectedModule !== "" && message.trim() !== ""
 
   return (
-    <div className="min-h-screen py-8 px-4" style={{ backgroundColor: "#FFF8E1" }}>
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen py-6 sm:py-8 px-3 sm:px-4" style={{ backgroundColor: "#FFF8E1" }}>
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
         {/* Header Section */}
         <div className="relative">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
             <h1 
-              className="text-4xl font-bold"
+              className="text-2xl sm:text-3xl lg:text-4xl font-bold"
               style={{ color: "#16803D" }}
             >
               My Learning Progress
             </h1>
             {progressPercentage === 100 ? (
-              <PartyPopper className="w-8 h-8 text-yellow-500 animate-bounce" />
+              <PartyPopper className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 animate-bounce" />
             ) : progressPercentage >= 50 ? (
-              <Flame className="w-8 h-8 text-orange-500" />
+              <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
             ) : (
-              <Sparkles className="w-8 h-8 text-green-500" />
+              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
             )}
           </div>
-          <p className="text-gray-700 text-lg flex items-center gap-2">
+          <p className="text-sm sm:text-base lg:text-lg text-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
             <span>Track your progress and communicate with your instructor</span>
             {unlockedAchievements.length > 0 && (
               <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold flex items-center gap-1">
@@ -303,17 +303,17 @@ export default function Dashboard({ user: userProp }) {
         </div>
 
         {/* Overall Progress Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6 border-2 border-green-200">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 space-y-4 sm:space-y-6 border-2 border-green-200">
           <div className="flex items-center justify-between">
             <h2 
-              className="text-2xl font-bold flex items-center gap-2"
+              className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center gap-2"
               style={{ color: "#16803D" }}
             >
-              <BarChart3 className="w-7 h-7" />
+              <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7" />
               Overall Progress
             </h2>
             {progressPercentage === 100 && (
-              <PartyPopper className="w-6 h-6 text-yellow-500 animate-pulse" />
+              <PartyPopper className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 animate-pulse" />
             )}
           </div>
           
@@ -356,16 +356,16 @@ export default function Dashboard({ user: userProp }) {
           </div>
 
           {/* Status Cards with Fun Icons */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* Completed Card */}
-            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-4 border-2 border-orange-300 hover:shadow-lg transition-all transform hover:scale-105">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
-                  <Trophy className="w-6 h-6 text-white" />
+            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-2 sm:p-4 border-2 border-orange-300 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
+                  <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <p className="text-gray-600 text-xs mb-1 font-medium">Completed</p>
-                  <p className="text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                     {completedCount}
                   </p>
                 </div>
@@ -373,14 +373,14 @@ export default function Dashboard({ user: userProp }) {
             </div>
 
             {/* In Progress Card */}
-            <div className="bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-lg p-4 border-2 border-yellow-300 hover:shadow-lg transition-all transform hover:scale-105">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse">
-                  <Zap className="w-6 h-6 text-white" />
+            <div className="bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-lg p-2 sm:p-4 border-2 border-yellow-300 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse">
+                  <Zap className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <p className="text-gray-600 text-xs mb-1 font-medium">In Progress</p>
-                  <p className="text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                     {inProgressCount}
                   </p>
                 </div>
@@ -388,14 +388,14 @@ export default function Dashboard({ user: userProp }) {
             </div>
 
             {/* Not Started Card */}
-            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-lg p-4 border-2 border-green-300 hover:shadow-lg transition-all transform hover:scale-105">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
-                  <Target className="w-6 h-6 text-white" />
+            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-lg p-2 sm:p-4 border-2 border-green-300 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
+                  <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <p className="text-gray-600 text-xs mb-1 font-medium">Not Started</p>
-                  <p className="text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                     {notCompletedCount}
                   </p>
                 </div>
@@ -406,26 +406,26 @@ export default function Dashboard({ user: userProp }) {
 
         {/* Achievements Section */}
         {unlockedAchievements.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 border-2 border-yellow-200">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-2 border-yellow-200">
             <h2 
-              className="text-2xl font-bold mb-4 flex items-center gap-2"
+              className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 flex items-center gap-2"
               style={{ color: "#16803D" }}
             >
-              <Award className="w-7 h-7" />
+              <Award className="w-5 h-5 sm:w-7 sm:h-7" />
               Achievements Unlocked
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {unlockedAchievements.map((achievement) => {
                 const IconComponent = achievement.Icon;
                 return (
                   <div
                     key={achievement.id}
-                    className={`bg-gradient-to-br ${achievement.color} rounded-lg p-4 text-white shadow-lg transform hover:scale-105 transition-all border-2 border-white/20`}
+                    className={`bg-gradient-to-br ${achievement.color} rounded-lg p-3 sm:p-4 text-white shadow-lg transform hover:scale-105 transition-all border-2 border-white/20`}
                   >
                     <div className="flex justify-center mb-2">
-                      <IconComponent className="w-10 h-10" />
+                      <IconComponent className="w-8 h-8 sm:w-10 sm:h-10" />
                     </div>
-                    <h3 className="font-bold text-sm mb-1 text-center">{achievement.title}</h3>
+                    <h3 className="font-bold text-xs sm:text-sm mb-1 text-center">{achievement.title}</h3>
                     <p className="text-xs text-center opacity-90">{achievement.description}</p>
                   </div>
                 );
@@ -441,12 +441,12 @@ export default function Dashboard({ user: userProp }) {
         )}
 
         {/* Course Modules Section */}
-        <div id="course-modules" className="bg-white rounded-lg shadow-md p-6 space-y-4 border-2 border-green-200">
+        <div id="course-modules" className="bg-white rounded-lg shadow-md p-4 sm:p-6 space-y-4 border-2 border-green-200">
           <h2 
-            className="text-2xl font-bold mb-4 flex items-center gap-2"
+            className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 flex items-center gap-2"
             style={{ color: "#16803D" }}
           >
-            <BookOpen className="w-7 h-7" />
+            <BookOpen className="w-5 h-5 sm:w-7 sm:h-7" />
             Course Modules
           </h2>
           
@@ -463,7 +463,7 @@ export default function Dashboard({ user: userProp }) {
               modules.map((module) => (
               <div
                 key={module.id}
-                className={`rounded-lg p-4 border-2 hover:shadow-lg transition-all transform hover:scale-[1.02] ${
+                className={`rounded-lg p-3 sm:p-4 border-2 hover:shadow-lg transition-all transform hover:scale-[1.02] ${
                   module.status === "completed"
                     ? "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300"
                     : module.status === "in-progress"
@@ -471,25 +471,25 @@ export default function Dashboard({ user: userProp }) {
                     : "bg-gradient-to-br from-green-50 to-green-100 border-green-300"
                 }`}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3 flex-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2 sm:gap-0">
+                  <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
                     {module.status === "completed" ? (
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
-                        <Trophy className="w-5 h-5 text-white" />
+                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
+                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                     ) : module.status === "in-progress" ? (
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse">
-                        <Zap className="w-5 h-5 text-white" />
+                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse">
+                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                     ) : (
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full border-2 border-green-600 flex items-center justify-center bg-white">
-                        <Target className="w-5 h-5 text-green-600" />
+                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-green-600 flex items-center justify-center bg-white">
+                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                       </div>
                     )}
-                    <span className="font-semibold text-gray-800 text-lg">{module.title}</span>
+                    <span className="font-semibold text-gray-800 text-sm sm:text-base lg:text-lg">{module.title}</span>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
+                    className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
                       module.status === "completed"
                         ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white"
                         : module.status === "in-progress"
@@ -565,14 +565,14 @@ export default function Dashboard({ user: userProp }) {
         </div>
 
         {/* Feedback Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 space-y-4">
           <div className="flex items-center space-x-2 mb-4">
             <MessageSquare 
-              className="w-6 h-6 flex-shrink-0"
+              className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0"
               style={{ color: "#16803D" }}
             />
             <h2 
-              className="text-2xl font-bold"
+              className="text-lg sm:text-xl lg:text-2xl font-bold"
               style={{ color: "#16803D", margin: 0, padding: 0, lineHeight: "1.5rem" }}
             >
               Feedback
@@ -583,7 +583,7 @@ export default function Dashboard({ user: userProp }) {
             <div>
               <label
                 htmlFor="module"
-                className="block font-medium mb-2 text-gray-800"
+                className="block font-medium mb-2 text-gray-800 text-sm sm:text-base"
               >
                 Select Module
               </label>
@@ -591,7 +591,7 @@ export default function Dashboard({ user: userProp }) {
                 id="module"
                 value={selectedModule}
                 onChange={(e) => setSelectedModule(e.target.value)}
-                className="w-full px-4 py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-sm sm:text-base"
                 required
               >
                 <option value="">-- Select a module --</option>
@@ -607,7 +607,7 @@ export default function Dashboard({ user: userProp }) {
             <div>
               <label
                 htmlFor="message"
-                className="block font-medium mb-2 text-gray-800"
+                className="block font-medium mb-2 text-gray-800 text-sm sm:text-base"
               >
                 Your Question or Comment
               </label>
@@ -616,19 +616,19 @@ export default function Dashboard({ user: userProp }) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your question or comment here..."
-                className="w-full px-4 py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm sm:text-base"
                 rows="6"
                 required
               ></textarea>
             </div>
 
             {submitStatus === "success" && (
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+              <div className="bg-green-100 border border-green-400 text-green-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-sm sm:text-base">
                 Feedback submitted successfully!
               </div>
             )}
             {submitStatus === "error" && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-100 border border-red-400 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-sm sm:text-base">
                 Failed to submit feedback. Please try again.
               </div>
             )}
@@ -636,7 +636,7 @@ export default function Dashboard({ user: userProp }) {
             <button
               type="submit"
               disabled={!isFormValid || submitting}
-              className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 ${
+              className={`w-full py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-medium transition-colors duration-200 text-sm sm:text-base ${
                 isFormValid && !submitting
                   ? "bg-orange-500 text-white hover:bg-orange-600 cursor-pointer"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"

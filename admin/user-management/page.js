@@ -151,11 +151,11 @@ export default function UserManagementPage() {
   }, []);
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6">
+    <div className="w-full max-w-7xl mx-auto p-3 sm:p-6">
       {/* Header Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">User Management</h1>
-        <p className="text-gray-600">Manage and monitor all users in the system</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">User Management</h1>
+        <p className="text-sm sm:text-base text-gray-600">Manage and monitor all users in the system</p>
       </div>
 
       <StatusMessage message={submitStatus} />
@@ -167,24 +167,24 @@ export default function UserManagementPage() {
       {!loading && !error && (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {/* Search and Filter Bar */}
-          <div className="p-6 border-b border-gray-200 bg-gray-50">
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="p-3 sm:p-6 border-b border-gray-200 bg-gray-50">
+            <div className="flex flex-col gap-3 sm:gap-4">
               {/* Search Bar */}
-              <div className="flex-1 max-w-md">
+              <div className="w-full">
                 <input
                   type="text"
                   placeholder="Search by username or ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none text-sm"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none text-sm"
                 />
               </div>
 
               {/* Filter Buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFilterStatus('all')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
                     filterStatus === 'all'
                       ? 'bg-orange-500 text-white'
                       : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -194,7 +194,7 @@ export default function UserManagementPage() {
                 </button>
                 <button
                   onClick={() => setFilterStatus('active')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
                     filterStatus === 'active'
                       ? 'bg-green-500 text-white'
                       : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -204,7 +204,7 @@ export default function UserManagementPage() {
                 </button>
                 <button
                   onClick={() => setFilterStatus('inactive')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
                     filterStatus === 'inactive'
                       ? 'bg-red-500 text-white'
                       : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -218,19 +218,19 @@ export default function UserManagementPage() {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     User ID
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Username
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -266,8 +266,8 @@ export default function UserManagementPage() {
 
           {/* Footer with count */}
           {filteredUsers.length > 0 && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
+            <div className="px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-t border-gray-200">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Showing <span className="font-medium text-gray-900">{filteredUsers.length}</span> of <span className="font-medium text-gray-900">{users.length}</span> users
               </p>
             </div>
