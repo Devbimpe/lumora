@@ -23,12 +23,24 @@ export async function GET(request) {
         moduleId: parseInt(moduleId),
         viewedContent: [],
         completedContent: [],
-        isCompleted: false
+        isCompleted: false,
+        percentage: 0
       });
     } else {
-      // Get all progress
+      // Get all progress - ensure percentage is included for each
       const progress = await getUserProgress(userId);
-      return NextResponse.json(progress);
+      // Ensure each progress entry has percentage
+      const progressWithPercentage = await Promise.all(
+        progress.map(async (p) => {
+          if (p.percentage === undefined || p.percentage === null) {
+            // Recalculate if missing
+            const updated = await getUserModuleProgress(userId, p.moduleId);
+            return updated || { ...p, percentage: 0 };
+          }
+          return p;
+        })
+      );
+      return NextResponse.json(progressWithPercentage);
     }
   } catch (error) {
     console.error('Error fetching progress:', error);

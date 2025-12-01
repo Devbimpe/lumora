@@ -91,12 +91,21 @@ export default function Dashboard({ user: userProp }) {
         const viewedContent = progress?.viewedContent || []
         const completedContent = progress?.completedContent || []
         
-        // Get content count from the batch response
+        // Get content count from the batch response (pages + knowledge checks)
         const totalContent = contentCounts[module.ModuleID] || 0
         
         // Combine viewed and completed, removing duplicates
-        const uniqueViewedContent = [...new Set([...viewedContent, ...completedContent])]
-        const actualViewedCount = uniqueViewedContent.length
+        const uniqueViewedContent = new Set([...viewedContent.map(String), ...completedContent.map(String)])
+        const actualViewedCount = uniqueViewedContent.size
+        
+        // Use percentage from progress data if available, otherwise calculate it
+        // Cap at 100% to prevent ridiculous numbers
+        let progressPercentage = 0
+        if (progress?.percentage !== undefined && progress?.percentage !== null) {
+          progressPercentage = Math.min(Math.max(0, Math.round(progress.percentage)), 100)
+        } else if (totalContent > 0) {
+          progressPercentage = Math.min(Math.round((actualViewedCount / totalContent) * 100), 100)
+        }
         
         return {
           id: module.ModuleID,
@@ -106,9 +115,7 @@ export default function Dashboard({ user: userProp }) {
           viewedCount: actualViewedCount,
           completedCount: completedContent.length,
           totalContent: totalContent,
-          progressPercentage: totalContent > 0 
-            ? Math.round((actualViewedCount / totalContent) * 100)
-            : 0
+          progressPercentage: progressPercentage
         }
       })
       
@@ -514,7 +521,7 @@ export default function Dashboard({ user: userProp }) {
                         <span>Content Progress</span>
                       </span>
                       <span className="text-gray-700 font-bold">
-                        {module.viewedCount || 0} / {module.totalContent} viewed
+                        {module.viewedCount || 0} / {module.totalContent || 0} viewed
                       </span>
                     </div>
                     <div className="relative w-full bg-gray-200 rounded-full h-3 shadow-inner overflow-hidden">
