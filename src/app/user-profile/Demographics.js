@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 export default function Demograhics({ userId }) {
   const [age, setAge] = useState("");
   const [location, setLocation] = useState("");
+  const [jobStatus, setJobStatus] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [education, setEducation] = useState("");
   const [save, setSave] = useState("");
@@ -21,6 +22,7 @@ export default function Demograhics({ userId }) {
   
     setAge(demographics.age || "");
     setLocation(demographics.location || "");
+    setJobStatus(demographics.jobStatus);
     setJobTitle(demographics.jobTitle || "");
     setEducation(demographics.education || "");
   }
@@ -43,6 +45,7 @@ const handleSave = async () => {
         userId,
         age,
         location,
+        jobStatus,
         jobTitle,
         education,
       }),
@@ -75,7 +78,7 @@ return (
     <div className="flex flex-wrap -mx-2">
       <div className="w-full md:w-1/2 px-2 mb-4">
         <b>Age</b>
-          <input type="text" className="w-full p-3 bg-gray-100 rounded-lg" value={age} onChange={(e) => setAge(e.target.value)} />
+          <input type="number" className="w-full p-3 bg-gray-100 rounded-lg" value={age} onChange={(e) => setAge(e.target.value)} />
         </div>
 
       <div className="w-full md:w-1/2 px-2 mb-4">
@@ -85,7 +88,7 @@ return (
 
       <div className="w-full md:w-1/2 px-2 mb-4">
         <b>Job Status</b>
-          <select type ="text" className="w-full p-3 bg-gray-100 rounded-lg">
+          <select type ="text" className="w-full p-3 bg-gray-100 rounded-lg" value={jobStatus} onChange={(e) => setJobStatus(e.target.value)}>
             <option value="employed">Employed</option>
             <option value="unemployed">Unemployed</option>
           </select>

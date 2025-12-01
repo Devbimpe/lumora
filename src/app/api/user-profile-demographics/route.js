@@ -24,7 +24,7 @@ export async function GET(request) {
         }
 
         return new Response(
-            JSON.stringify({ user: { demograhics: user.demograhics || {} }}),
+            JSON.stringify({ user: { demographics: user.demographics || {}, }}),
             {
                 status: 200,
                 headers: { "Content-Type": "application/json" }
@@ -44,7 +44,7 @@ export async function GET(request) {
 export async function POST(request) {
     try{
         const body = await request.json();
-        const { userId, age, location, jobTitle, education } = body;
+        const { userId, age, location, jobStatus, jobTitle, education } = body;
 
         if (!userId) {
             return new Response(JSON.stringify({ error: "Missing userId" }), 
@@ -55,9 +55,10 @@ export async function POST(request) {
             );
         }
         await updateUser(userId, {
-            demograhics: {
+            demographics: {
                 age: age || "",
                 location: location || "",
+                jobStatus: jobStatus || "",
                 jobTitle: jobTitle || "",
                 education: education || "",
             }
