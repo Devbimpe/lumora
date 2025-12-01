@@ -543,66 +543,50 @@ export async function getAllFeedbackWithUsers() {
 
 /**
  * Get all user module progress with merged user details
- * Calculates progress dynamically based on max contentId in the module
+ * Uses stored percentage from userProgress docs
  */
 export async function getAllModuleProgressWithUsers() {
   const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
   const usersRef = collection(db, COLLECTIONS.USERS);
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
 
-  const [progressSnap, usersSnap, contentSnap] = await Promise.all([
+  const [progressSnap, usersSnap] = await Promise.all([
     getDocs(progressRef),
     getDocs(usersRef),
-    getDocs(contentRef),
   ]);
 
   // Map users by id
   const usersMap = {};
   usersSnap.forEach((u) => (usersMap[u.id] = u.data()));
 
-  // Group content IDs by moduleId
-  const moduleContentMap = {};
-  contentSnap.forEach((c) => {
-    const data = c.data();
-    const moduleId = data.moduleId;
-    if (!moduleContentMap[moduleId]) moduleContentMap[moduleId] = [];
-    moduleContentMap[moduleId].push(data.contentId);
+  return progressSnap.docs.map((doc) => {
+    const p = doc.data();
+    const user = usersMap[p.userId] || {};
+
+    // Use stored percentage (0–100), fallback to 0 if missing
+    let rawPercentage =
+      typeof p.percentage === "number" && !Number.isNaN(p.percentage)
+        ? p.percentage
+        : 0;
+
+    // Clamp between 0 and 100
+    rawPercentage = Math.min(Math.max(rawPercentage, 0), 100);
+
+    // Completed flag comes from Firestore
+    const completed = !!p.isCompleted;
+
+    // If module is marked completed but percentage is still 0,
+    // force it to show as 100% in the UI.
+    const progressFraction = completed ? 1 : rawPercentage / 100;
+
+    return {
+      id: doc.id,
+      ...p,
+      userName: user.username || "N/A",
+      fullName: user.name || "N/A",
+      progress: progressFraction, // 0–1 value for UI
+      completed,
+    };
   });
-
-return progressSnap.docs.map((doc) => {
-  const p = doc.data();
-  const user = usersMap[p.userId] || {};
-
-  const moduleContentIds = moduleContentMap[p.moduleId] || [];
-  const maxContentId = moduleContentIds.length > 0 ? Math.max(...moduleContentIds) : 0;
-  const minContentId = moduleContentIds.length > 0 ? Math.min(...moduleContentIds) : 0;
-
-  let progressPercent = 0;
-  let completed = false;
-
-  // Special case for module 2
-  if (p.moduleId === 2) {
-    const lastViewedOffset = (p.lastViewedContentId || minContentId) - 10; 
-    const totalModuleContent = maxContentId - 10; 
-    progressPercent = totalModuleContent > 0 ? lastViewedOffset / totalModuleContent : 0;
-    completed = lastViewedOffset >= totalModuleContent;
-  }
-  else {
-    // default calculation for other modules
-    const lastViewedId = p.lastViewedContentId || minContentId;
-    progressPercent = maxContentId > 0 ? (lastViewedId - minContentId + 1) / moduleContentIds.length : 0;
-    completed = lastViewedId >= maxContentId;
-  }
-
-  return {
-    id: doc.id,
-    ...p,
-    userName: user.username || "N/A",
-    fullName: user.name || "N/A",
-    progress: progressPercent,
-    completed,
-  };
-});
 }
 
 /**
