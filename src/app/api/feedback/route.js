@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createFeedback } from '@db/db.js';
 import { getUserByFirebaseUid } from '@db/db.js';
 import jwt from 'jsonwebtoken';
 
@@ -60,17 +59,35 @@ export async function POST(request) {
       );
     }
 
-    // Create feedback entry
-    const feedbackId = await createFeedback({
-      userId: user.id,
-      message: message.trim(),
-      type: type // 'general' or module ID
-    });
+    // Format feedback type for display
+    const feedbackTypeDisplay = type === 'General' || type === 'general' 
+      ? 'General Feedback' 
+      : `Module ${type} Feedback`;
+
+    // Create email body with user information and feedback
+    const emailBody = `User Information:
+Name: ${user.name || 'N/A'}
+Username: ${user.username || 'N/A'}
+Email: ${user.email || 'N/A'}
+User ID: ${user.id}
+
+Feedback Details:
+Type: ${feedbackTypeDisplay}
+Submitted: ${new Date().toLocaleString()}
+
+Message:
+${message.trim()}`;
+
+    // Create mailto URL
+    const subject = encodeURIComponent(`New Feedback: ${feedbackTypeDisplay}`);
+    const body = encodeURIComponent(emailBody);
+    const to = 'lumora460@gmail.com';
+    const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
 
     return NextResponse.json({
       success: true,
-      message: 'Feedback submitted successfully',
-      feedbackId: feedbackId
+      message: 'Feedback ready to send',
+      mailtoUrl: mailtoUrl
     });
   } catch (error) {
     console.error('Feedback submission error:', error);
