@@ -64,21 +64,44 @@ export async function POST(request) {
       ? 'General Feedback' 
       : `Module ${type} Feedback`;
 
-    // Create email body with user information and feedback
-    const emailBody = `User Information:
+    // Create email body template with user information and feedback
+    const emailBody = `Dear Lumora Team,
+
+I am submitting the following feedback:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+USER INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Name: ${user.name || 'N/A'}
 Username: ${user.username || 'N/A'}
 Email: ${user.email || 'N/A'}
 User ID: ${user.id}
 
-Feedback Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEEDBACK DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Type: ${feedbackTypeDisplay}
-Submitted: ${new Date().toLocaleString()}
+Submitted: ${new Date().toLocaleString('en-US', { 
+  year: 'numeric', 
+  month: 'long', 
+  day: 'numeric', 
+  hour: '2-digit', 
+  minute: '2-digit' 
+})}
 
-Message:
-${message.trim()}`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MESSAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${message.trim()}
 
-    // Create mailto URL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Thank you for your attention to this feedback.
+
+Best regards,
+${user.name || user.username || 'User'}`;
+
+    // Create mailto URL with proper encoding
     const subject = encodeURIComponent(`New Feedback: ${feedbackTypeDisplay}`);
     const body = encodeURIComponent(emailBody);
     const to = 'lumora460@gmail.com';
