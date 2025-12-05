@@ -27,5 +27,12 @@ export default function ActivatePage() {
       });
   }, [router, searchParams]);
 
-  return <div>{message}</div>;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white px-4">
+      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 max-w-md w-full text-center">
+        <h1 className="text-xl sm:text-2xl font-bold text-green-700 mb-4">Account Activation</h1>
+        <p className="text-sm sm:text-base text-gray-700">{message}</p>
+      </div>
+    </div>
+  );
 }

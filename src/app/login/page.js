@@ -95,7 +95,7 @@ export default function Login() {
 
   return (
     <div className="page">
-      <main>
+      <main className="w-full">
         <div className="LoginPage">
           <div className="login-header">
             <h1>Login to your account</h1>

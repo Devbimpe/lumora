@@ -45,7 +45,7 @@ export default function ForgotPassword() {
 
     return (
         <div className="page">
-            <main>
+            <main className="w-full">
                 <div className="LoginPage">
                     <div className="login-header">
                         <h1>Forgot Password</h1>

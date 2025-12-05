@@ -34,6 +34,26 @@
   box-sizing: border-box;
 }
 
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .module-container {
+    padding: 1rem;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .module-heading {
+    font-size: 28px;
+  }
+
+  .module-content {
+    width: 100%;
+    padding: 20px;
+    font-size: 16px;
+    min-height: auto;
+  }
+}
+
 .module-content h3 {
   color: #555;
   font-weight: 700;
@@ -140,4 +160,30 @@
 
 .misconception-table th {
   font-weight: 600;
+}
+
+/* Mobile Responsive for Tables */
+@media (max-width: 768px) {
+  .misconception-table {
+    font-size: 0.85rem;
+  }
+
+  .misconception-table th,
+  .misconception-table td {
+    padding: 6px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .misconception-table {
+    font-size: 0.75rem;
+  }
+
+  .misconception-table th,
+  .misconception-table td {
+    padding: 4px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
 }

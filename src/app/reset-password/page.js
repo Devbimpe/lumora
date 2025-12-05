@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import "../globals.css"
+import "../login/login.css"
 
 export default function ResetPassword() {
     const searchParams = useSearchParams()
@@ -52,31 +53,60 @@ export default function ResetPassword() {
         } catch (err) {
             console.error(err)
             setError("Something went wrong.")
-        } 
+        } finally {
+            setLoading(false)
+        }
     }
     
     return (
         <div className="page">
-            <main>
+            <main className="w-full">
                 <div className="LoginPage">
-                    <h1>Reset Password</h1>
+                    <div className="login-header">
+                        <h1>Reset Password</h1>
+                        <p className="login-subtitle">Enter your new password below.</p>
+                    </div>
                     <div className="Maininfo">
                         <form onSubmit={handleSubmit}>
-                            {error && (<div style={{ color: "red", marginBottom: "10px" }}>{error}</div>)}
-                            {message && (<div style={{ color: "green", marginBottom: "10px" }}>{message}</div>)}
+                            {error && (
+                                <div className="error-message">
+                                    {error}
+                                </div>
+                            )}
+                            {message && (
+                                <div className="success-message">
+                                    {message}
+                                </div>
+                            )}
 
                             <div className="info">
                                 <label htmlFor="password">New Password</label>
-                                <input type="password" id="password" required value={password} onChange={(e) => setPassword(e.target.value)}/>
+                                <input 
+                                    type="password" 
+                                    id="password" 
+                                    required 
+                                    value={password} 
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter new password"
+                                />
                             </div>
 
                             <div className="info">
                                 <label htmlFor="confirmPassword">Confirm Password</label>
-                                <input type="password" id="confirmPassword" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}/>
+                                <input 
+                                    type="password" 
+                                    id="confirmPassword" 
+                                    required 
+                                    value={confirmPassword} 
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm new password"
+                                />
                             </div>
 
                             <div className="button">
-                                <button type="submit" disabled={loading} style={{ opacity: loading ? 0.6 : 1, cursor: loading ? "not-allowed" : "pointer", }}> {loading ? "Resetting..." : "Reset Password"} </button>
+                                <button type="submit" disabled={loading}>
+                                    {loading ? "Resetting..." : "Reset Password"}
+                                </button>
                             </div>
 
                             <div className="register_link">

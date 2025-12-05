@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/* Hide scrollbar utility for mobile tabs */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* styles/Login.css */
 
 .page {
