@@ -19,6 +19,7 @@ export default function Sidebar({ activeSection }) {
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", { method: "POST" });
+      window.location.href = '/';
       router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);
