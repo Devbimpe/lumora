@@ -152,37 +152,114 @@ export default function ModulePage() {
           // Continue without knowledge checks rather than failing completely
         }
         
-        // Build unified array: pages first (sorted by pageNumber), then knowledge checks at the end
+        // Build unified array: pages first (sorted by pageNumber), then knowledge checks inserted at specific positions
         const items = [];
         
         // Sort pages by pageNumber to ensure correct order
         const sortedPages = [...modulePages].sort((a, b) => a.pageNumber - b.pageNumber);
         
-        // Add all pages first
-        sortedPages.forEach(page => {
-          items.push({
-            id: `page-${page.pageNumber}`,
-            type: 'page',
-            pageNumber: page.pageNumber,
-            imagePath: page.imagePath,
-            title: page.title
-          });
-        });
+        // Check if this is module 3 for special knowledge check placement
+        const isModule3 = moduleNum === '3';
         
-        // Add knowledge checks at the end (after all pages)
-        knowledgeChecks.forEach((check, index) => {
-          items.push({
-            id: `check-${check.knowledgeCheckId}`,
-            type: 'knowledgeCheck',
-            knowledgeCheckId: check.knowledgeCheckId,
-            question: check.question,
-            choices: parseChoices(check.choices),
-            answer: check.answer?.trim(),
-            explain: check.explain,
-            allowance: check.allowance,
-            contentId: check.contentId
+        if (isModule3 && knowledgeChecks.length > 0) {
+          // For module 3: insert knowledge checks at specific positions
+          // First knowledge check after page 4 (or after page 3 if page 4 doesn't exist)
+          // Second knowledge check after page 9 (or after page 8 if page 9 doesn't exist)
+          // Rest at the end
+          let knowledgeCheckIndex = 0;
+          
+          // Check which pages exist (calculate once before loop)
+          const hasPage4 = sortedPages.some(p => p.pageNumber === 4);
+          const hasPage9 = sortedPages.some(p => p.pageNumber === 9);
+          
+          sortedPages.forEach(page => {
+            // Add the page
+            items.push({
+              id: `page-${page.pageNumber}`,
+              type: 'page',
+              pageNumber: page.pageNumber,
+              imagePath: page.imagePath,
+              title: page.title
+            });
+            
+            // Insert first knowledge check after page 4 (or page 3 if 4 doesn't exist)
+            if ((page.pageNumber === 4 || (!hasPage4 && page.pageNumber === 3)) && knowledgeCheckIndex < knowledgeChecks.length) {
+              const check = knowledgeChecks[knowledgeCheckIndex];
+              items.push({
+                id: `check-${check.knowledgeCheckId}`,
+                type: 'knowledgeCheck',
+                knowledgeCheckId: check.knowledgeCheckId,
+                question: check.question,
+                choices: parseChoices(check.choices),
+                answer: check.answer?.trim(),
+                explain: check.explain,
+                allowance: check.allowance,
+                contentId: check.contentId
+              });
+              knowledgeCheckIndex++;
+            }
+            
+            // Insert second knowledge check after page 9 (or page 8 if 9 doesn't exist)
+            if ((page.pageNumber === 9 || (!hasPage9 && page.pageNumber === 8)) && knowledgeCheckIndex < knowledgeChecks.length) {
+              const check = knowledgeChecks[knowledgeCheckIndex];
+              items.push({
+                id: `check-${check.knowledgeCheckId}`,
+                type: 'knowledgeCheck',
+                knowledgeCheckId: check.knowledgeCheckId,
+                question: check.question,
+                choices: parseChoices(check.choices),
+                answer: check.answer?.trim(),
+                explain: check.explain,
+                allowance: check.allowance,
+                contentId: check.contentId
+              });
+              knowledgeCheckIndex++;
+            }
           });
-        });
+          
+          // Add any remaining knowledge checks at the end
+          while (knowledgeCheckIndex < knowledgeChecks.length) {
+            const check = knowledgeChecks[knowledgeCheckIndex];
+            items.push({
+              id: `check-${check.knowledgeCheckId}`,
+              type: 'knowledgeCheck',
+              knowledgeCheckId: check.knowledgeCheckId,
+              question: check.question,
+              choices: parseChoices(check.choices),
+              answer: check.answer?.trim(),
+              explain: check.explain,
+              allowance: check.allowance,
+              contentId: check.contentId
+            });
+            knowledgeCheckIndex++;
+          }
+        } else {
+          // For other modules: add all pages first, then knowledge checks at the end
+          sortedPages.forEach(page => {
+            items.push({
+              id: `page-${page.pageNumber}`,
+              type: 'page',
+              pageNumber: page.pageNumber,
+              imagePath: page.imagePath,
+              title: page.title
+            });
+          });
+          
+          // Add knowledge checks at the end (after all pages)
+          knowledgeChecks.forEach((check, index) => {
+            items.push({
+              id: `check-${check.knowledgeCheckId}`,
+              type: 'knowledgeCheck',
+              knowledgeCheckId: check.knowledgeCheckId,
+              question: check.question,
+              choices: parseChoices(check.choices),
+              answer: check.answer?.trim(),
+              explain: check.explain,
+              allowance: check.allowance,
+              contentId: check.contentId
+            });
+          });
+        }
         
         setAllItems(items);
         
