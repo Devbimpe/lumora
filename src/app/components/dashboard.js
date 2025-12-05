@@ -257,6 +257,8 @@ export default function Dashboard({ user: userProp }) {
       const data = await response.json()
 
       if (data.success) {
+        // Open the default email client (Outlook, Gmail, etc.) with pre-filled email
+        window.location.href = data.mailtoUrl
         setSubmitStatus("success")
         setMessage("")
         setSelectedModule("")
