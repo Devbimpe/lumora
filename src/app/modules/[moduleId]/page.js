@@ -427,55 +427,74 @@ export default function ModulePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
       {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-50 px-4 py-3">
-        <div className="flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-40 px-4 py-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 text-gray-700 hover:text-green-700 transition-colors"
+            className="text-black hover:text-green-700 transition-colors flex-shrink-0"
             aria-label="Toggle menu"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {sidebarOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h2 className="text-sm font-bold text-green-700 truncate flex-1 mx-3">{moduleHeading}</h2>
-          <Link href="/training-module" className="text-green-700 hover:text-green-800 text-xs whitespace-nowrap">
-            Back
-          </Link>
+          <h2 className="text-lg font-bold text-black truncate">{moduleSubheading || moduleHeading}</h2>
         </div>
       </div>
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar Navigation */}
-      <aside className={`w-64 bg-white border-r border-gray-200 shadow-sm fixed left-0 top-0 h-screen flex flex-col overflow-hidden z-50 transition-transform duration-300 ${
+      <aside className={`w-72 max-w-[85vw] bg-white border-r border-gray-200 shadow-xl fixed left-0 top-0 h-screen flex flex-col overflow-hidden z-50 transition-transform duration-300 ease-out ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
-        <div className="p-4 bg-white border-b border-gray-200 z-10">
+      } lg:w-64 lg:shadow-sm`}>
+        {/* Sidebar Header */}
+        <div className="p-4 bg-gradient-to-r from-green-50 to-white border-b border-gray-200">
+          {/* Mobile Close Button */}
+          <div className="lg:hidden flex items-center justify-between mb-3">
+            <Link 
+              href="/training-module" 
+              className="flex items-center gap-1.5 text-green-700 hover:text-green-800 text-sm font-medium"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              All Modules
+            </Link>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-2 -mr-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Desktop Back Link */}
           <Link href="/training-module" className="hidden lg:inline-flex items-center text-green-700 hover:text-green-800 mb-4 text-sm">
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to Modules
           </Link>
+          
           <h2 className="text-lg font-bold text-green-700">{moduleHeading}</h2>
           {moduleSubheading && (
-            <p className="text-xs text-gray-600 mt-1">{moduleSubheading}</p>
+            <p className="text-xs text-gray-600 mt-1 line-clamp-2">{moduleSubheading}</p>
           )}
         </div>
         
-        <nav className="flex-1 flex flex-col overflow-y-auto p-2">
-          <div className="space-y-1 flex-1">
+        <nav className="flex-1 flex flex-col overflow-y-auto p-3">
+          <div className="space-y-1.5 flex-1">
             {allItems.map((item, index) => {
               const isActive = currentItem.id === item.id;
               const isCompleted = index < currentIndex;
@@ -491,25 +510,25 @@ export default function ModulePage() {
                 <button
                   key={item.id}
                   onClick={() => handleSidebarClick(item.id)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
+                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${
                     isActive
-                      ? 'bg-green-100 text-green-700 font-semibold border-l-4 border-green-600'
+                      ? 'bg-green-100 text-green-700 font-semibold border-l-4 border-green-600 shadow-sm'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-green-700'
                   }`}
                 >
                   <div className="flex items-center">
-                    <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 ${
+                    <span className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${
                       isActive
                         ? 'bg-green-600 text-white'
                         : isCompleted
                         ? 'bg-green-500 text-white'
-                        : 'bg-gray-300 text-gray-600'
+                        : 'bg-gray-200 text-gray-600'
                     }`}>
                       {isCompleted && !isActive ? '✓' : displayNumber}
                     </span>
-                    <span className="text-sm truncate">{title}</span>
+                    <span className="text-sm truncate flex-1">{title}</span>
                     {item.type === 'knowledgeCheck' && (
-                      <span className="ml-2 text-xs text-orange-600">📝</span>
+                      <span className="ml-2 text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">Quiz</span>
                     )}
                   </div>
                 </button>
@@ -518,12 +537,13 @@ export default function ModulePage() {
           </div>
           
           {/* Track Progress Button */}
-          <div className="pt-4 border-t border-gray-200 pb-2">
+          <div className="pt-4 border-t border-gray-200 pb-2 px-1">
             <button
               onClick={() => {
+                setSidebarOpen(false);
                 router.push('/#course-modules');
               }}
-              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg text-sm"
             >
               Track Progress
             </button>
@@ -532,10 +552,10 @@ export default function ModulePage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 lg:py-12">
           {/* Content Display */}
-          <div className="bg-white rounded-lg sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8">
             {currentItem.type === 'page' && (
               <div className="flex justify-center items-center">
                 <img
@@ -690,25 +710,25 @@ export default function ModulePage() {
 
             {/* Completion Message for Last Module */}
             {showCompletionMessage && (
-              <div className="mt-4 p-8 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-500 rounded-lg shadow-xl">
+              <div className="mt-4 p-4 sm:p-8 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-500 rounded-xl shadow-xl">
                 <div className="text-center">
-                  <div className="text-6xl mb-4">🎊</div>
-                  <p className="text-2xl font-bold text-green-700 mb-3">
+                  <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">🎊</div>
+                  <p className="text-lg sm:text-2xl font-bold text-green-700 mb-2 sm:mb-3">
                     Congratulations! You've Completed All Modules!
                   </p>
-                  <p className="text-lg text-gray-700 mb-6">
+                  <p className="text-sm sm:text-lg text-gray-700 mb-4 sm:mb-6">
                     You've successfully completed the entire training program. Great work!
                   </p>
-                  <div className="flex gap-4 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                     <Link
                       href="/training-module"
-                      className="px-8 py-4 bg-green-600 text-white rounded-lg font-semibold text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
+                      className="px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-xl font-semibold text-sm sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
                     >
                       View All Modules
                     </Link>
                     <Link
                       href="/#course-modules"
-                      className="px-8 py-4 bg-white text-green-600 border-2 border-green-600 rounded-lg font-semibold text-lg hover:bg-green-50 transition-colors shadow-lg hover:shadow-xl"
+                      className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-green-600 border-2 border-green-600 rounded-xl font-semibold text-sm sm:text-lg hover:bg-green-50 transition-colors shadow-lg hover:shadow-xl"
                     >
                       Track Progress
                     </Link>
