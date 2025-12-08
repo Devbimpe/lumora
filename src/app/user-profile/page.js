@@ -43,7 +43,12 @@ export default function Page() {
         if (!res.ok) return;
 
         const data = await res.json();
-        setPersonalInfoData(data.user.personalInfo || {});
+        const mergedPersonalInfo = {...(data.user.PersonalInfo || {}), 
+                                    fullName: data.user.fullName || "", 
+                                    userName: data.user.userName || "", 
+                                    email: data.user.email || ""
+                                  };
+        setPersonalInfoData(mergedPersonalInfo || {});
       }
 
       fetchPersonalInfo();
@@ -76,7 +81,7 @@ export default function Page() {
 
         {/* Tab Content */}
         <div className="mt-10 text-center text-gray-700">
-            {activeTab === "Personal Info" && <PersonalInfo userId={userId} onSaved={(updatedData) => setPersonalInfoData(updatedData)} />}
+            {activeTab === "Personal Info" && <PersonalInfo userId={userId} personalInfo = {personalInfoData} onSaved={(updatedData) => setPersonalInfoData(updatedData)} />}
             {activeTab === "Demographics" && <Demographics userId={userId} />}
             {activeTab === "Portfolio" && <Portfolio userId={userId}/>}
             {activeTab === "Settings" && <Settings userId={userId}/>}
