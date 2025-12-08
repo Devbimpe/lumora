@@ -44,7 +44,7 @@ export default function Page() {
 
         const data = await res.json();
         const mergedPersonalInfo = {...(data.user.PersonalInfo || {}), 
-                                    fullName: data.user.fullName || "", 
+                                    name: data.user.fullName || "", 
                                     userName: data.user.userName || "", 
                                     email: data.user.email || ""
                                   };

@@ -27,11 +27,12 @@ export default function PersonalInfo({ userId, personalInfo: mergedPersonalInfo,
 
       const data = await res.json();
       const personalInfo = data.user.personalInfo || {};
-      const mergedPersonalInfo = {...(data.user.PersonalInfo || {}), 
-                                    fullName: data.user.fullName || "", 
-                                    userName: data.user.userName || "", 
-                                    email: data.user.email || ""
-                                  };
+      const mergedPersonalInfo = {
+        ...personalInfo,
+        fullName: personalInfo.fullName || data.user.name || "",
+        userName: personalInfo.userName || data.user.username || "",
+        email: personalInfo.email || data.user.email || ""
+      };
 
       // Set form fields from personalInfo only
       setFullName(mergedPersonalInfo.fullName || "");
