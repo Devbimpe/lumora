@@ -9,7 +9,7 @@ export async function GET(request) {
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing userId" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -17,7 +17,7 @@ export async function GET(request) {
     if (!user) {
       return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -27,6 +27,11 @@ export async function GET(request) {
     return new Response(
       JSON.stringify({
         user: {
+          // Root-level fields (name and username)
+          name: user.name || "",
+          username: user.username || "",
+          email: user.email || "",
+          // Personal info fields
           personalInfo: {
             fullName: personalInfo.fullName || "",
             userName: personalInfo.userName || "",
@@ -34,18 +39,18 @@ export async function GET(request) {
             pronouns: personalInfo.pronouns || "",
             headline: personalInfo.headline || "",
             bio: personalInfo.bio || "",
-          }
-        }
+          },
+        },
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       }
     );
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
   }
 }
@@ -59,33 +64,37 @@ export async function POST(request) {
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing userId" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Save ONLY inside personalInfo
+    // Save root-level fields AND personalInfo
     await updateUser(userId, {
-      personalInfo: {
-        fullName: fullName || "",
-        userName: userName || "",
+        name: fullName || "",
+        username: userName || "",
         email: email || "",
-        pronouns: pronouns || "",
-        headline: headline || "",
-        bio: bio || "",
-      }
+        personalInfo: {
+            fullName,
+            userName,
+            email,
+            pronouns,        
+            headline,        
+            bio,             
+        },
     });
+
 
     return new Response(
       JSON.stringify({ message: "Saved successfully" }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       }
     );
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
   }
 }

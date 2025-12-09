@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-export default function PersonalInfo({ userId, personalInfo: mergedPersonalInfo, onSaved }) {
+export default function PersonalInfo({ userId, personalInfo: personalInfo, onSaved }) {
   // Form fields
   const [fullName, setFullName] = useState("");
   const [userName, setUsername] = useState("");
@@ -12,12 +12,13 @@ export default function PersonalInfo({ userId, personalInfo: mergedPersonalInfo,
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
 
+  // Save status and error color
   const [save, setSave] = useState("");
   const [saveError, setSaveError] = useState("red");
 
   const PRONOUN_OPTIONS = ["He/Him", "She/Her", "They/Them", "Other"];
 
-  // Load data from API
+  // Load user data from API on component mount or userId change
   useEffect(() => {
     async function loadData() {
       if (!userId) return;
@@ -27,39 +28,25 @@ export default function PersonalInfo({ userId, personalInfo: mergedPersonalInfo,
 
       const data = await res.json();
       const personalInfo = data.user.personalInfo || {};
-      const mergedPersonalInfo = {
-        ...personalInfo,
-        fullName: personalInfo.fullName || data.user.name || "",
-        userName: personalInfo.userName || data.user.username || "",
-        email: personalInfo.email || data.user.email || ""
-      };
 
-      // Set form fields from personalInfo only
-      setFullName(mergedPersonalInfo.fullName || "");
-      setUsername(mergedPersonalInfo.userName || "");
-      setEmail(mergedPersonalInfo.email || "");
-      setPronouns(mergedPersonalInfo.pronouns || "");
-      setHeadline(mergedPersonalInfo.headline || "");
-      setBio(mergedPersonalInfo.bio || "");
+      setFullName(data.user.name || "");
+      setUsername(data.user.username || "");
+      setEmail(data.user.email || personalInfo.email || "");
+      setPronouns(personalInfo.pronouns || "");
+      setHeadline(personalInfo.headline || "");
+      setBio(personalInfo.bio || "");
 
-      // Handle custom pronouns
-      if (mergedPersonalInfo.pronouns && !PRONOUN_OPTIONS.includes(mergedPersonalInfo.pronouns)) {
+      // Handle custom pronouns if not in options
+      if (personalInfo.pronouns && !PRONOUN_OPTIONS.includes(personalInfo.pronouns)) {
         setPronouns("Other");
-        setCustomPronouns(mergedPersonalInfo.pronouns);
+        setCustomPronouns(personalInfo.pronouns);
       }
     }
 
     loadData();
   }, [userId]);
 
-    useEffect(() => {
-        if (mergedPersonalInfo) {
-        setFullName(prev => prev || mergedPersonalInfo.fullName || mergedPersonalInfo.name || "");
-        setUsername(prev => prev || mergedPersonalInfo.userName || mergedPersonalInfo.username || "");
-        }
-    }, [mergedPersonalInfo]);
-
-  // Save handler
+  // Save handler for updating personal info
   const handleSave = async () => {
     if (!userId) {
       setSave("User not logged in.");
@@ -67,8 +54,7 @@ export default function PersonalInfo({ userId, personalInfo: mergedPersonalInfo,
       return;
     }
 
-    const pronounsToSave =
-      pronouns === "Other" ? customPronouns.trim() : pronouns;
+    const pronounsToSave = pronouns === "Other" ? customPronouns.trim() : pronouns;
 
     if (pronouns === "Other" && customPronouns.trim() === "") {
       setSave("Please enter your pronouns");
@@ -97,8 +83,16 @@ export default function PersonalInfo({ userId, personalInfo: mergedPersonalInfo,
         setSave("Saved Successfully!");
         setSaveError("green");
 
+        // Trigger callback after successful save
         if (onSaved) {
-          onSaved();
+          onSaved({
+            name: fullName,
+            username: userName,
+            email,
+            pronouns: pronounsToSave,
+            headline,
+            bio,
+          });
         }
       } else {
         setSave(`Error: ${data.error}`);
@@ -169,6 +163,7 @@ export default function PersonalInfo({ userId, personalInfo: mergedPersonalInfo,
           </select>
         </div>
 
+        {/* Custom pronouns input */}
         {pronouns === "Other" && (
           <div className="w-full px-2 mb-4">
             <input

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import InfoSummary from "./InfoSummary";
 import PersonalInfo from "./PersonalInfo";
 
+// Page to show personal info summary and editable form
 export default function PersonalInfoPage({ userId }) {
   const [personalInfo, setPersonalInfo] = useState(null);
 
@@ -16,15 +17,16 @@ export default function PersonalInfoPage({ userId }) {
 
     const data = await res.json();
 
-    // All fields come from personalInfo 
+    // Merge root-level and personalInfo fields
     setPersonalInfo({
-      fullName: data.user.personalInfo.fullName || "",
-      userName: data.user.personalInfo.userName || "",
-      email: data.user.personalInfo.email || "",
-      pronouns: data.user.personalInfo.pronouns || "",
-      headline: data.user.personalInfo.headline || "",
-      bio: data.user.personalInfo.bio || "",
+        name: data.user.name || "",
+        username: data.user.username || "",
+        email: data.user.email || "",
+        pronouns: data.user.personalInfo.pronouns || "",
+        headline: data.user.personalInfo.headline || "",
+        bio: data.user.personalInfo.bio || "",
     });
+
   }
 
   useEffect(() => {
