@@ -100,98 +100,60 @@ export default function Portfolio({ userId }) {
   };
 
   return (
-    <div className="bg-white p-4 sm:p-6 text-left rounded-xl shadow-sm border border-gray-200">
-      <p className="text-lg sm:text-xl text-green-700 mb-1 sm:mb-2 font-semibold">Portfolio Links</p>
-      <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">Connect your professional profiles and portfolio</p>
+    <div className="bg-white p-6 text-left rounded-xl shadow-sm border border-gray-200">
+      <p className="text-xl text-green-700 font-bold mb-2">Portfolio Links</p>
+      <p className="text-black-700 mb-6 text-md">Connect your professional profiles and portfolio</p>
 
       {/* LinkedIn */}
-      <div className="mb-4 sm:mb-5">
-        <label className="flex items-center gap-2 text-gray-800 font-medium mb-2 text-sm sm:text-base">
-          <div className="bg-green-50 p-1.5 rounded-lg">
-            <Linkedin size={16} className="text-green-700" />
-          </div>
-          <span>LinkedIn Profile</span>
-        </label>
-        <input 
-          type="text" 
-          value={linkedIn} 
-          onChange={(e) => {setLinkedIn(e.target.value); validateLinkedIn(e.target.value);}} 
-          placeholder="https://linkedin.com/in/username" 
-          className="w-full p-3 text-sm sm:text-base rounded-lg bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition" 
-        />
-        {linkedInError && <p className="text-red-600 text-xs sm:text-sm mt-1.5">{linkedInError}</p>}
+      <div className="mb-5">
+        <p className="flex gap-2 text-gray-800 font-medium mb-1">
+          <Linkedin size={18} className="text-green-700" />
+          <b>LinkedIn Profile</b>
+        </p>
+        <input type="text" value={linkedIn} onChange={(e) => {setLinkedIn(e.target.value); validateLinkedIn(e.target.value);}} placeholder="https://linkedin.com/in/username" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        {linkedInError && <p className="text-red-600 text-sm mt-1">{linkedInError}</p>}
       </div>
 
       {/* GitHub */}
-      <div className="mb-4 sm:mb-5">
-        <label className="flex items-center gap-2 text-gray-800 font-medium mb-2 text-sm sm:text-base">
-          <div className="bg-green-50 p-1.5 rounded-lg">
-            <Github size={16} className="text-green-700" />
-          </div>
-          <span>GitHub Profile</span>
-        </label>
-        <input 
-          type="text" 
-          value={github} 
-          onChange={(e) => {setGithub(e.target.value); validateGitHub(e.target.value);}} 
-          placeholder="https://github.com/username" 
-          className="w-full p-3 text-sm sm:text-base rounded-lg bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition" 
-        />
-        {githubError && <p className="text-red-600 text-xs sm:text-sm mt-1.5">{githubError}</p>}
+      <div className="mb-5">
+        <p className="flex items-center gap-2 text-gray-800 font-medium mb-1">
+          <Github size={18} className="text-green-700" />
+          <b>GitHub Profile</b>
+        </p>
+        <input type="text" value={github} onChange={(e) => {setGithub(e.target.value); validateGitHub(e.target.value);}} placeholder="https://github.com/username" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        {githubError && <p className="text-red-600 text-sm mt-1">{githubError}</p>}
       </div>
 
       {/* Website */}
-      <div className="mb-5 sm:mb-6">
-        <label className="flex items-center gap-2 text-gray-800 font-medium mb-2 text-sm sm:text-base">
-          <div className="bg-green-50 p-1.5 rounded-lg">
-            <Globe size={16} className="text-green-700" />
-          </div>
-          <span>Personal Website</span>
-        </label>
-        <input 
-          type="text" 
-          value={website} 
-          onChange={(e) => {setWebsite(e.target.value); validateWebsite(e.target.value)}} 
-          placeholder="https://yourwebsite.com" 
-          className="w-full p-3 text-sm sm:text-base rounded-lg bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition" 
-        />
-        {websiteError && <p className="text-red-600 text-xs sm:text-sm mt-1.5">{websiteError}</p>}
+      <div className="mb-5">
+        <p className="flex items-center gap-2 text-gray-800 font-medium mb-1">
+          <Globe size={18} className="text-green-700" />
+          <b>Personal Website</b>
+        </p>
+        <input type="text" value={website} onChange={(e) => {setWebsite(e.target.value); validateWebsite(e.target.value)}} placeholder="URL" className="w-full p-3 rounded-lg bg-gray-100 outline-none focus:ring-2 focus:ring-green-600" />
+        {websiteError && <p className="text-red-600 text-sm mt-1">{websiteError}</p>}
       </div>
 
       {/* Save Button */}
       <div className="flex justify-center">
-        <button 
-          onClick={handleSave} 
-          className="bg-green-700 text-white px-8 py-2.5 rounded-lg hover:bg-green-800 transition font-medium text-sm sm:text-base w-full sm:w-auto"
-        >
-          Save Changes
-        </button>
+        <button onClick={handleSave} className="bg-green-700 text-white px-5 py-2 rounded-lg hover:bg-green-800 transition">Save</button>
       </div>
-      {save && <p className={`mt-3 text-sm text-center ${saveError === "red" ? "text-red-600" : "text-green-700"}`}>{save}</p>}
+      {save && <p className={`mt-2 text-sm text-center ${saveError === "red" ? "text-red-600" : "text-green-700"}`}>{save}</p>}
 
       {/* Preview Links */}
       {(linkedIn || github || website) && (
-        <div className="mt-6">
-          <hr className="border-gray-200" />
-          <h3 className="text-base sm:text-lg font-semibold text-gray-700 mt-5 mb-3">Preview Links</h3>
-          <div className="bg-gray-50 p-4 sm:p-5 rounded-xl border border-gray-200 space-y-3">
+        <div>
+          <hr className="my-6" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">Preview Links</h3>
+          <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
             {linkedIn && !linkedInError && (
-              <a href={linkedIn} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-green-700 hover:text-green-800 hover:underline text-sm sm:text-base">
-                <Linkedin size={18}/>
-                <span className="truncate">LinkedIn Profile</span>
-              </a>
+              <a href={linkedIn} target="_blank" className="flex items-center gap-2 text-green-700 hover:underline mb-2"><Linkedin size={18}/>LinkedIn Profile</a>
             )}
             {github && !githubError && (
-              <a href={github} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-green-700 hover:text-green-800 hover:underline text-sm sm:text-base">
-                <Github size={18}/>
-                <span className="truncate">GitHub Profile</span>
-              </a>
+              <a href={github} target="_blank" className="flex items-center gap-2 text-green-700 hover:underline mb-2"><Github size={18}/>GitHub Profile</a>
             )}
             {website && !websiteError && (
-              <a href={website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-green-700 hover:text-green-800 hover:underline text-sm sm:text-base">
-                <Globe size={18}/>
-                <span className="truncate">Personal Website</span>
-              </a>
+              <a href={website} target="_blank" className="flex items-center gap-2 text-green-700 hover:underline"><Globe size={18}/> Personal Website</a>
             )}
           </div>
         </div>
