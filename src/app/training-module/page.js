@@ -1,89 +1,100 @@
-import React from "react";
+"use client"
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
-  <Link href={href} passHref>
+  <Link href={href} passHref className="h-full block">
     <div
-      className={`p-4 ${bgColor} ${borderColor} border-4 mb-4 cursor-pointer hover:bg-opacity-90 flex items-center transition duration-200 hover:scale-105`}
+      className={`p-4 sm:p-6 ${bgColor} ${borderColor} border-2 cursor-pointer hover:bg-opacity-80 flex flex-col sm:flex-row items-center transition duration-300 hover:scale-105 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl h-full`}
     >
       {icon && (
-        <img src={icon} alt={title} className="w-16 h-16 mb-2 object-contain mr-4" />
+        <img src={icon} alt={title} className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-3 sm:mb-0 sm:mr-5" />
       )}
-      <div>
-        <h2 className="text-xl font-bold text-green-700">{title}</h2>
-        {subtitle && <p className="text-green-700">{subtitle}</p>}
+      <div className="text-center sm:text-left">
+        <h2 className="text-lg sm:text-xl font-bold text-green-700">{title}</h2>
+        {subtitle && <p className="text-sm sm:text-base text-green-700 mt-1">{subtitle}</p>}
       </div>
     </div>
   </Link>
 );
 
-const TrainingModule = () => (
-  <div className="container mx-auto p-4">
-    <h1 className="text-3xl font-bold text-green-700 text-center my-4">THE TRAINING MODULES</h1>
-    <p className="text-green-700 text-center mb-4">
-      Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
-    </p>
-    <ModuleWrapper>
-   <Module 
-    title="MODULE 1: What Is Sustainability" 
-    subtitle="Introduction to sustainability and its relevance in tech" 
-    bgColor="bg-green-100" 
-    borderColor="border-white" 
-    href="/modules/module1" 
-    icon="/M1.jpg" 
-/>
-    <Module 
-      title="MODULE 2: Dimensions of Sustainability" 
-      subtitle="Environmental, economic, technical and social sustainability" 
-      bgColor="bg-orange-100" 
-      borderColor="border-white" 
-      href="/modules/module2"
-      icon="/M2.jpg" 
-      />
-    <Module 
-    title="MODULE 3: Social Sustainability" 
-    subtitle="Understanding the tech industry's social impact and ethical obligations" 
-    bgColor="bg-green-100" 
-    borderColor="border-white"
-    href="/modules/module3" 
-    icon="/M3.jpg" />
-    <Module 
-    title="MODULE 4: Environmental Impact"
-    subtitle="Understanding environmental implications of software development" 
-    bgColor="bg-orange-100" 
-    borderColor="border-white"
-    href="/modules/module4"
-    icon="/M4.jpg"  />
-    <Module 
-    title="MODULE 5: Dimensions of Sustainability" 
-    subtitle="Balancing economic factors with sustainable development practices" 
-    bgColor="bg-green-100" 
-    borderColor="border-white" 
-    href="/modules/module5" 
-    icon="/M5.jpg" />
-    <Module 
-    title="MODULE 6: Social Sustainability" 
-    subtitle="Ethical considerations in technical decision-making processes" 
-    bgColor="bg-orange-100" 
-    borderColor="border-white"
-     href="/modules/module6" 
-     icon="/M6.jpg" />
-    <Module 
-    title="MODULE 7: Implementation Strategies" 
-    subtitle="Practical approaches to implementing sustainable software practices" 
-    bgColor="bg-green-100" 
-    borderColor="border-white" 
-    href="/modules/module7"
-    icon="/M7.jpg" />
-    </ModuleWrapper>
-  </div>
-);
-// Modified ModuleWrapper to accept components as props and render children
+// Modified ModuleWrapper to display modules in a 2-column grid
 const ModuleWrapper = ({ children, component: Component = 'div', ...props }) => (
   <Component
+    className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-7xl mx-auto"
     {...props}
   >
     {children}
   </Component>
 );
+
+const TrainingModule = () => {
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchModules() {
+      try {
+        const response = await fetch("/api/modules");
+        if (!response.ok) {
+          throw new Error("Failed to fetch modules");
+        }
+        const data = await response.json();
+        
+        // Map API data to component format
+        const formattedModules = data.map((module, index) => ({
+          id: module.ModuleID,
+          title: `MODULE ${module.ModuleID}: ${module.Heading}`,
+          subtitle: module.Subheading || "",
+          href: `/modules/module${module.ModuleID}`,
+          icon: `/M${module.ModuleID}.jpg`,
+          bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
+        }));
+        
+        setModules(formattedModules);
+      } catch (error) {
+        console.error("Error fetching modules:", error);
+        setModules([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchModules();
+  }, []);
+
+  return (
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-green-700 text-center my-4 sm:my-6">THE TRAINING MODULES</h1>
+      <p className="text-green-700 text-center mb-6 sm:mb-8 text-base sm:text-lg px-4">
+        Engage with interactive scenarios and group discussion designed to enhance critical thinking and decision-making.
+      </p>
+      {loading ? (
+        <div className="text-center py-8 text-gray-600">
+          Loading modules...
+        </div>
+      ) : modules.length === 0 ? (
+        <div className="text-center py-8 text-gray-600">
+          No modules available
+        </div>
+      ) : (
+        <ModuleWrapper>
+          {modules.map((module) => (
+            <Module
+              key={module.id}
+              title={module.title}
+              subtitle={module.subtitle}
+              bgColor={module.bgColor}
+              borderColor="border-white"
+              href={module.href}
+              icon={module.icon}
+            />
+          ))}
+        </ModuleWrapper>
+      )}
+    </div>
+  );
+};
+
 export default TrainingModule;

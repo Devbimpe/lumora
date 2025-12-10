@@ -1,22 +1,7 @@
 import { NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
+import { getContentByModuleId, createContent } from '@db/db.js';
+import { parse } from 'dotenv';
 
-// Database connection function
-async function getDbConnection() {
-  try {
-    const connection = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      port: process.env.DB_PORT,
-    });
-    return connection;
-  } catch (error) {
-    console.error('Database connection error:', error);
-    throw new Error('Failed to connect to database');
-  }
-}
 // GET handler: Retrieves all content for a specific module
 // Expects a 'moduleId' query parameter in the request URL
 export async function GET(request) {
@@ -28,22 +13,52 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Module ID is required' }, { status: 400 });
     }
 
-    const connection = await getDbConnection();
+    const content = await getContentByModuleId(moduleId);
     
-    try {
-      const [rows] = await connection.execute(
-        'SELECT * FROM Content WHERE ModuleID = ? ORDER BY ContentId',
-        [moduleId]
-      );
-      
-      return NextResponse.json(rows);
-    } finally {
-      await connection.end();
-    }
+    // Transform to match expected format
+    const formattedContent = content.map(item => ({
+      ContentID: item.contentId,
+      ModuleID: item.moduleId,
+      Overview: item.overview,
+      Reading: item.reading
+    }));
+    
+    return NextResponse.json(formattedContent);
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ 
       error: 'Failed to fetch content from database',
+      details: error.message 
+    }, { status: 500 });
+  }
+}
+
+// POST handler: Create new content
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const { moduleId, overview, reading } = body;
+    
+    if (!moduleId || !overview || !reading) {
+      return NextResponse.json({ 
+        error: 'Module ID, overview, and reading are required' 
+      }, { status: 400 });
+    }
+
+    const result = await createContent({
+      moduleId: parseInt(moduleId),
+      overview,
+      reading
+    });
+    
+    return NextResponse.json({ 
+      success: true,
+      contentId: result.contentId 
+    }, { status: 201 });
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to create content',
       details: error.message 
     }, { status: 500 });
   }

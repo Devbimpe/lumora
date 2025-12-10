@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/* Hide scrollbar utility for mobile tabs */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* styles/Login.css */
 
 .page {
@@ -22,7 +31,7 @@ main {
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  width: 40vw;
+  width: 45vw;
 }
 
 .LoginPage {
@@ -59,7 +68,8 @@ label {
 }
 
 input[type='email'],
-input[type='password'] {
+input[type='password'],
+input[type='text'] {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ccc;

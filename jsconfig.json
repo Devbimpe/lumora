@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "types": [],
     "paths": {
       "@/*": ["./*"],
       "@admin-root/*": ["admin/*"],

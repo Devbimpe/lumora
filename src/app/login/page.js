@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import "../globals.css"
+import "./login.css"
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -76,14 +77,16 @@ export default function Login() {
       const data = await response.json()
 
       if (data.success) {
-        console.log("✅ Login successful!")
+        console.log("Login successful!")
+        console.log("User role:", data.user.role)
+        console.log("Redirecting to:", data.redirectUrl)
         // Redirect to home page immediately
-        window.location.href = "/"
+        window.location.href = data.redirectUrl || "/"
       } else {
         setError(data.message)
       }
     } catch (error) {
-      console.error("💥 Network error:", error)
+      console.error("Network error:", error)
       setError("Network error. Please check your connection.")
     } finally {
       setLoading(false)
@@ -92,24 +95,18 @@ export default function Login() {
 
   return (
     <div className="page">
-      <main>
+      <main className="w-full">
         <div className="LoginPage">
-          <h1>Login to your account</h1>
+          <div className="login-header">
+            <h1>Login to your account</h1>
+            <p className="login-subtitle">Welcome back! Please enter your credentials to continue.</p>
+          </div>
 
           <div className="Maininfo">
             <form onSubmit={handleSubmit}>
               {/* Error Message */}
               {error && (
-                <div
-                  style={{
-                    color: "red",
-                    marginBottom: "15px",
-                    padding: "10px",
-                    backgroundColor: "#ffe6e6",
-                    border: "1px solid #ff9999",
-                    borderRadius: "5px",
-                  }}
-                >
+                <div className="error-message">
                   {error}
                 </div>
               )}
@@ -120,6 +117,7 @@ export default function Login() {
                   type="email"
                   name="email"
                   id="email"
+                  placeholder="Enter your email"
                   required
                   value={formData.email}
                   onChange={handleInputChange}
@@ -133,13 +131,14 @@ export default function Login() {
                   type="password"
                   name="password"
                   id="password"
+                  placeholder="Enter your password"
                   required
                   value={formData.password}
                   onChange={handleInputChange}
                   disabled={loading}
                   minLength="8"
                 />
-                <small style={{ color: "#666", fontSize: "12px", display: "block", marginTop: "5px" }}>
+                <small>
                   Password must be 8+ characters with uppercase, lowercase, number, and special character
                 </small>
               </div>
@@ -149,12 +148,13 @@ export default function Login() {
                   <input
                     type="checkbox"
                     id="rememberMe"
+                    style={{ marginRight: "5px" }}
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                   />
                   Remember me
                 </label>
-                <a href="#">Forgot password?</a>
+                <a href="/forgot-password">Forgot password?</a>
               </div>
 
               <div className="button">
@@ -162,18 +162,13 @@ export default function Login() {
                   type="submit"
                   id="LoginButton"
                   disabled={loading}
-                  style={{
-                    opacity: loading ? 0.6 : 1,
-                    cursor: loading ? "not-allowed" : "pointer",
-                  }}
                 >
                   {loading ? "Logging in..." : "Login"}
                 </button>
               </div>
 
               <div className="register_link">
-                Don’t have an account?
-                <a href="\signup"> Sign up</a>
+                Don't have an account? <a href="/signup">Sign up</a>
               </div>
             </form>
           </div>
