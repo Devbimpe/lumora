@@ -1,10 +1,11 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export default function Sidebar({ activeSection }) {
+export default function Sidebar() {
+  const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -16,10 +17,21 @@ export default function Sidebar({ activeSection }) {
     { id: 'management', label: 'Module Management', path: '/admin/module-management' },
   ];
 
+  // Determine active section from pathname
+  const getActiveSection = () => {
+    if (pathname === '/admin') return 'dashboard';
+    if (pathname.includes('user-management')) return 'user-management';
+    if (pathname.includes('feedback')) return 'feedback';
+    if (pathname.includes('module-progress')) return 'progress';
+    if (pathname.includes('module-management')) return 'management';
+    return 'dashboard';
+  };
+
+  const activeSection = getActiveSection();
+
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", { method: "POST" });
-      window.location.href = '/';
       router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);

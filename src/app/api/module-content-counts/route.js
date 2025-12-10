@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getAllModules, getContentByModuleId, getKnowledgeChecksByContentId } from '@db/db.js';
+import { getAllModules, getKnowledgeChecksByModuleId } from '@db/db.js';
+import fs from 'fs';
+import path from 'path';
 
 // GET: Get content counts for all modules or specific modules
+// Now counts pages + knowledge checks
 export async function GET(request) {
   try {
     const url = new URL(request.url);
@@ -20,74 +23,43 @@ export async function GET(request) {
     }
 
     const counts = {};
+    const imgDir = path.join(process.cwd(), 'public', 'img');
 
     // Process all modules in parallel
     await Promise.all(
       modulesToProcess.map(async (moduleId) => {
         try {
-          const content = await getContentByModuleId(moduleId);
-          
-          if (!content || content.length === 0) {
-            counts[moduleId] = 0;
-            return;
-          }
-
-          // Process content the same way the module page does
-          const processedContentIds = new Set();
-          const contentMap = new Map();
-          const misconceptionPairs = [];
-          const correctionPairs = [];
-
-          // Batch fetch all knowledge checks for this module's content
-          const contentIds = content.map(c => c.contentId);
-          const allChecksPromises = contentIds.map(id => getKnowledgeChecksByContentId(id));
-          const allChecksResults = await Promise.all(allChecksPromises);
-          const checksMap = new Map();
-          allChecksResults.forEach((checks, index) => {
-            if (checks && checks.length > 0) {
-              checksMap.set(contentIds[index], checks);
-            }
-          });
-
-          // First pass: collect all content items
-          for (const contentItem of content) {
-            if (!processedContentIds.has(contentItem.contentId)) {
-              processedContentIds.add(contentItem.contentId);
+          // Count pages by scanning public/img directory
+          let pageCount = 0;
+          try {
+            if (fs.existsSync(imgDir)) {
+              const files = fs.readdirSync(imgDir);
+              const moduleNum = String(moduleId);
+              const pattern = new RegExp(`^mod${moduleNum}p(\\d+)\\.(jpg|jpeg|png)$`, 'i');
+              const pageNumbers = new Set();
               
-              // Check if this content has knowledge checks (from batch fetch)
-              const hasChecks = checksMap.has(contentItem.contentId);
+              files.forEach(file => {
+                const match = file.match(pattern);
+                if (match) {
+                  pageNumbers.add(parseInt(match[1]));
+                }
+              });
               
-              if (hasChecks) {
-                // Knowledge check
-                contentMap.set(contentItem.contentId, {
-                  type: 'quiz',
-                  contentId: contentItem.contentId
-                });
-              } else if (contentItem.overview && contentItem.overview.trim().toLowerCase() === 'common misconceptions') {
-                // Misconception - will be paired with correction
-                misconceptionPairs.push({ contentId: contentItem.contentId });
-              } else if (contentItem.overview && contentItem.overview.trim().toLowerCase() === 'correction') {
-                // Correction - will be paired with misconception
-                correctionPairs.push({ contentId: contentItem.contentId });
-              } else {
-                // Regular reading content
-                contentMap.set(contentItem.contentId, {
-                  type: 'reading',
-                  contentId: contentItem.contentId
-                });
-              }
+              pageCount = pageNumbers.size;
             }
+          } catch (fsError) {
+            console.warn(`Could not read pages for module ${moduleId}, using fallback:`, fsError);
+            // Fallback: estimate based on module
+            const pageConfig = { 1: 1, 2: 1, 3: 9 };
+            pageCount = pageConfig[moduleId] || 0;
           }
 
-          // Count sidebar items
-          let sidebarCount = contentMap.size; // Regular content and quizzes
-          
-          // Add one for misconceptions table if we have pairs
-          if (misconceptionPairs.length > 0 && correctionPairs.length > 0) {
-            sidebarCount += 1;
-          }
+          // Count knowledge checks
+          const knowledgeChecks = await getKnowledgeChecksByModuleId(moduleId);
+          const knowledgeCheckCount = knowledgeChecks?.length || 0;
 
-          counts[moduleId] = sidebarCount;
+          // Total items = pages + knowledge checks
+          counts[moduleId] = pageCount + knowledgeCheckCount;
         } catch (error) {
           console.error(`Error counting content for module ${moduleId}:`, error);
           counts[moduleId] = 0;

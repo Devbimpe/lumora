@@ -416,6 +416,43 @@ export async function getKnowledgeChecksByContentId(contentId) {
 }
 
 /**
+ * Get knowledge checks by module ID
+ */
+export async function getKnowledgeChecksByModuleId(moduleId) {
+  try {
+    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+    const moduleIdNum = parseInt(moduleId);
+    
+    // Query without orderBy first to avoid index requirement
+    // We'll sort in JavaScript instead
+    const q = query(
+      checksRef, 
+      where('moduleID', '==', moduleIdNum)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    let results = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Sort by knowledgeCheckId in JavaScript
+    results.sort((a, b) => {
+      const aId = a.knowledgeCheckId || 0;
+      const bId = b.knowledgeCheckId || 0;
+      return aId - bId;
+    });
+    
+    return results;
+  } catch (error) {
+    console.error('Error fetching knowledge checks by module ID:', error);
+    console.error('Module ID:', moduleId);
+    throw error;
+  }
+}
+
+/**
  * Get module with content and knowledge checks
  */
 export async function getModuleWithContent(moduleId) {
@@ -506,66 +543,50 @@ export async function getAllFeedbackWithUsers() {
 
 /**
  * Get all user module progress with merged user details
- * Calculates progress dynamically based on max contentId in the module
+ * Uses stored percentage from userProgress docs
  */
 export async function getAllModuleProgressWithUsers() {
   const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
   const usersRef = collection(db, COLLECTIONS.USERS);
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
 
-  const [progressSnap, usersSnap, contentSnap] = await Promise.all([
+  const [progressSnap, usersSnap] = await Promise.all([
     getDocs(progressRef),
     getDocs(usersRef),
-    getDocs(contentRef),
   ]);
 
   // Map users by id
   const usersMap = {};
   usersSnap.forEach((u) => (usersMap[u.id] = u.data()));
 
-  // Group content IDs by moduleId
-  const moduleContentMap = {};
-  contentSnap.forEach((c) => {
-    const data = c.data();
-    const moduleId = data.moduleId;
-    if (!moduleContentMap[moduleId]) moduleContentMap[moduleId] = [];
-    moduleContentMap[moduleId].push(data.contentId);
+  return progressSnap.docs.map((doc) => {
+    const p = doc.data();
+    const user = usersMap[p.userId] || {};
+
+    // Use stored percentage (0–100), fallback to 0 if missing
+    let rawPercentage =
+      typeof p.percentage === "number" && !Number.isNaN(p.percentage)
+        ? p.percentage
+        : 0;
+
+    // Clamp between 0 and 100
+    rawPercentage = Math.min(Math.max(rawPercentage, 0), 100);
+
+    // Completed flag comes from Firestore
+    const completed = !!p.isCompleted;
+
+    // If module is marked completed but percentage is still 0,
+    // force it to show as 100% in the UI.
+    const progressFraction = completed ? 1 : rawPercentage / 100;
+
+    return {
+      id: doc.id,
+      ...p,
+      userName: user.username || "N/A",
+      fullName: user.name || "N/A",
+      progress: progressFraction, // 0–1 value for UI
+      completed,
+    };
   });
-
-return progressSnap.docs.map((doc) => {
-  const p = doc.data();
-  const user = usersMap[p.userId] || {};
-
-  const moduleContentIds = moduleContentMap[p.moduleId] || [];
-  const maxContentId = moduleContentIds.length > 0 ? Math.max(...moduleContentIds) : 0;
-  const minContentId = moduleContentIds.length > 0 ? Math.min(...moduleContentIds) : 0;
-
-  let progressPercent = 0;
-  let completed = false;
-
-  // Special case for module 2
-  if (p.moduleId === 2) {
-    const lastViewedOffset = (p.lastViewedContentId || minContentId) - 10; 
-    const totalModuleContent = maxContentId - 10; 
-    progressPercent = totalModuleContent > 0 ? lastViewedOffset / totalModuleContent : 0;
-    completed = lastViewedOffset >= totalModuleContent;
-  }
-  else {
-    // default calculation for other modules
-    const lastViewedId = p.lastViewedContentId || minContentId;
-    progressPercent = maxContentId > 0 ? (lastViewedId - minContentId + 1) / moduleContentIds.length : 0;
-    completed = lastViewedId >= maxContentId;
-  }
-
-  return {
-    id: doc.id,
-    ...p,
-    userName: user.username || "N/A",
-    fullName: user.name || "N/A",
-    progress: progressPercent,
-    completed,
-  };
-});
 }
 
 /**
@@ -600,6 +621,7 @@ export async function getUserProgress(userId) {
 
 /**
  * Get user progress for a specific module
+ * Always includes percentage field
  */
 export async function getUserModuleProgress(userId, moduleId) {
   const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
@@ -611,12 +633,33 @@ export async function getUserModuleProgress(userId, moduleId) {
   const querySnapshot = await getDocs(q);
   
   if (querySnapshot.empty) {
-    return null;
+    // Return default progress with 0% if no progress exists
+    return {
+      userId,
+      moduleId: parseInt(moduleId),
+      viewedContent: [],
+      completedContent: [],
+      isCompleted: false,
+      percentage: 0
+    };
+  }
+  
+  const data = querySnapshot.docs[0].data();
+  
+  // Ensure percentage field exists, calculate if missing
+  if (data.percentage === undefined || data.percentage === null) {
+    const percentage = await calculateModuleProgress(
+      userId, 
+      moduleId, 
+      data.viewedContent || [], 
+      data.completedContent || []
+    );
+    data.percentage = percentage;
   }
   
   return {
     id: querySnapshot.docs[0].id,
-    ...querySnapshot.docs[0].data()
+    ...data
   };
 }
 
@@ -653,24 +696,92 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
 }
 
 /**
+ * Calculate progress percentage for a module
+ * Based on total items (pages + knowledge checks) viewed/completed
+ */
+async function calculateModuleProgress(userId, moduleId, viewedItems = [], completedItems = []) {
+  try {
+    // Get total items count: pages + knowledge checks
+    const knowledgeChecks = await getKnowledgeChecksByModuleId(moduleId);
+    const totalKnowledgeChecks = knowledgeChecks?.length || 0;
+    
+    // Get pages count by scanning public/img directory
+    let totalPages = 0;
+    try {
+      // Use require for Node.js built-in modules in this context
+      const fs = require('fs');
+      const path = require('path');
+      const imgDir = path.join(process.cwd(), 'public', 'img');
+      
+      if (fs.existsSync(imgDir)) {
+        const files = fs.readdirSync(imgDir);
+        const moduleNum = String(moduleId).replace('module', '');
+        const pattern = new RegExp(`^mod${moduleNum}p(\\d+)\\.(jpg|jpeg|png)$`, 'i');
+        const pageNumbers = new Set();
+        
+        files.forEach(file => {
+          const match = file.match(pattern);
+          if (match) {
+            pageNumbers.add(parseInt(match[1]));
+          }
+        });
+        
+        totalPages = pageNumbers.size;
+      }
+    } catch (fsError) {
+      console.warn('Could not read pages directory, using fallback:', fsError);
+      // Fallback: estimate based on module
+      const moduleNum = parseInt(moduleId);
+      const pageConfig = { 1: 1, 2: 1, 3: 9 };
+      totalPages = pageConfig[moduleNum] || 0;
+    }
+    
+    const totalItems = totalPages + totalKnowledgeChecks;
+    
+    if (totalItems === 0) return 0;
+    
+    // Count unique viewed items
+    const uniqueViewed = new Set(viewedItems.map(id => String(id)));
+    
+    // Calculate percentage based on viewed items
+    const viewedCount = uniqueViewed.size;
+    const percentage = Math.round((viewedCount / totalItems) * 100);
+    
+    return Math.min(percentage, 100); // Cap at 100%
+  } catch (error) {
+    console.error('Error calculating module progress:', error);
+    // Fallback calculation
+    const viewedCount = new Set(viewedItems.map(id => String(id))).size;
+    const completedCount = new Set(completedItems.map(id => String(id))).size;
+    const totalCount = Math.max(viewedCount, completedCount);
+    return totalCount > 0 ? Math.min(Math.round((viewedCount / (totalCount * 2)) * 100), 100) : 0;
+  }
+}
+
+/**
  * Mark content as viewed
  */
 export async function markContentViewed(userId, moduleId, contentId) {
   const progress = await getUserModuleProgress(userId, moduleId);
   
   const viewedContent = progress?.viewedContent || [];
-  if (!viewedContent.includes(parseInt(contentId))) {
-    viewedContent.push(parseInt(contentId));
+  const contentIdStr = String(contentId);
+  if (!viewedContent.includes(contentIdStr)) {
+    viewedContent.push(contentIdStr);
   }
   
   const completedContent = progress?.completedContent || [];
-  const isCompleted = completedContent.includes(parseInt(contentId));
+  const isCompleted = completedContent.includes(contentIdStr);
+  
+  // Calculate percentage
+  const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
   
   return await updateUserModuleProgress(userId, moduleId, {
     viewedContent,
     completedContent: isCompleted ? completedContent : [...completedContent],
-    lastViewedContentId: parseInt(contentId),
-    lastViewedAt: Timestamp.now()
+    lastViewedContentId: contentIdStr,
+    lastViewedAt: Timestamp.now(),
+    percentage: percentage
   });
 }
 
@@ -681,20 +792,30 @@ export async function markContentCompleted(userId, moduleId, contentId) {
   const progress = await getUserModuleProgress(userId, moduleId);
   
   const completedContent = progress?.completedContent || [];
-  if (!completedContent.includes(parseInt(contentId))) {
-    completedContent.push(parseInt(contentId));
+  const contentIdStr = String(contentId);
+  if (!completedContent.includes(contentIdStr)) {
+    completedContent.push(contentIdStr);
   }
   
   const viewedContent = progress?.viewedContent || [];
-  if (!viewedContent.includes(parseInt(contentId))) {
-    viewedContent.push(parseInt(contentId));
+  if (!viewedContent.includes(contentIdStr)) {
+    viewedContent.push(contentIdStr);
   }
+  
+  // Calculate percentage
+  const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
+  
+  // Check if module is completed (all items viewed)
+  const totalItems = viewedContent.length;
+  const isCompleted = percentage >= 100;
   
   return await updateUserModuleProgress(userId, moduleId, {
     viewedContent,
     completedContent,
-    lastCompletedContentId: parseInt(contentId),
-    lastCompletedAt: Timestamp.now()
+    lastCompletedContentId: contentIdStr,
+    lastCompletedAt: Timestamp.now(),
+    percentage: percentage,
+    isCompleted: isCompleted
   });
 }
 
@@ -702,9 +823,17 @@ export async function markContentCompleted(userId, moduleId, contentId) {
  * Mark module as completed
  */
 export async function markModuleCompleted(userId, moduleId) {
+  const progress = await getUserModuleProgress(userId, moduleId);
+  const viewedContent = progress?.viewedContent || [];
+  const completedContent = progress?.completedContent || [];
+  
+  // Calculate final percentage
+  const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
+  
   return await updateUserModuleProgress(userId, moduleId, {
     isCompleted: true,
-    completedAt: Timestamp.now()
+    completedAt: Timestamp.now(),
+    percentage: 100 // Set to 100% when module is completed
   });
 }
 
@@ -761,6 +890,7 @@ export default {
   updateContent,
   createContent,
   getKnowledgeChecksByContentId,
+  getKnowledgeChecksByModuleId,
   getModuleWithContent,
   createStudentSubmission,
   getSubmissionsByStudentId,

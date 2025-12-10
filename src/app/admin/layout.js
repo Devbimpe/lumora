@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import jwt from 'jsonwebtoken';
-import Sidebar from '../components/admin-sidebar';
+import Sidebar from './components/admin-sidebar';
 
 export default async function AdminLayout({ children }) {
   // Serverside auth check
@@ -31,9 +31,9 @@ export default async function AdminLayout({ children }) {
 
   // User is authenticated admin 
   return (
-    <div className="flex bg-gray-200 min-h-screen">
+    <div className="flex bg-gray-50 min-h-screen">
       <Sidebar />
-      <div className="w-4/5 m-4 flex flex-col items-center p-4">
+      <div className="flex-1 flex flex-col p-3 sm:p-6 lg:p-8 pt-20 lg:pt-8 w-full overflow-x-hidden">
         {children}
       </div>
     </div>

@@ -87,7 +87,7 @@ export default function Page() {
 
   return (
     <div className="page">
-      <main>
+      <main className="w-full">
         <div className="LoginPage">
           <div className="login-header">
             <h1>Sign up to your account</h1>

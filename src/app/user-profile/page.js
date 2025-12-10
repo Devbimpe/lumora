@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import PersonalInfo from "./personal-info-page//PersonalInfoForm";
+import PersonalInfo from "./personal-info-page/PersonalInfoForm";
 import Demographics from "./Demographics";
 import Portfolio from "./Portfolio";
 import Settings from "./Settings";
