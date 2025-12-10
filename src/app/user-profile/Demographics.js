@@ -73,7 +73,7 @@ export default function Demograhics({ userId }) {
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 text-left">
-      <p className="text-xl text-green-700 mb-2">Demograhics</p>
+      <p className="text-xl text-green-700 font-bold mb-2">Demograhics</p>
       <p className="text-gray-700 mb-6">
         Share demograhic information for your profile
       </p>

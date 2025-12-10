@@ -108,7 +108,7 @@ export default function PersonalInfo({ userId, personalInfo: personalInfo, onSav
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 text-left">
 
       {/* Title */}
-      <p className="text-xl text-green-700 mb-2">Personal Information</p>
+      <p className="text-xl text-green-700 font-bold mb-2">Personal Information</p>
       <p className="text-gray-700 mb-6">Update your basic profile details</p>
 
       <div className="flex flex-wrap -mx-2">

@@ -101,7 +101,7 @@ export default function Portfolio({ userId }) {
 
   return (
     <div className="bg-white p-6 text-left rounded-xl shadow-sm border border-gray-200">
-      <p className="text-xl text-green-700 mb-2">Portfolio Links</p>
+      <p className="text-xl text-green-700 font-bold mb-2">Portfolio Links</p>
       <p className="text-black-700 mb-6 text-md">Connect your professional profiles and portfolio</p>
 
       {/* LinkedIn */}
