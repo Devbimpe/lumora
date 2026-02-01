@@ -318,6 +318,53 @@ export async function deleteModule(moduleId) {
   }
   
   await batch.commit();
+  
+  // Renumber remaining modules so there are no gaps
+  await reindexModules();
+}
+
+/**
+ * Renumber modules to remove gaps after deletion
+ * Example: If modules are 1, 3, 4 -> becomes 1, 2, 3
+ */
+async function reindexModules() {
+  // Get all modules sorted by their current number
+  const modules = await getAllModules();
+
+  for (let i = 0; i < modules.length; i++) {
+    const correctNumber = i + 1;
+    const currentNumber = modules[i].moduleId;
+
+    // Skip if already correct
+    if (currentNumber === correctNumber) {
+      continue;
+    }
+
+    // Update module number
+    const moduleRef = doc(db, COLLECTIONS.MODULES, modules[i].id);
+    await updateDoc(moduleRef, { moduleId: correctNumber });
+
+    // Update content that references this module
+    const contentRef = collection(db, COLLECTIONS.CONTENT);
+    const contentDocs = await getDocs(query(contentRef, where('moduleId', '==', currentNumber)));
+    for (const contentDoc of contentDocs.docs) {
+      await updateDoc(contentDoc.ref, { moduleId: correctNumber });
+    }
+
+    // Update user progress that references this module
+    const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
+    const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', currentNumber)));
+    for (const progressDoc of progressDocs.docs) {
+      await updateDoc(progressDoc.ref, { moduleId: correctNumber });
+    }
+
+    // Update knowledge checks (note: uses moduleID with capital ID)
+    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+    const checksDocs = await getDocs(query(checksRef, where('moduleID', '==', currentNumber)));
+    for (const checkDoc of checksDocs.docs) {
+      await updateDoc(checkDoc.ref, { moduleID: correctNumber });
+    }
+  }
 }
 
 // ==================== CONTENT OPERATIONS ====================
