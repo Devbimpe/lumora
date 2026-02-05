@@ -121,7 +121,7 @@ export default function ModuleProgressPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
 
-        <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-purple-500 cursor-pointer" onClick={(e) => setFilter(moduleStatusENUM.All)}>
+        <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl active:scale-98 active:shadow-lg transition-all duration-200 p-3 sm:p-4 md:p-6 border-l-4 border-purple-500 cursor-pointer" onClick={(e) => setFilter(moduleStatusENUM.All)}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">{
             searchTopic === searchTopicsENUM.User
               ? "Students"
@@ -135,21 +135,21 @@ export default function ModuleProgressPage() {
           </p>
         </button>
 
-        <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-green-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.Completed) }}>
+        <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl active:scale-98 active:shadow-lg transition-all duration-200 p-3 sm:p-4 md:p-6 border-l-4 border-green-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.Completed) }}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Completed</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
             {progress.filter((p) => p.completed).length}
           </p>
         </button>
 
-        <button className="bg-white justify-items-start w-100% rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-orange-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.InProgress) }}>
+        <button className="bg-white justify-items-start w-100% rounded-xl shadow-lg hover:shadow-xl active:scale-98 active:shadow-lg transition-all duration-200 p-3 sm:p-4 md:p-6 border-l-4 border-orange-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.InProgress) }}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">In Progress</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
             {progress.filter((p) => !p.completed && p.progress > 0).length}
           </p>
         </button>
 
-        <button className="bg-white justify-items-start rounded-xl shadow-lg p-3 hover:shadow-xl transition-shadow duration-300 sm:p-4 md:p-6 border-l-4 border-gray-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.NotStarted) }}>
+        <button className="bg-white justify-items-start rounded-xl shadow-lg p-3 hover:shadow-xl active:scale-98 active:shadow-lg transition-all duration-200 sm:p-4 md:p-6 border-l-4 border-gray-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.NotStarted) }}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Not Started</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
             {progress.filter((p) => p.progress === 0).length}
@@ -181,7 +181,7 @@ export default function ModuleProgressPage() {
               onClick={() => setSearchTopic(searchTopicsENUM.User)}
               className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg rounded-r-none font-medium transition-all duration-200 text-sm sm:text-sm leading-5 outline-none ${searchTopic === searchTopicsENUM.User
                   ? "bg-green-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1),inset_-2px_0_6px_rgba(0,0,0,0.1)]"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1),inset_-2px_0_6px_rgba(0,0,0,0.1)] cursor-pointer"
                 }`}
             >
               Students
@@ -190,7 +190,7 @@ export default function ModuleProgressPage() {
               onClick={() => setSearchTopic(searchTopicsENUM.Module)}
               className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-sm leading-5 rounded-l-none ${searchTopic === searchTopicsENUM.Module
                   ? "bg-green-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1),inset_2px_0_6px_rgba(0,0,0,0.1)]"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1),inset_2px_0_6px_rgba(0,0,0,0.1)] cursor-pointer"
 
                 }`}
             >
@@ -213,7 +213,7 @@ export default function ModuleProgressPage() {
               onClick={() => setFilter(tab.value)}
               className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${filter === tab.value
                   ? "bg-green-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
                 }`}
             >
               {tab.label}
