@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import db from "@/db/db";
 
 // This JS object is to represent an ENUM for module status filters
@@ -23,6 +23,7 @@ export default function ModuleProgressPage() {
   const [filter, setFilter] = useState(moduleStatusENUM.All);
   const [searchTopic, setSearchTopic] = useState(searchTopicsENUM.User);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInputValue, setSearchInputValue] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -91,6 +92,14 @@ export default function ModuleProgressPage() {
       }, delay);
     };
   }
+  const debouncedSetSearchTerm = useMemo(
+    () => debounceSearch(setSearchTerm, 250),
+    []
+  );
+
+  useEffect(() => {
+    setSearchInputValue(searchTerm ?? "");
+  }, [searchTerm]);
 
   if (loading) {
     return (
@@ -145,18 +154,23 @@ export default function ModuleProgressPage() {
       <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
 
         {/* Search Bar + Dropdown Button */}
-        <div className="w-full mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="w-full mb-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
           <input
             type="text"
             autoComplete="new-password"
             placeholder={`Search by ${searchTopic === searchTopicsENUM.User ? "username" : "module"}...`}
-            onChange={debounceSearch((e) => setSearchTerm(e.target.value ?? ""), 300)}
-            className="w-full sm:flex-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-inner rounded-lg! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
+            value={searchInputValue}
+            onChange={(e) => {
+              const nextValue = e.target.value ?? "";
+              setSearchInputValue(nextValue);
+              debouncedSetSearchTerm(nextValue);
+            }}
+            className="w-full self-stretch bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 transition-all duration-200 border-0! sm:flex-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-inner rounded-lg! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none! text-sm leading-5"
           />
-          <div className="flex w-full sm:flex-1">
+          <div className="flex w-full sm:flex-1 self-stretch items-stretch">
             <button
               onClick={() => setSearchTopic(searchTopicsENUM.User)}
-              className={`flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg rounded-r-none font-medium shadow-inner transition-all duration-200 text-xs sm:text-sm outline-none ${
+              className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg rounded-r-none font-medium transition-all duration-200 text-sm sm:text-sm leading-5 outline-none ${
                 searchTopic === searchTopicsENUM.User
                   ? "bg-green-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -166,7 +180,7 @@ export default function ModuleProgressPage() {
             </button>
             <button
               onClick={() => setSearchTopic(searchTopicsENUM.Module)}
-              className={`flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-inner font-medium transition-all duration-200 text-xs sm:text-sm rounded-l-none ${
+              className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-sm leading-5 rounded-l-none ${
                 searchTopic === searchTopicsENUM.Module
                   ? "bg-green-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -174,7 +188,7 @@ export default function ModuleProgressPage() {
             >
               Module
             </button>
-            </div>
+          </div>
         </div>
 
 
@@ -230,9 +244,9 @@ export default function ModuleProgressPage() {
                       {Math.round(p.progress * 100)}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 overflow-hidden">
+                  <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 overflow-hidden shadow-inner">
                     <div
-                      className={`h-2 sm:h-3 rounded-full transition-all duration-500 ${
+                      className={`h-2 sm:h-3 rounded-full transition-all duration-500 shadow-sm ${
                         p.completed
                           ? "bg-gradient-to-r from-green-400 to-green-600"
                           : p.progress > 0
