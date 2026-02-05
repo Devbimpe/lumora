@@ -65,17 +65,17 @@ export default function ModuleProgressPage() {
   //then filter again for search and search topic
   const filterProgress = () => {
     return progress.filter((p) => {
-        if (filter === moduleStatusENUM.Completed) return p.completed;
-        if (filter === moduleStatusENUM.InProgress) return !p.completed && p.progress > 0;
-        if (filter === moduleStatusENUM.NotStarted) return p.progress === 0;
+      if (filter === moduleStatusENUM.Completed) return p.completed;
+      if (filter === moduleStatusENUM.InProgress) return !p.completed && p.progress > 0;
+      if (filter === moduleStatusENUM.NotStarted) return p.progress === 0;
       return true;
     }).filter((p) => {
       if (!searchTerm) return true;
-      if(searchTopic === searchTopicsENUM.User) {
-        return p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) 
-        || p.userName.toLowerCase().includes(searchTerm.toLowerCase());
+      if (searchTopic === searchTopicsENUM.User) {
+        return p.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+          || p.userName.toLowerCase().includes(searchTerm.toLowerCase());
       }
-      if(searchTopic === searchTopicsENUM.Module) {
+      if (searchTopic === searchTopicsENUM.Module) {
         return p.moduleId.toString().toLowerCase() === searchTerm.toLowerCase() || modules[p.moduleId].toLowerCase().includes(searchTerm.toLowerCase());
       }
     });
@@ -124,45 +124,45 @@ export default function ModuleProgressPage() {
         <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-purple-500 cursor-pointer" onClick={(e) => setFilter(moduleStatusENUM.All)}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">{
             searchTopic === searchTopicsENUM.User
-            ? "Students"
-            : "Modules"
-            }</p>
+              ? "Students"
+              : "Modules"
+          }</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">{
-          searchTopic === searchTopicsENUM.User
-          ? filteredProgress.length
-          : Object.keys(modules).length
+            searchTopic === searchTopicsENUM.User
+              ? progress.length
+              : Object.keys(modules).length
           }
           </p>
         </button>
 
-        <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-green-500 cursor-pointer" onClick={(e)=>{setFilter(moduleStatusENUM.Completed)}}>
+        <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-green-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.Completed) }}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Completed</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
             {progress.filter((p) => p.completed).length}
           </p>
         </button>
 
-        <button className="bg-white justify-items-start w-100% rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-orange-500 cursor-pointer" onClick={(e)=>{setFilter(moduleStatusENUM.InProgress)}}>
+        <button className="bg-white justify-items-start w-100% rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-orange-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.InProgress) }}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">In Progress</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
             {progress.filter((p) => !p.completed && p.progress > 0).length}
           </p>
         </button>
 
-        <button className="bg-white justify-items-start rounded-xl shadow-lg p-3 hover:shadow-xl transition-shadow duration-300 sm:p-4 md:p-6 border-l-4 border-gray-500 cursor-pointer" onClick={(e)=>{setFilter(moduleStatusENUM.NotStarted)}}>
+        <button className="bg-white justify-items-start rounded-xl shadow-lg p-3 hover:shadow-xl transition-shadow duration-300 sm:p-4 md:p-6 border-l-4 border-gray-500 cursor-pointer" onClick={(e) => { setFilter(moduleStatusENUM.NotStarted) }}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Not Started</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
-          {progress.filter((p) => p.progress === 0).length}
+            {progress.filter((p) => p.progress === 0).length}
           </p>
         </button>
 
       </div>
 
 
-      {/* Search and Filter Bar */}
+      {/* Searchbar and Filters */}
       <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
 
-        {/* Search Bar + Dropdown Button */}
+        {/* Searchbar + Toggle button */}
         <div className="w-full mb-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
           <input
             type="text"
@@ -179,22 +179,20 @@ export default function ModuleProgressPage() {
           <div className="flex w-full sm:flex-1 self-stretch items-stretch">
             <button
               onClick={() => setSearchTopic(searchTopicsENUM.User)}
-              className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg rounded-r-none font-medium transition-all duration-200 text-sm sm:text-sm leading-5 outline-none ${
-                searchTopic === searchTopicsENUM.User
+              className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg rounded-r-none font-medium transition-all duration-200 text-sm sm:text-sm leading-5 outline-none ${searchTopic === searchTopicsENUM.User
                   ? "bg-green-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1),inset_-2px_0_6px_rgba(0,0,0,0.1)]"
-              }`}
+                }`}
             >
               Students
             </button>
             <button
               onClick={() => setSearchTopic(searchTopicsENUM.Module)}
-              className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-sm leading-5 rounded-l-none ${
-                searchTopic === searchTopicsENUM.Module
+              className={`flex-1 self-stretch px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-sm leading-5 rounded-l-none ${searchTopic === searchTopicsENUM.Module
                   ? "bg-green-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1),inset_2px_0_6px_rgba(0,0,0,0.1)]"
-                
-              }`}
+
+                }`}
             >
               Modules
             </button>
@@ -213,11 +211,10 @@ export default function ModuleProgressPage() {
             <button
               key={tab.value}
               onClick={() => setFilter(tab.value)}
-              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${
-                filter === tab.value
+              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${filter === tab.value
                   ? "bg-green-600 text-white shadow-md"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -256,13 +253,12 @@ export default function ModuleProgressPage() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 overflow-hidden shadow-[inset_0_2px_2px_rgba(0,0,0,0.1)]">
                     <div
-                      className={`h-2 sm:h-3 rounded-full transition-all duration-500 shadow-sm ${
-                        p.completed
+                      className={`h-2 sm:h-3 rounded-full transition-all duration-500 shadow-sm ${p.completed
                           ? "bg-gradient-to-r from-green-400 to-green-600"
                           : p.progress > 0
-                          ? "bg-gradient-to-r from-orange-400 to-orange-600"
-                          : "bg-gray-300"
-                      }`}
+                            ? "bg-gradient-to-r from-orange-400 to-orange-600"
+                            : "bg-gray-300"
+                        }`}
                       style={{ width: `${Math.round(p.progress * 100)}%` }}
                     ></div>
                   </div>
@@ -271,13 +267,12 @@ export default function ModuleProgressPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">Status</span>
                   <span
-                    className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
-                      p.completed
+                    className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${p.completed
                         ? "bg-green-100 text-green-800"
                         : p.progress > 0
-                        ? "bg-orange-100 text-orange-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                          ? "bg-orange-100 text-orange-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
                   >
                     {p.completed ? "✓ Done" : p.progress > 0 ? "In Progress" : "Not Started"}
                   </span>
