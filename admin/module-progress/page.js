@@ -122,8 +122,17 @@ export default function ModuleProgressPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
 
         <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-purple-500 cursor-pointer" onClick={(e) => setFilter(moduleStatusENUM.All)}>
-          <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Students</p>
-          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">{progress.length}</p>
+          <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">{
+            searchTopic === searchTopicsENUM.User
+            ? "Students"
+            : "Modules"
+            }</p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">{
+          searchTopic === searchTopicsENUM.User
+          ? filteredProgress.length
+          : Object.keys(modules).length
+          }
+          </p>
         </button>
 
         <button className="bg-white justify-items-start rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-3 sm:p-4 md:p-6 border-l-4 border-green-500 cursor-pointer" onClick={(e)=>{setFilter(moduleStatusENUM.Completed)}}>
