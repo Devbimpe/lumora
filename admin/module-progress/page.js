@@ -111,28 +111,33 @@ export default function ModuleProgressPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-purple-500">
+
+        <button className="bg-white justify-items-start rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-purple-500 cursor-pointer" onClick={(e) => setFilter(moduleStatusENUM.All)}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Students</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">{progress.length}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-green-500">
+        </button>
+
+        <button className="bg-white justify-items-start rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-green-500 cursor-pointer" onClick={(e)=>{setFilter(moduleStatusENUM.Completed)}}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Completed</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
             {progress.filter((p) => p.completed).length}
           </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-orange-500">
+        </button>
+
+        <button className="bg-white justify-items-start w-100% rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-orange-500 cursor-pointer" onClick={(e)=>{setFilter(moduleStatusENUM.InProgress)}}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">In Progress</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
             {progress.filter((p) => !p.completed && p.progress > 0).length}
           </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-gray-500">
+        </button>
+
+        <button className="bg-white justify-items-start rounded-xl shadow-lg p-3 sm:p-4 md:p-6 border-l-4 border-gray-500 cursor-pointer" onClick={(e)=>{setFilter(moduleStatusENUM.NotStarted)}}>
           <p className="text-gray-500 text-xs sm:text-sm font-medium uppercase tracking-wide">Not Started</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">
-            {progress.filter((p) => p.progress === 0).length}
+          {progress.filter((p) => p.progress === 0).length}
           </p>
-        </div>
+        </button>
+
       </div>
 
 
@@ -145,8 +150,7 @@ export default function ModuleProgressPage() {
             type="text"
             autoComplete="new-password"
             placeholder={`Search by ${searchTopic === searchTopicsENUM.User ? "username" : "module"}...`}
-            value={searchTerm ?? ""}
-            onChange={(e) => setSearchTerm(e.target.value ?? "")}
+            onChange={debounceSearch((e) => setSearchTerm(e.target.value ?? ""), 300)}
             className="w-full sm:flex-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-inner rounded-lg! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
           />
           <div className="flex w-full sm:flex-1">
