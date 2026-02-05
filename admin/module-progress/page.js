@@ -75,7 +75,7 @@ export default function ModuleProgressPage() {
         || p.userName.toLowerCase().includes(searchTerm.toLowerCase());
       }
       if(searchTopic === searchTopicsENUM.Module) {
-        return p.moduleId.toString().toLowerCase() === searchTerm.toLowerCase();
+        return p.moduleId.toString().toLowerCase() === searchTerm.toLowerCase() || modules[p.moduleId].toLowerCase().includes(searchTerm.toLowerCase());
       }
     });
   }
