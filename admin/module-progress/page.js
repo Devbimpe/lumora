@@ -84,8 +84,32 @@ export default function ModuleProgressPage() {
         </div>
       </div>
 
-      {/* Filter Buttons */}
+
+      {/* Search and Filter Bar */}
       <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6">
+
+        {/* Search Bar + Dropdown Button */}
+        <div className="w-full mb-4 flex flex-col gap-0 sm:flex-row sm:items-center">
+          <input
+            type="text"
+            placeholder="Search by username or ID..."
+            // value={searchTerm}
+            // onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-inner rounded-xl! rounded-r-none! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
+          />
+
+          <button 
+            className="px-3 sm:px-4 py-2 sm:py-2.5 font-medium shadow-inner transition-all duration-200 text-xs sm:text-sm bg-green-600 text-white">
+              Username
+          </button>
+          <button 
+            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-inner font-medium transition-all duration-200 text-xs sm:text-sm bg-green-600 text-white rounded-l-none">
+              Module
+          </button>
+        </div>
+
+
+        {/* Filter Buttons */}
         <div className="flex flex-wrap gap-2">
           {[
             { value: "all", label: "All" },
