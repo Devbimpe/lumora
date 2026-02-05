@@ -2,23 +2,49 @@
 import { useEffect, useState } from "react";
 import db from "@/db/db";
 
+// This JS object is to represent an ENUM for module status filters
+const moduleStatusENUM = {
+  All: "all",
+  Completed: "completed",
+  InProgress: "in-progress",
+  NotStarted: "not-started"
+}
+
+// This JS object is to represent an ENUM for search topics
+const searchTopicsENUM = {
+  User: "User",
+  Module: "Module"
+}
+
 export default function ModuleProgressPage() {
   const [progress, setProgress] = useState([]);
+  const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(moduleStatusENUM.All);
+  const [searchTopic, setSearchTopic] = useState(searchTopicsENUM.User);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchProgress = async () => {
       try {
-        const data = await db.getAllModuleProgressWithUsers();
+        const progressData = await db.getAllModuleProgressWithUsers();
+        const modulesData = await db.getAllModules();
+        const formattedModules = modulesData.reduce((acc, module) => {
+          acc[module.moduleId] = module.heading;
+          return acc;
+        }, {});
+
         if (isMounted) {
-          setProgress(data);
+          setModules(formattedModules);
+        }
+        if (isMounted) {
+          setProgress(progressData);
         }
       } catch (err) {
         if (isMounted) {
-          console.error("Error fetching progress:", err);
+          console.error("Error fetching db information:", err);
         }
       } finally {
         if (isMounted) {
@@ -34,12 +60,37 @@ export default function ModuleProgressPage() {
     };
   }, []);
 
-  const filteredProgress = progress.filter((p) => {
-    if (filter === "completed") return p.completed;
-    if (filter === "in-progress") return !p.completed && p.progress > 0;
-    if (filter === "not-started") return p.progress === 0;
-    return true;
-  });
+  //Filter once for progress
+  //then filter again for search and search topic
+  const filterProgress = () => {
+    return progress.filter((p) => {
+        if (filter === moduleStatusENUM.Completed) return p.completed;
+        if (filter === moduleStatusENUM.InProgress) return !p.completed && p.progress > 0;
+        if (filter === moduleStatusENUM.NotStarted) return p.progress === 0;
+      return true;
+    }).filter((p) => {
+      if (!searchTerm) return true;
+      if(searchTopic === searchTopicsENUM.User) {
+        return p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) 
+        || p.userName.toLowerCase().includes(searchTerm.toLowerCase());
+      }
+      if(searchTopic === searchTopicsENUM.Module) {
+        return p.moduleId.toString().toLowerCase() === searchTerm.toLowerCase();
+      }
+    });
+  }
+  const filteredProgress = filterProgress();
+
+  //This will be used to debouce the search input
+  const debounceSearch = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  }
 
   if (loading) {
     return (
@@ -112,10 +163,10 @@ export default function ModuleProgressPage() {
         {/* Filter Buttons */}
         <div className="flex flex-wrap gap-2">
           {[
-            { value: "all", label: "All" },
-            { value: "completed", label: "Completed" },
-            { value: "in-progress", label: "In Progress" },
-            { value: "not-started", label: "Not Started" },
+            { value: moduleStatusENUM.All, label: "All" },
+            { value: moduleStatusENUM.Completed, label: "Completed" },
+            { value: moduleStatusENUM.InProgress, label: "In Progress" },
+            { value: moduleStatusENUM.NotStarted, label: "Not Started" },
           ].map((tab) => (
             <button
               key={tab.value}
@@ -150,7 +201,7 @@ export default function ModuleProgressPage() {
 
                 <div className="mb-3 sm:mb-4">
                   <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1.5 rounded-full">
-                    Module {p.moduleId}
+                    Module {p.moduleId} - {modules[p.moduleId]}
                   </span>
                 </div>
 
