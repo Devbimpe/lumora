@@ -143,15 +143,16 @@ export default function ModuleProgressPage() {
         <div className="w-full mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
             type="text"
+            autoComplete="new-password"
             placeholder={`Search by ${searchTopic === searchTopicsENUM.User ? "username" : "module"}...`}
             value={searchTerm ?? ""}
             onChange={(e) => setSearchTerm(e.target.value ?? "")}
-            className="w-full sm:flex-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-inner rounded-xl! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
+            className="w-full sm:flex-3 px-3 sm:px-4 py-2 sm:py-2.5 shadow-inner rounded-lg! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm"
           />
           <div className="flex w-full sm:flex-1">
             <button
               onClick={() => setSearchTopic(searchTopicsENUM.User)}
-              className={`flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg rounded-r-none font-medium shadow-inner transition-all duration-200 text-xs sm:text-sm ${
+              className={`flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg rounded-r-none font-medium shadow-inner transition-all duration-200 text-xs sm:text-sm outline-none ${
                 searchTopic === searchTopicsENUM.User
                   ? "bg-green-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
