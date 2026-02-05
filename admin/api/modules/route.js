@@ -13,7 +13,7 @@ export async function getModules() {
     const formattedModules = modules.map(module => ({
       id: module.moduleId,
       Heading: module.heading,
-      SubHeading: module.subHeading || ""
+      SubHeading: module.subheading || ""
     }));
     
     console.log(`📊 Found ${modules.length} modules`);
