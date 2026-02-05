@@ -12,7 +12,8 @@ export async function getModules() {
     // Transform to match expected format
     const formattedModules = modules.map(module => ({
       id: module.moduleId,
-      Heading: module.heading
+      Heading: module.heading,
+      SubHeading: module.subHeading || ""
     }));
     
     console.log(`📊 Found ${modules.length} modules`);
