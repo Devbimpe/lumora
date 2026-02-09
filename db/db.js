@@ -367,6 +367,72 @@ async function reindexModules() {
   }
 }
 
+/**
+ * Reorder modules based on a new ordering provided by the admin.
+ * Takes an array of moduleIds in the desired new order.
+ * Example: [3, 1, 2] means module 3 goes first, module 1 second, module 2 third.
+ * 
+ * Uses a two-pass approach to avoid ID conflicts:
+ *   Pass 1 - shift all moduleIds to temporary high numbers (+ 1000)
+ *   Pass 2 - assign the final sequential numbers (1, 2, 3...)
+ */
+export async function reorderModules(newOrder) {
+  const modules = await getAllModules();
+
+  // Quick sanity check - make sure the arrays match up
+  if (newOrder.length !== modules.length) {
+    throw new Error('The new order must include all modules');
+  }
+
+  // Helper to update a single moduleId and all its related data
+  async function updateModuleId(oldId, newId) {
+    // Find the module doc with this moduleId
+    const modulesRef = collection(db, COLLECTIONS.MODULES);
+    const moduleDocs = await getDocs(query(modulesRef, where('moduleId', '==', oldId)));
+
+    for (const moduleDoc of moduleDocs.docs) {
+      await updateDoc(moduleDoc.ref, { moduleId: newId });
+    }
+
+    // Update content that references this module
+    const contentRef = collection(db, COLLECTIONS.CONTENT);
+    const contentDocs = await getDocs(query(contentRef, where('moduleId', '==', oldId)));
+    for (const contentDoc of contentDocs.docs) {
+      await updateDoc(contentDoc.ref, { moduleId: newId });
+    }
+
+    // Update user progress
+    const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
+    const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', oldId)));
+    for (const progressDoc of progressDocs.docs) {
+      await updateDoc(progressDoc.ref, { moduleId: newId });
+    }
+
+    // Update knowledge checks (note: uses moduleID with capital ID)
+    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+    const checksDocs = await getDocs(query(checksRef, where('moduleID', '==', oldId)));
+    for (const checkDoc of checksDocs.docs) {
+      await updateDoc(checkDoc.ref, { moduleID: newId });
+    }
+  }
+
+  // Pass 1: Move everything to temporary IDs so we don't get collisions
+  // e.g. if module 1 needs to become 2 and module 2 needs to become 1,
+  // we can't just do it directly - they'd clash mid-way through
+  for (let i = 0; i < newOrder.length; i++) {
+    const currentId = newOrder[i];
+    const tempId = currentId + 1000;
+    await updateModuleId(currentId, tempId);
+  }
+
+  // Pass 2: Now assign the real final positions (1, 2, 3...)
+  for (let i = 0; i < newOrder.length; i++) {
+    const tempId = newOrder[i] + 1000;
+    const finalId = i + 1;
+    await updateModuleId(tempId, finalId);
+  }
+}
+
 // ==================== CONTENT OPERATIONS ====================
 
 /**

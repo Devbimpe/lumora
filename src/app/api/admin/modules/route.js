@@ -3,6 +3,7 @@ import { getModules } from '@admin-root/api/modules/route';
 import { addModule } from '@admin-root/api/modules/route'; // adjust path if needed
 import { deleteModule } from '@admin-root/api/modules/route';
 import { updateModule } from '@admin-root/api/modules/route';
+import { reorderModulesHandler } from '@admin-root/api/modules/route';
 
 // GET handler: Retrieves all modules
 // Calls the getModules function from the bridge and returns its result
@@ -84,6 +85,28 @@ export async function PUT(req) {
   } catch (error) {
     return new Response(JSON.stringify({ 
       error: error.message || 'Failed to update module' 
+    }), { status: 500 });
+  }
+}
+
+// PATCH handler: Reorders modules based on drag-and-drop
+// Expects a JSON body with 'order' array, e.g. { order: [3, 1, 2] }
+export async function PATCH(req) {
+  try {
+    const { order } = await req.json();
+
+    if (!order || !Array.isArray(order) || order.length === 0) {
+      return new Response(JSON.stringify({ error: 'Missing or invalid order array' }), {
+        status: 400,
+      });
+    }
+
+    const result = await reorderModulesHandler({ order });
+    return new Response(JSON.stringify(result), { status: 200 });
+  } catch (error) {
+    console.error('❌ Reorder route error:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Failed to reorder modules' 
     }), { status: 500 });
   }
 }
