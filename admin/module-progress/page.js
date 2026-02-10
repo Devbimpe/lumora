@@ -203,7 +203,7 @@ export default function ModuleProgressPage() {
 
 
       {/* Searchbar and Filters */}
-      <div className={`bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6 flex flex-col ${showFilters ? "gap-3" : "gap-0"}`}>
+      <div className={`bg-white rounded-xl shadow-lg p-3 sm:p-4 mb-4 sm:mb-6 flex flex-col ${showFilters ? "sm:gap-4 gap-3" : "gap-0"}`}>
 
         {/* Searchbar + Filter Button + Toggle button */}
         <div className="w-full flex flex-col gap-3 sm:flex-row sm:items-stretch">
