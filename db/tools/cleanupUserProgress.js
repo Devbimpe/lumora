@@ -2,6 +2,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
+
+// This file was used to delete duplicate user progress documents that were created due to a bug in the progress update logic. It identifies duplicates by grouping documents with the same userId and moduleId, then keeps the most complete and recent one while deleting the others.
+
+
 // Load env from project root before any Firebase imports (same as Next.js .env.local)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "..", ".env.local") });
@@ -19,8 +23,8 @@ function getTimestamp(doc) {
 
 async function cleanupUserProgress() {
   // Use same Firebase connection as app (db.js / firebase.js)
-  const { db } = await import("./firebase.js");
-  const { COLLECTIONS } = await import("./db.js");
+  const { db } = await import("../firebase.js");
+  const { COLLECTIONS } = await import("../db.js");
   const { collection, getDocs, doc, deleteDoc } = await import("firebase/firestore");
 
   const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
