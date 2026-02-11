@@ -714,32 +714,23 @@ export async function getUserModuleProgress(userId, moduleId) {
  * Update or create user progress for a module
  */
 export async function updateUserModuleProgress(userId, moduleId, progressData) {
-  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-  const q = query(
-    progressRef,
-    where('userId', '==', userId),
-    where('moduleId', '==', parseInt(moduleId))
-  );
-  const querySnapshot = await getDocs(q);
-  
-  const progressDataWithTimestamp = {
+  const moduleIdNum = parseInt(moduleId);
+
+  const progressDocId = `${userId}_${moduleIdNum}`;
+  const progressDocRef = doc(db, COLLECTIONS.USER_PROGRESS, progressDocId);
+
+  const payload = {
     ...progressData,
     userId,
-    moduleId: parseInt(moduleId),
-    updatedAt: Timestamp.now()
+    moduleId: moduleIdNum,
+    updatedAt: Timestamp.now(),
   };
-  
-  if (querySnapshot.empty) {
-    // Create new progress entry
-    progressDataWithTimestamp.createdAt = Timestamp.now();
-    const docRef = await addDoc(progressRef, progressDataWithTimestamp);
-    return docRef.id;
-  } else {
-    // Update existing progress entry
-    const docRef = querySnapshot.docs[0].ref;
-    await updateDoc(docRef, progressDataWithTimestamp);
-    return docRef.id;
-  }
+
+  // This will create it if missing, or update if it exists
+  console.log('Setting doc:', progressDocId, payload);
+  await setDoc(progressDocRef, payload, { merge: true });
+
+  return progressDocId;
 }
 
 /**
