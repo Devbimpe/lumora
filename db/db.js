@@ -372,65 +372,61 @@ async function reindexModules() {
  * Takes an array of moduleIds in the desired new order.
  * Example: [3, 1, 2] means module 3 goes first, module 1 second, module 2 third.
  * 
- * Uses a two-pass approach to avoid ID conflicts:
- *   Pass 1 - shift all moduleIds to temporary high numbers (+ 1000)
- *   Pass 2 - assign the final sequential numbers (1, 2, 3...)
+ * Uses a single batch write for performance - fetches all data in parallel,
+ * builds the updates in memory, then commits everything at once.
  */
 export async function reorderModules(newOrder) {
-  const modules = await getAllModules();
-
-  // Quick sanity check - make sure the arrays match up
-  if (newOrder.length !== modules.length) {
-    throw new Error('The new order must include all modules');
-  }
-
-  // Helper to update a single moduleId and all its related data
-  async function updateModuleId(oldId, newId) {
-    // Find the module doc with this moduleId
-    const modulesRef = collection(db, COLLECTIONS.MODULES);
-    const moduleDocs = await getDocs(query(modulesRef, where('moduleId', '==', oldId)));
-
-    for (const moduleDoc of moduleDocs.docs) {
-      await updateDoc(moduleDoc.ref, { moduleId: newId });
-    }
-
-    // Update content that references this module
-    const contentRef = collection(db, COLLECTIONS.CONTENT);
-    const contentDocs = await getDocs(query(contentRef, where('moduleId', '==', oldId)));
-    for (const contentDoc of contentDocs.docs) {
-      await updateDoc(contentDoc.ref, { moduleId: newId });
-    }
-
-    // Update user progress
-    const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-    const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', oldId)));
-    for (const progressDoc of progressDocs.docs) {
-      await updateDoc(progressDoc.ref, { moduleId: newId });
-    }
-
-    // Update knowledge checks (note: uses moduleID with capital ID)
-    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-    const checksDocs = await getDocs(query(checksRef, where('moduleID', '==', oldId)));
-    for (const checkDoc of checksDocs.docs) {
-      await updateDoc(checkDoc.ref, { moduleID: newId });
-    }
-  }
-
-  // Pass 1: Move everything to temporary IDs so we don't get collisions
-  // e.g. if module 1 needs to become 2 and module 2 needs to become 1,
-  // we can't just do it directly - they'd clash mid-way through
+  // Build a map: oldModuleId -> newModuleId
+  // e.g. newOrder = [3, 1, 2] means: 3->1, 1->2, 2->3
+  const idMap = {};
   for (let i = 0; i < newOrder.length; i++) {
-    const currentId = newOrder[i];
-    const tempId = currentId + 1000;
-    await updateModuleId(currentId, tempId);
+    idMap[newOrder[i]] = i + 1;
   }
 
-  // Pass 2: Now assign the real final positions (1, 2, 3...)
-  for (let i = 0; i < newOrder.length; i++) {
-    const tempId = newOrder[i] + 1000;
-    const finalId = i + 1;
-    await updateModuleId(tempId, finalId);
+  // Fetch everything we need in parallel (4 reads at once)
+  const [moduleDocs, contentDocs, progressDocs, checksDocs] = await Promise.all([
+    getDocs(collection(db, COLLECTIONS.MODULES)),
+    getDocs(collection(db, COLLECTIONS.CONTENT)),
+    getDocs(collection(db, COLLECTIONS.USER_PROGRESS)),
+    getDocs(collection(db, COLLECTIONS.KNOWLEDGE_CHECKS)),
+  ]);
+
+  const batch = writeBatch(db);
+
+  // Update modules
+  for (const d of moduleDocs.docs) {
+    const oldId = d.data().moduleId;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleId: idMap[oldId] });
+    }
   }
+
+  // Update content
+  for (const d of contentDocs.docs) {
+    const oldId = d.data().moduleId;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleId: idMap[oldId] });
+    }
+  }
+
+  // Update user progress
+  for (const d of progressDocs.docs) {
+    const oldId = d.data().moduleId;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleId: idMap[oldId] });
+    }
+  }
+
+  // Update knowledge checks (note: capital ID)
+  for (const d of checksDocs.docs) {
+    const oldId = d.data().moduleID;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleID: idMap[oldId] });
+    }
+  }
+
+  // One single atomic write
+  await batch.commit();
 }
 
 // ==================== CONTENT OPERATIONS ====================
