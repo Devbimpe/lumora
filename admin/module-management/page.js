@@ -18,7 +18,7 @@ export default function ModuleManagementPage() {
   const [subHeading, setSubHeading] = useState("");
   const [submitStatus, setSubmitStatus] = useState("");
   const router = useRouter();
-
+  
   // Modal state
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -95,10 +95,8 @@ export default function ModuleManagementPage() {
       moduleName,
     });
   };
-
-  const performDelete = async () => {
-    const { moduleId } = deleteModal;
-
+  
+  const performDelete = async (moduleId) => {
     try {
       const response = await fetch("/api/admin/modules", {
         method: "DELETE",
@@ -212,6 +210,13 @@ export default function ModuleManagementPage() {
                   key={module.id}
                   module={module}
                   onEdit={() => router.push(`/admin/content?moduleId=${module.id}`)}
+                  onDelete={() => 
+                    setDeleteModal({
+                      isOpen: true,
+                      moduleId: module.id,
+                      moduleName: module.Heading,
+                    })
+                  }
                 />
               ))
             ) : (
@@ -243,10 +248,11 @@ export default function ModuleManagementPage() {
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={deleteModal.isOpen}
-        onClose={() =>
-          setDeleteModal({ isOpen: false, moduleId: null, moduleName: "" })
-        }
-        onConfirm={performDelete}
+        onClose={() => setDeleteModal({ isOpen: false, moduleId: null, moduleName: "" })}
+        onConfirm={() => {
+          performDelete(deleteModal.moduleId);
+          setDeleteModal({isOpen: false, moduleId: "", moduleName: ""});
+        }}
         title="Delete Module"
         message={`Are you sure you want to delete "${deleteModal.moduleName}"? This action cannot be undone and will permanently remove the module and all its content.`}
         confirmText="Delete Module"
