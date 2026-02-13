@@ -89,7 +89,7 @@ export default function ModuleProgressPage() {
     }).filter((p) => {
       return selectedModule.value == null || selectedModule.value === p.moduleId;
     })
-    ;
+      ;
   }
   const filteredProgress = filterProgress();
 
@@ -249,36 +249,6 @@ export default function ModuleProgressPage() {
               </span>
             </button>
 
-            {/* Module Dropdown */}
-            <Select unstyled
-            options={modulesDropdownOptions}
-              value={selectedModule}
-              onChange={setSelectedModule}
-              isSearchable={true}
-              classNames={{
-                control: ({ isFocused }) => `
-                  flex-1 w-50 self-stretch transition-all duration-200 
-                  px-3 sm:px-4 py-2 sm:py-2 h-full
-                  bg-gray-100 hover:bg-gray-200 
-                  overflow-hidden border-0!
-                  ${isFocused ? "bg-gray-200 ring-2 ring-green-500 border-transparent shadow-none" : "border-0! shadow-[inset_0_2px_6px_rgba(0,0,0,0.1)]"}
-                  rounded-lg! outline-none! text-sm leading-5 flex items-center
-                `,
-                singleValue: () => "text-gray-900",
-                placeholder: () => "text-gray-500",
-                menu: () => "mt-2 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50",
-                option: ({ isFocused, isSelected }) => `
-                  px-4 py-2 text-sm cursor-pointer transition-colors
-                  ${isSelected ? "bg-green-600 text-white" : ""}
-                  ${isFocused && !isSelected ? "bg-green-50 text-green-700" : ""}
-                  ${!isFocused && !isSelected ? "text-gray-700" : ""}`,
-
-                input: () => "text-sm",
-                
-                indicatorSeparator: () => "hidden",
-                dropdownIndicator: () => "text-gray-400 hover:text-gray-600 px-2",
-              }}
-            ></Select>
 
             {/* Search Bar */}
             <input
@@ -291,11 +261,41 @@ export default function ModuleProgressPage() {
                 setSearchInputValue(nextValue);
                 debouncedSetSearchTerm(nextValue);
               }}
-              className="flex-1 min-w-0 self-stretch bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 transition-all duration-200 border-0! px-3 sm:px-4 py-2 sm:py-2.5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1)] rounded-lg! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none! text-sm leading-5"
+              className="flex-1 min-w-0 self-stretch bg-gray-100 hover:bg-gray-200 focus:bg-gray-200 transition-all duration-200 border-0! px-3 sm:px-4 py-2 sm:py-2.5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.1)] rounded-lg! focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none! text-sm text-gray-900 placeholder:text-gray-500 leading-5"
             />
           </div>
 
-          {/* Toggle Button */}
+          {/* Module Dropdown */}
+          <Select unstyled
+            options={modulesDropdownOptions}
+            value={selectedModule}
+            onChange={setSelectedModule}
+            isSearchable={true}
+            classNames={{
+              control: ({ isFocused }) => `
+                    flex-1 w-50 self-stretch transition-all duration-200 
+                    px-3 sm:px-4 py-2 sm:py-2 h-full
+                    bg-gray-100 hover:bg-gray-200 
+                    overflow-hidden border-0!
+                    ${isFocused ? "bg-gray-200 ring-2 ring-green-500 border-transparent shadow-none" : "border-0! shadow-[inset_0_2px_6px_rgba(0,0,0,0.1)]"}
+                    rounded-lg! outline-none! text-sm leading-5 flex items-center
+                  `,
+              singleValue: () => "text-sm text-gray-900 leading-5",
+              placeholder: () => "text-sm text-gray-500 leading-5",
+              menu: () => "mt-2 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50",
+              option: ({ isFocused, isSelected }) => `
+                    px-4 py-2 text-sm cursor-pointer transition-colors
+                    ${isSelected ? "bg-green-600 text-white" : ""}
+                    ${isFocused && !isSelected ? "bg-green-50 text-green-700" : ""}
+                    ${!isFocused && !isSelected ? "text-gray-700" : ""}`,
+
+              input: () => "text-sm",
+
+              indicatorSeparator: () => "hidden",
+              dropdownIndicator: () => "text-gray-400 hover:text-gray-600 px-2",
+            }}
+          ></Select>
+          {/* Toggle Button
           <div className="flex w-full sm:flex-1 lg:flex-[1.2] self-stretch items-stretch sm:max-w-64">
             <button
               onClick={() => setSearchTopic(searchTopicsENUM.User)}
@@ -316,7 +316,7 @@ export default function ModuleProgressPage() {
             >
               Modules
             </button>
-          </div>
+          </div> */}
         </div>
 
 
