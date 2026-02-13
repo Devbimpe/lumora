@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import ConfirmationModal from '../components/ConfirmationModal';
+import EditModule from '@/admin/components/EditModule';
+
 
 export default function ContentPage() {
   const [content, setContent] = useState([]);
@@ -14,6 +16,17 @@ export default function ContentPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
+  // const [expandedModuleId, setExpandedModuleId] = useState(null);
+  const [heading, setHeading] = useState("");
+  const [subHeading, setSubHeading] = useState("");
+  const currentModule = modules.find((m) => m.ModuleID.toString() === selectedModule);
+  useEffect(() => {
+    if (currentModule) {
+      setHeading(currentModule.Heading);
+      setSubHeading(currentModule.SubHeading);
+    }
+  });
+  
 
   // Modal state
   const [deleteModal, setDeleteModal] = useState({ 
@@ -21,6 +34,46 @@ export default function ContentPage() {
     contentId: null, 
     contentName: '' 
   });
+
+  const handleSubmit = async () => {
+    if (!heading.trim() || !subHeading.trim()) {
+      setSubmitStatus("Both fields are required.");
+      return;
+    }
+
+    try {
+      setSubmitStatus(expandedModuleId === "new" ? "Saving..." : "Updating...");
+      const isNew = selectedModule === "new";
+      const method = isNew ? "POST" : "PUT";
+      const body = isNew
+        ? JSON.stringify({ heading, subHeading })
+        : JSON.stringify({ id: expandedModuleId, heading, subHeading });
+
+      const response = await fetch("/api/admin/modules", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || (isNew ? "Submission failed." : "Update failed.")
+        );
+      }
+
+      await fetchModules();
+      setSubmitStatus(
+        isNew ? "Module added successfully!" : "Module updated successfully!"
+      );
+      setHeading("");
+      setSubHeading("");
+      setExpandedModuleId(null);
+    } catch (err) {
+      console.error("Submit error:", err);
+      setSubmitStatus(err.message);
+    }
+  };
 
   // Fetch modules
   useEffect(() => {
@@ -210,8 +263,11 @@ export default function ContentPage() {
         </div>
       )}
 
+
+      {/* basically this should be gone and replaced with the editing */}
       {/* Module Selector and Add Button */}
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+      {/* do we want to leave this in here or get rid of it cause it might make switching easier but maybe more confusing */}
+      { <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
         <div className="flex flex-col gap-3 sm:gap-4">
           <div className="flex-1">
             <label htmlFor="module" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
@@ -231,12 +287,12 @@ export default function ContentPage() {
                 ))}
               </select>
               {/* Custom dropdown icon */}
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3 pointer-events-none">
+              {<div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3 pointer-events-none">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
-              </div>
-            </div>
+              </div>}
+            </div> 
             {modules.length > 0 && selectedModule && (
               <p className="mt-2 text-xs sm:text-sm text-gray-500">
                 {content.length} {content.length === 1 ? 'page' : 'pages'}
@@ -255,7 +311,21 @@ export default function ContentPage() {
             </button>
           </div>
         </div>
-      </div>
+      </div> } 
+
+      {/*input the code here to edit heading and sub-heading */}
+      {currentModule && (
+        <EditModule
+        module={currentModule}
+        heading={heading}
+        subHeading={subHeading}
+        onHeadingChange={(e) => setHeading(e.target.value)}
+        onSubHeadingChange={(e) => setSubHeading(e.target.value)}
+        onContentChange={(e) => setContent(e.target.value)}
+      />
+      )}
+    
+
 
       {/* Create New Content Form */}
       {showCreateForm && (
