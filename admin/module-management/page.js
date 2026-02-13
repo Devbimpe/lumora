@@ -119,7 +119,7 @@ export default function ModuleManagementPage() {
   };
 
   const handleModuleClick = (id) => {
-    router.push(`/admin/content`);
+    router.push(`/admin/content?moduleId=${id}`);
   };
 
   useEffect(() => {
@@ -182,7 +182,9 @@ export default function ModuleManagementPage() {
           {/* Add Module Button */}
           <div className="mb-4 sm:mb-6">
             <button
-              onClick={() => setExpandedModuleId("new")}
+              // onClick={() => setExpandedModuleId("new")}
+              // className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg hover:bg-green-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
+              onClick={() => router.push("/admin/content?mode=new")}
               className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg hover:bg-green-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
             >
               <svg
@@ -202,25 +204,6 @@ export default function ModuleManagementPage() {
             </button>
           </div>
 
-          {/* Add Module Form */}
-          {expandedModuleId === "new" && (
-            <AddModuleForm
-              heading={heading}
-              subHeading={subHeading}
-              onHeadingChange={(e) => setHeading(e.target.value)}
-              onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-              onSubmit={handleSubmit}
-              onClose={() => {
-                setExpandedModuleId(null);
-                setHeading("");
-                setSubHeading("");
-              }}
-            />
-          )}
-
-
-
-
           {/* Modules List */}
           <div className="space-y-3 sm:space-y-4">
             {modules.length > 0 ? (
@@ -228,24 +211,7 @@ export default function ModuleManagementPage() {
                 <ModuleRow
                   key={module.id}
                   module={module}
-                  isExpanded={expandedModuleId === module.id}
-                  heading={heading}
-                  subHeading={subHeading}
-                  onHeadingChange={(e) => setHeading(e.target.value)}
-                  onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-                  onEdit={(id) => {
-                    setExpandedModuleId(id);
-                    setHeading(module.Heading);
-                    setSubHeading(module.SubHeading);
-                  }}
-                  onDelete={handleDeleteClick}
-                  onSubmit={handleSubmit}
-                  onModuleClick={handleModuleClick}
-                  onClose={() => {
-                    setExpandedModuleId(null);
-                    setHeading("");
-                    setSubHeading("");
-                  }}
+                  onEdit={() => router.push(`/admin/content?moduleId=${module.id}`)}
                 />
               ))
             ) : (

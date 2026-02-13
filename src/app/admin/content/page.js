@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '@/admin/components/EditModule';
+import { useSearchParams } from 'next/navigation';
 
 
 export default function ContentPage() {
@@ -26,6 +27,27 @@ export default function ContentPage() {
       setSubHeading(currentModule.SubHeading);
     }
   });
+  // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
+  const searchParams = useSearchParams();
+  const moduleId = searchParams.get("moduleId");
+  const mode = searchParams.get("mode");
+  useEffect(() => {
+    
+    if(!moduleId) return;
+    if(modules.length === 0) return;
+    
+    const moduleToEdit = modules.find(
+      (m) => m.ModuleID.toString() === moduleId
+    );
+
+    if(moduleToEdit) {
+      setHeading(moduleToEdit.Heading);
+      setSubHeading(moduleToEdit.Subheading);
+      console.log(moduleToEdit);
+
+    }
+    
+  }, [mode, moduleId, modules]);
   
 
   // Modal state
@@ -84,9 +106,9 @@ export default function ContentPage() {
       .then(data => {
         if (isMounted) {
           setModules(data);
-          if (data.length > 0) setSelectedModule(data[0].ModuleID.toString());
+          if (moduleId) setSelectedModule(moduleId);
         }
-      })
+      },)
       .catch(() => {
         if (isMounted) setModules([]);
       });
@@ -94,7 +116,7 @@ export default function ContentPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [moduleId]);
 
   // Fetch content for selected module
   useEffect(() => {
