@@ -33,7 +33,14 @@ export default function ContentPage() {
   const mode = searchParams.get("mode");
   useEffect(() => {
     
-    if(!moduleId) return;
+    if(mode === "new") {
+      setHeading("");
+      setSubHeading("");
+      setSelectedModule("");
+      setLoading(false);
+      return;
+    }
+    
     if(modules.length === 0) return;
     
     const moduleToEdit = modules.find(
@@ -336,7 +343,7 @@ export default function ContentPage() {
       </div> } 
 
       {/*input the code here to edit heading and sub-heading */}
-      {currentModule && (
+      {(mode === "new" || currentModule) && (
         <EditModule
         module={currentModule}
         heading={heading}
