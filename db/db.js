@@ -367,6 +367,68 @@ async function reindexModules() {
   }
 }
 
+/**
+ * Reorder modules based on a new ordering provided by the admin.
+ * Takes an array of moduleIds in the desired new order.
+ * Example: [3, 1, 2] means module 3 goes first, module 1 second, module 2 third.
+ * 
+ * Uses a single batch write for performance - fetches all data in parallel,
+ * builds the updates in memory, then commits everything at once.
+ */
+export async function reorderModules(newOrder) {
+  // Build a map: oldModuleId -> newModuleId
+  // e.g. newOrder = [3, 1, 2] means: 3->1, 1->2, 2->3
+  const idMap = {};
+  for (let i = 0; i < newOrder.length; i++) {
+    idMap[newOrder[i]] = i + 1;
+  }
+
+  // Fetch everything we need in parallel (4 reads at once)
+  const [moduleDocs, contentDocs, progressDocs, checksDocs] = await Promise.all([
+    getDocs(collection(db, COLLECTIONS.MODULES)),
+    getDocs(collection(db, COLLECTIONS.CONTENT)),
+    getDocs(collection(db, COLLECTIONS.USER_PROGRESS)),
+    getDocs(collection(db, COLLECTIONS.KNOWLEDGE_CHECKS)),
+  ]);
+
+  const batch = writeBatch(db);
+
+  // Update modules
+  for (const d of moduleDocs.docs) {
+    const oldId = d.data().moduleId;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleId: idMap[oldId] });
+    }
+  }
+
+  // Update content
+  for (const d of contentDocs.docs) {
+    const oldId = d.data().moduleId;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleId: idMap[oldId] });
+    }
+  }
+
+  // Update user progress
+  for (const d of progressDocs.docs) {
+    const oldId = d.data().moduleId;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleId: idMap[oldId] });
+    }
+  }
+
+  // Update knowledge checks (note: capital ID)
+  for (const d of checksDocs.docs) {
+    const oldId = d.data().moduleID;
+    if (idMap[oldId] !== undefined) {
+      batch.update(d.ref, { moduleID: idMap[oldId] });
+    }
+  }
+
+  // One single atomic write
+  await batch.commit();
+}
+
 // ==================== CONTENT OPERATIONS ====================
 
 /**

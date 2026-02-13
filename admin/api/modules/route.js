@@ -12,7 +12,8 @@ export async function getModules() {
     // Transform to match expected format
     const formattedModules = modules.map(module => ({
       id: module.moduleId,
-      Heading: module.heading
+      Heading: module.heading,
+      SubHeading: module.subheading || ""
     }));
     
     console.log(`📊 Found ${modules.length} modules`);
@@ -89,6 +90,23 @@ export async function updateModule({ id, heading, subHeading }) {
     
     return { success: true, id };
   } catch (error) {
+    throw error;
+  }
+}
+
+// Reorders modules based on admin's drag-and-drop arrangement
+// Expects { order: [3, 1, 2] } where the array is moduleIds in the new order
+export async function reorderModulesHandler({ order }) {
+  try {
+    console.log('Reordering Modules...', order);
+
+    const { reorderModules } = await import("@db/db.js");
+    await reorderModules(order);
+
+    console.log('Modules reordered successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Reorder failed:', error.message);
     throw error;
   }
 }
