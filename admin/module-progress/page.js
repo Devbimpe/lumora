@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import Select from "react-select";
 import db from "@/db/db";
 
 // This JS object is to represent an ENUM for module status filters
@@ -16,9 +17,13 @@ const searchTopicsENUM = {
   Module: "Module"
 }
 
+
+
 export default function ModuleProgressPage() {
   const [progress, setProgress] = useState([]);
   const [modules, setModules] = useState([]);
+  const [modulesDropdownOptions, setModulesDropdownOptions] = useState([]);
+  const [selectedModule, setSelectedModule] = useState({ value: null, label: "All Modules" });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(moduleStatusENUM.All);
   const [showFilters, setShowFilters] = useState(false);
@@ -40,6 +45,8 @@ export default function ModuleProgressPage() {
 
         if (isMounted) {
           setModules(formattedModules);
+          setModulesDropdownOptions(modulesData.map(module => ({ value: module.moduleId, label: module.heading })));
+          setModulesDropdownOptions(prev => [{ value: null, label: "All Modules" }, ...prev]);
         }
         if (isMounted) {
           setProgress(progressData);
@@ -65,12 +72,12 @@ export default function ModuleProgressPage() {
   //Filter once for progress
   //then filter again for search and search topic
   const filterProgress = () => {
-    return progress.filter((p) => {
+    return progress.filter((p) => { // Filter based on status
       if (filter === moduleStatusENUM.Completed) return p.completed;
       if (filter === moduleStatusENUM.InProgress) return !p.completed && p.progress > 0;
       if (filter === moduleStatusENUM.NotStarted) return p.progress === 0;
       return true;
-    }).filter((p) => {
+    }).filter((p) => { // filter based on searched user
       if (!searchTerm) return true;
       if (searchTopic === searchTopicsENUM.User) {
         return p.fullName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -79,7 +86,10 @@ export default function ModuleProgressPage() {
       if (searchTopic === searchTopicsENUM.Module) {
         return p.moduleId.toString().toLowerCase() === searchTerm.toLowerCase() || modules[p.moduleId].toLowerCase().includes(searchTerm.toLowerCase());
       }
-    });
+    }).filter((p) => {
+      return selectedModule.value == null || selectedModule.value === p.moduleId;
+    })
+    ;
   }
   const filteredProgress = filterProgress();
 
@@ -238,6 +248,37 @@ export default function ModuleProgressPage() {
                 <span className={`bg-green-600 rounded-full w-2 h-2 absolute -top-1/2 -right-1/2 transition-opacity duration-200 ease-in-out ${filter === moduleStatusENUM.All || showFilters ? "opacity-0" : "opacity-100"}`}></span>
               </span>
             </button>
+
+            {/* Module Dropdown */}
+            <Select unstyled
+            options={modulesDropdownOptions}
+              value={selectedModule}
+              onChange={setSelectedModule}
+              isSearchable={true}
+              classNames={{
+                control: ({ isFocused }) => `
+                  flex-1 w-50 self-stretch transition-all duration-200 
+                  px-3 sm:px-4 py-2 sm:py-2 h-full
+                  bg-gray-100 hover:bg-gray-200 
+                  overflow-hidden border-0!
+                  ${isFocused ? "bg-gray-200 ring-2 ring-green-500 border-transparent shadow-none" : "border-0! shadow-[inset_0_2px_6px_rgba(0,0,0,0.1)]"}
+                  rounded-lg! outline-none! text-sm leading-5 flex items-center
+                `,
+                singleValue: () => "text-gray-900",
+                placeholder: () => "text-gray-500",
+                menu: () => "mt-2 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50",
+                option: ({ isFocused, isSelected }) => `
+                  px-4 py-2 text-sm cursor-pointer transition-colors
+                  ${isSelected ? "bg-green-600 text-white" : ""}
+                  ${isFocused && !isSelected ? "bg-green-50 text-green-700" : ""}
+                  ${!isFocused && !isSelected ? "text-gray-700" : ""}`,
+
+                input: () => "text-sm",
+                
+                indicatorSeparator: () => "hidden",
+                dropdownIndicator: () => "text-gray-400 hover:text-gray-600 px-2",
+              }}
+            ></Select>
 
             {/* Search Bar */}
             <input

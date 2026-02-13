@@ -23,7 +23,8 @@
     "next": "^16.1.6",
     "nodemailer": "^7.0.10",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-select": "^5.10.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.7",
