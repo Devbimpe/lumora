@@ -174,7 +174,11 @@ export default function ModuleProgressPage() {
           }</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-2 sm:mt-3">{
             searchTopic === searchTopicsENUM.User
-              ? progress.length
+              ? progress.reduce((uniqueUsers, p) => {
+                if (!uniqueUsers.some(u => u.userId === p.userId)) {
+                  uniqueUsers.push({ userId: p.userId });
+                } return uniqueUsers;
+              }, []).length
               : Object.keys(modules).length
           }
           </p>
