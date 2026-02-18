@@ -1,8 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function ContentPage() {
+  // Read moduleId from URL so the page can open the right module directly.
+  const searchParams = useSearchParams();
+  const requestedModuleId = searchParams.get('moduleId');
   const [content, setContent] = useState([]);
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +35,16 @@ export default function ContentPage() {
       .then(data => {
         if (isMounted) {
           setModules(data);
-          if (data.length > 0) setSelectedModule(data[0].ModuleID.toString());
+          if (data.length > 0) {
+            // Check if the module from URL exists in the loaded module list.
+            const hasRequestedModule = requestedModuleId
+              ? data.some((module) => module.ModuleID.toString() === requestedModuleId)
+              : false;
+            // Use URL module when valid; otherwise use the first module.
+            setSelectedModule(
+              hasRequestedModule ? requestedModuleId : data[0].ModuleID.toString()
+            );
+          }
         }
       })
       .catch(() => {
@@ -41,7 +54,7 @@ export default function ContentPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [requestedModuleId]);
 
   // Fetch content for selected module
   useEffect(() => {
