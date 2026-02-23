@@ -209,9 +209,10 @@ export default function ModuleManagementPage() {
                   onHeadingChange={(e) => setHeading(e.target.value)}
                   onSubHeadingChange={(e) => setSubHeading(e.target.value)}
                   onEdit={(id) => {
-                    setExpandedModuleId(id);
-                    setHeading(module.Heading);
-                    setSubHeading(module.SubHeading);
+                    // setExpandedModuleId(id);
+                    // setHeading(module.Heading);
+                    // setSubHeading(module.SubHeading);
+                    handleModuleClick(id);
                   }}
                   onDelete={handleDeleteClick}
                   onSubmit={handleSubmit}
