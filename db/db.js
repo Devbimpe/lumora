@@ -411,10 +411,28 @@ export async function reorderModules(newOrder) {
 
   // Update user progress
   for (const d of progressDocs.docs) {
-    const oldId = d.data().moduleId;
-    if (idMap[oldId] !== undefined) {
-      batch.update(d.ref, { moduleId: idMap[oldId] });
-    }
+      // If the progress doc uses the old moduleId in its ID, rename the doc
+      const oldDocId = d.id;
+      const expectedDocId = `${d.data().userId}_${idMap[d.data().moduleId]}`;
+      console.log(`Updating progress doc ${oldDocId} for user ${d.data().userId} from module ${d.data().moduleId} to ${idMap[d.data().moduleId]}`);
+      if (oldDocId !== expectedDocId) {
+        // Copy data to new doc with updated moduleId in ID
+        const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, expectedDocId);
+        const data = d.data();
+        data.moduleId = idMap[d.data().moduleId];
+
+        batch.set(newDocRef, data, { merge: true });
+        batch.update(d.ref, { moduleId: idMap[d.data().moduleId] });
+
+        // Delete the old doc
+        batch.delete(d.ref);
+      } else {
+        const oldId = d.data().moduleId;
+        if (idMap[oldId] !== undefined) {
+          batch.update(d.ref, { moduleId: idMap[oldId] });
+        }
+
+      }
   }
 
   // Update knowledge checks (note: capital ID)
@@ -776,32 +794,23 @@ export async function getUserModuleProgress(userId, moduleId) {
  * Update or create user progress for a module
  */
 export async function updateUserModuleProgress(userId, moduleId, progressData) {
-  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-  const q = query(
-    progressRef,
-    where('userId', '==', userId),
-    where('moduleId', '==', parseInt(moduleId))
-  );
-  const querySnapshot = await getDocs(q);
-  
-  const progressDataWithTimestamp = {
+  const moduleIdNum = parseInt(moduleId);
+
+  const progressDocId = `${userId}_${moduleIdNum}`;
+  const progressDocRef = doc(db, COLLECTIONS.USER_PROGRESS, progressDocId);
+
+  const payload = {
     ...progressData,
     userId,
-    moduleId: parseInt(moduleId),
-    updatedAt: Timestamp.now()
+    moduleId: moduleIdNum,
+    updatedAt: Timestamp.now(),
   };
-  
-  if (querySnapshot.empty) {
-    // Create new progress entry
-    progressDataWithTimestamp.createdAt = Timestamp.now();
-    const docRef = await addDoc(progressRef, progressDataWithTimestamp);
-    return docRef.id;
-  } else {
-    // Update existing progress entry
-    const docRef = querySnapshot.docs[0].ref;
-    await updateDoc(docRef, progressDataWithTimestamp);
-    return docRef.id;
-  }
+
+  // This will create it if missing, or update if it exists
+  console.log('Setting doc:', progressDocId, payload);
+  await setDoc(progressDocRef, payload, { merge: true });
+
+  return progressDocId;
 }
 
 /**
