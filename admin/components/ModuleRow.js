@@ -14,11 +14,25 @@ export default function ModuleRow({
   onSubmit,
   onModuleClick,
   onClose,
+  // Reorder mode props
+  isReordering,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  isDraggedOver,
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-      {/* Edit Form */}
-      {isExpanded && (
+    <div
+      className={`bg-white rounded-xl shadow-lg overflow-hidden ${
+        isReordering ? "cursor-grab active:cursor-grabbing" : ""
+      } ${isDraggedOver ? "border-t-4 border-green-500" : ""}`}
+      draggable={isReordering}
+      onDragStart={isReordering ? onDragStart : undefined}
+      onDragOver={isReordering ? onDragOver : undefined}
+      onDrop={isReordering ? onDrop : undefined}
+    >
+      {/* Edit Form - hidden during reorder mode */}
+      {isExpanded && !isReordering && (
         <div className="p-4 sm:p-6 bg-green-50 border-b border-green-200">
           <div className="flex justify-between items-center mb-3 sm:mb-4">
             <h3 className="text-base sm:text-lg font-semibold text-gray-800">Edit Module {module.id}</h3>
@@ -70,10 +84,26 @@ export default function ModuleRow({
 
       {/* Module Display */}
       <div
-        className="p-4 sm:p-6 hover:bg-gray-50 transition-colors duration-200 cursor-pointer group relative"
-        onClick={() => onModuleClick(module.id)}
+        className={`p-4 sm:p-6 transition-colors duration-200 ${
+          isReordering ? "select-none" : "hover:bg-gray-50 cursor-pointer group relative"
+        }`}
+        onClick={isReordering ? undefined : () => onModuleClick(module.id)}
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          {/* Drag handle - only visible in reorder mode */}
+          {isReordering && (
+            <div className="flex-shrink-0 text-gray-400">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="9" cy="5" r="1.5" />
+                <circle cx="15" cy="5" r="1.5" />
+                <circle cx="9" cy="12" r="1.5" />
+                <circle cx="15" cy="12" r="1.5" />
+                <circle cx="9" cy="19" r="1.5" />
+                <circle cx="15" cy="19" r="1.5" />
+              </svg>
+            </div>
+          )}
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full flex-shrink-0">
@@ -84,27 +114,29 @@ export default function ModuleRow({
             <p className="text-xs sm:text-sm text-gray-600 break-words">{module.SubHeading}</p>
           </div>
           
-          {/* Action Buttons - Stack vertically on mobile */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit(module.id)
-              }}
-              className="w-full sm:w-auto bg-blue-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
-            >
-              Edit
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete(module.id)
-              }}
-              className="w-full sm:w-auto bg-red-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
-            >
-              Delete
-            </button>
-          </div>
+          {/* Action Buttons - hidden during reorder mode */}
+          {!isReordering && (
+            <div className="flex flex-col sm:flex-row gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(module.id)
+                }}
+                className="w-full sm:w-auto bg-blue-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+              >
+                Edit
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(module.id)
+                }}
+                className="w-full sm:w-auto bg-red-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
