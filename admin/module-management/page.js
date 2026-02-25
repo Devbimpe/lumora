@@ -125,7 +125,8 @@ export default function ModuleManagementPage() {
   };
 
   const handleModuleClick = (id) => {
-    router.push(`/admin/content`);
+    // Open content page for the selected module.
+    router.push(`/admin/content?moduleId=${id}`);
   };
 
   // --- Reorder mode handlers ---
@@ -380,6 +381,7 @@ export default function ModuleManagementPage() {
                   onHeadingChange={(e) => setHeading(e.target.value)}
                   onSubHeadingChange={(e) => setSubHeading(e.target.value)}
                   onEdit={(id) => {
+                    // Show the inline module edit form at the top of this card.
                     setExpandedModuleId(id);
                     setHeading(module.Heading);
                     setSubHeading(module.SubHeading);
