@@ -23,9 +23,8 @@ export default function ModuleRow({
 }) {
   return (
     <div
-      className={`bg-white rounded-xl shadow-lg overflow-hidden ${
-        isReordering ? "cursor-grab active:cursor-grabbing" : ""
-      } ${isDraggedOver ? "border-t-4 border-green-500" : ""}`}
+      className={`bg-white rounded-xl shadow-lg overflow-hidden ${isReordering ? "cursor-grab active:cursor-grabbing" : ""
+        } ${isDraggedOver ? "border-t-4 border-green-500" : ""}`}
       draggable={isReordering}
       onDragStart={isReordering ? onDragStart : undefined}
       onDragOver={isReordering ? onDragOver : undefined}
@@ -92,14 +91,9 @@ export default function ModuleRow({
       {/* Module Display */}
       {/* Keep card click disabled so navigation happens only from action buttons. */}
       <div
-<<<<<<< Updated upstream
-        className={`p-4 sm:p-6 transition-colors duration-200 ${
-          isReordering ? "select-none" : "hover:bg-gray-50 cursor-pointer group relative"
-        }`}
+        className={`p-4 sm:p-6 transition-colors duration-200 ${isReordering ? "select-none" : "hover:bg-gray-50 cursor-pointer group relative"
+          }`}
         onClick={isReordering ? undefined : () => onModuleClick(module.id)}
-=======
-        className="p-4 sm:p-6 hover:bg-gray-50 transition-colors duration-200 group relative"
->>>>>>> Stashed changes
       >
         <div className="flex items-center gap-3">
           {/* Drag handle - only visible in reorder mode */}
@@ -125,7 +119,7 @@ export default function ModuleRow({
             <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-1 break-words">{module.Heading}</h3>
             <p className="text-xs sm:text-sm text-gray-600 break-words">{module.SubHeading}</p>
           </div>
-          
+
           {/* Action Buttons - hidden during reorder mode */}
           {!isReordering && (
             <div className="flex flex-col sm:flex-row gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
