@@ -85,7 +85,10 @@ export default function Dashboard({ user: userProp }) {
       })
       
       // Map the modules from API format to dashboard format with progress
-      const modulesWithProgress = modulesData.map((module) => {
+      // Only show published modules
+      const publishedModules = modulesData.filter(module => module.published === true)
+
+      const modulesWithProgress = publishedModules.map((module) => {
         const progress = progressMap[module.ModuleID] || null
         const isCompleted = progress?.isCompleted || false
         const viewedContent = progress?.viewedContent || []

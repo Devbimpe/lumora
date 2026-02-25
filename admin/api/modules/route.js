@@ -1,18 +1,18 @@
 // Import database functions from Firestore
 import { getAllModules } from "@db/db.js"
 
-// Export a function that can be imported by the bridge
 export async function getModules() {
   try {
     console.log('✅ Database connected');
     
-    // Fetch all modules from Firestore
     const modules = await getAllModules();
     
     // Transform to match expected format
     const formattedModules = modules.map(module => ({
       id: module.moduleId,
-      Heading: module.heading
+      Heading: module.heading,
+      SubHeading: module.subheading,
+      published: module.published ?? false,  // 👈 added this
     }));
     
     console.log(`📊 Found ${modules.length} modules`);
