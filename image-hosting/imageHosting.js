@@ -1,5 +1,6 @@
 import process from 'node:process';
-import {google} from 'googleapis';
+import { Readable } from 'node:stream';
+import { google } from 'googleapis';
 import fs from 'fs';
 
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
@@ -27,10 +28,10 @@ const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 
 async function uploadFile() {
   const fileMetadata = {
-    name: 'landing.png',
+    name: 'Lumoralogo.jpeg',
     parents: [LUMORA_IMAGES_FOLDER_ID], // optional: upload to specific folder
   };
-  const media = { body: fs.createReadStream('../public/landing.png') };
+  const media = { body: fs.createReadStream('../public/Lumoralogo.jpeg') };
 
   const file = await drive.files.create({
     resource: fileMetadata,
@@ -38,10 +39,47 @@ async function uploadFile() {
     fields: 'id',
   });
 
+    await drive.permissions.create({
+      fileId: file.data.id,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    });
+
   console.log('File uploaded, ID:', file.data.id);
 }
 
-uploadFile();
+/** Upload from in-memory buffer. Returns { id, url }. */
+async function uploadFileFromBuffer(buffer, filename, mimeType) {
+  const fileMetadata = {
+    name: filename,
+    parents: [LUMORA_IMAGES_FOLDER_ID],
+  };
+  const media = {
+    mimeType: mimeType || 'application/octet-stream',
+    body: Readable.from(buffer),
+  };
+  const file = await drive.files.create({
+    resource: fileMetadata,
+    media,
+    fields: 'id',
+  });
+  await drive.permissions.create({
+    fileId: file.data.id,
+    requestBody: {
+      role: 'reader',
+      type: 'anyone',
+    },
+  });
+  
+  const id = file.data.id;
+  return { id, url: `https://drive.google.com/uc?id=${id}` };
+}
+
+if (process.argv[1]?.includes('imageHosting.js')) {
+  uploadFile();
+}
 
 async function listImages() {
   const res = await drive.files.list({
@@ -64,4 +102,5 @@ export default {
   listImages,
   getImageUrl,
   uploadFile,
+  uploadFileFromBuffer,
 };
