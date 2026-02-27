@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '@/admin/components/EditModule';
-import { useSearchParams } from 'next/navigation';
 
 
 export default function ContentPage() {
@@ -11,6 +10,8 @@ export default function ContentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedModuleId = searchParams.get('moduleId');
+  const moduleId = searchParams.get('moduleId');
+  const mode = searchParams.get('mode');
   const [content, setContent] = useState([]);
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,9 +34,6 @@ export default function ContentPage() {
     }
   });
   // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
-  const searchParams = useSearchParams();
-  const moduleId = searchParams.get("moduleId");
-  const mode = searchParams.get("mode");
   useEffect(() => {
 
     if (mode === "new") {
