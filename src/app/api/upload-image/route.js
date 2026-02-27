@@ -1,3 +1,9 @@
+/**
+ * API endpoint to upload an image to Google Drive
+ * Expects a form data with a file field
+ * Returns the file ID and URL
+ */
+
 import { NextResponse } from 'next/server';
 import ImageHosting from '@/image-hosting/imageHosting.js';
 
