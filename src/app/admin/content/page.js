@@ -30,7 +30,7 @@ export default function ContentPage() {
   useEffect(() => {
     if (currentModule) {
       setHeading(currentModule.Heading);
-      setSubHeading(currentModule.SubHeading);
+      setSubHeading(currentModule.Subheading);
     }
   });
   // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
