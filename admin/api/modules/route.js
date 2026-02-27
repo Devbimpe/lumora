@@ -12,7 +12,7 @@ export async function getModules() {
       id: module.moduleId,
       Heading: module.heading,
       SubHeading: module.subheading,
-      published: module.published ?? false,  // 👈 added this
+      published: module.published ?? false,
     }));
     
     console.log(`📊 Found ${modules.length} modules`);
