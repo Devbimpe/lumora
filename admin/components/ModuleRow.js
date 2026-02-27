@@ -134,8 +134,8 @@ export default function ModuleRow({
               </button>
               <button
                 onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(module.id)
+                  e.stopPropagation();
+                  onDelete();
                 }}
                 className="w-full sm:w-auto bg-red-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
               >

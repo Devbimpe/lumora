@@ -102,9 +102,7 @@ export default function ModuleManagementPage() {
     });
   };
 
-  const performDelete = async () => {
-    const { moduleId } = deleteModal;
-
+  const performDelete = async (moduleId) => {
     try {
       const response = await fetch("/api/admin/modules", {
         method: "DELETE",
@@ -271,7 +269,9 @@ export default function ModuleManagementPage() {
               <>
                 {/* Normal mode buttons */}
                 <button
-                  onClick={() => setExpandedModuleId("new")}
+                  // onClick={() => setExpandedModuleId("new")}
+                  // className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg hover:bg-green-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
+                  onClick={() => router.push("/admin/content?mode=new")}
                   className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg hover:bg-green-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
                 >
                   <svg
@@ -375,31 +375,14 @@ export default function ModuleManagementPage() {
                 <ModuleRow
                   key={module.id}
                   module={module}
-                  isExpanded={expandedModuleId === module.id}
-                  heading={heading}
-                  subHeading={subHeading}
-                  onHeadingChange={(e) => setHeading(e.target.value)}
-                  onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-                  onEdit={(id) => {
-                    // Show the inline module edit form at the top of this card.
-                    setExpandedModuleId(id);
-                    setHeading(module.Heading);
-                    setSubHeading(module.SubHeading);
-                  }}
-                  onDelete={handleDeleteClick}
-                  onSubmit={handleSubmit}
-                  onModuleClick={handleModuleClick}
-                  onClose={() => {
-                    setExpandedModuleId(null);
-                    setHeading("");
-                    setSubHeading("");
-                  }}
-                  // Reorder props
-                  isReordering={isReordering}
-                  isDraggedOver={draggedOverIndex === index}
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={() => handleDrop(index)}
+                  onEdit={() => router.push(`/admin/content?moduleId=${module.id}`)}
+                  onDelete={() =>
+                    setDeleteModal({
+                      isOpen: true,
+                      moduleId: module.id,
+                      moduleName: module.Heading,
+                    })
+                  }
                 />
               ))
             ) : (
@@ -431,10 +414,11 @@ export default function ModuleManagementPage() {
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={deleteModal.isOpen}
-        onClose={() =>
-          setDeleteModal({ isOpen: false, moduleId: null, moduleName: "" })
-        }
-        onConfirm={performDelete}
+        onClose={() => setDeleteModal({ isOpen: false, moduleId: null, moduleName: "" })}
+        onConfirm={() => {
+          performDelete(deleteModal.moduleId);
+          setDeleteModal({ isOpen: false, moduleId: "", moduleName: "" });
+        }}
         title="Delete Module"
         message={`Are you sure you want to delete "${deleteModal.moduleName}"? This action cannot be undone and will permanently remove the module and all its content.`}
         confirmText="Delete Module"
