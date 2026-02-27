@@ -10,7 +10,8 @@ export async function GET() {
     const formattedModules = modules.map(module => ({
       ModuleID: module.moduleId,
       Heading: module.heading,
-      Subheading: module.subheading
+      Subheading: module.subheading,
+      published: module.published ?? false,
     }));
     return NextResponse.json(formattedModules);
   } catch (error) {

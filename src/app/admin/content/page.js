@@ -1,12 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
+import EditModule from '@/admin/components/EditModule';
+
 
 export default function ContentPage() {
   // Read moduleId from URL so the page can open the right module directly.
+  const router = useRouter();
   const searchParams = useSearchParams();
   const requestedModuleId = searchParams.get('moduleId');
+  const moduleId = searchParams.get('moduleId');
+  const mode = searchParams.get('mode');
   const [content, setContent] = useState([]);
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,13 +23,89 @@ export default function ContentPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
+  // const [expandedModuleId, setExpandedModuleId] = useState(null);
+  const [heading, setHeading] = useState("");
+  const [subHeading, setSubHeading] = useState("");
+  const currentModule = modules.find((m) => m.ModuleID.toString() === selectedModule);
+  useEffect(() => {
+    if (currentModule) {
+      setHeading(currentModule.Heading);
+      setSubHeading(currentModule.Subheading);
+    }
+  });
+  // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
+  useEffect(() => {
+
+    if (mode === "new") {
+      setHeading("");
+      setSubHeading("");
+      setSelectedModule("");
+      setLoading(false);
+      return;
+    }
+
+    if (modules.length === 0) return;
+
+    const moduleToEdit = modules.find(
+      (m) => m.ModuleID.toString() === moduleId
+    );
+
+    if (moduleToEdit) {
+      setHeading(moduleToEdit.Heading);
+      setSubHeading(moduleToEdit.Subheading);
+      console.log(moduleToEdit);
+
+    }
+
+  }, [mode, moduleId, modules]);
+
 
   // Modal state
-  const [deleteModal, setDeleteModal] = useState({ 
-    isOpen: false, 
-    contentId: null, 
-    contentName: '' 
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    contentId: null,
+    contentName: ''
   });
+
+  const handleSubmit = async () => {
+    if (!heading.trim() || !subHeading.trim()) {
+      setSubmitStatus("Both fields are required.");
+      return;
+    }
+
+    try {
+      setSubmitStatus(expandedModuleId === "new" ? "Saving..." : "Updating...");
+      const isNew = selectedModule === "new";
+      const method = isNew ? "POST" : "PUT";
+      const body = isNew
+        ? JSON.stringify({ heading, subHeading })
+        : JSON.stringify({ id: expandedModuleId, heading, subHeading });
+
+      const response = await fetch("/api/admin/modules", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || (isNew ? "Submission failed." : "Update failed.")
+        );
+      }
+
+      await fetchModules();
+      setSubmitStatus(
+        isNew ? "Module added successfully!" : "Module updated successfully!"
+      );
+      setHeading("");
+      setSubHeading("");
+      setExpandedModuleId(null);
+    } catch (err) {
+      console.error("Submit error:", err);
+      setSubmitStatus(err.message);
+    }
+  };
 
   // Fetch modules
   useEffect(() => {
@@ -46,7 +127,7 @@ export default function ContentPage() {
             );
           }
         }
-      })
+      },)
       .catch(() => {
         if (isMounted) setModules([]);
       });
@@ -59,10 +140,10 @@ export default function ContentPage() {
   // Fetch content for selected module
   useEffect(() => {
     if (!selectedModule) return;
-    
+
     let isMounted = true;
     setLoading(true);
-    
+
     fetch(`/api/content?moduleId=${selectedModule}`)
       .then(res => res.json())
       .then(data => {
@@ -107,7 +188,7 @@ export default function ContentPage() {
         }),
       });
       if (!res.ok) throw new Error('Failed to update content');
-      
+
       // Refresh content
       const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
       const data = await updatedRes.json();
@@ -124,18 +205,18 @@ export default function ContentPage() {
   const handleDeleteClick = (contentId) => {
     const item = content.find(c => c.ContentID === contentId);
     const contentName = item?.Overview || `Item #${contentId}`;
-    
-    setDeleteModal({ 
-      isOpen: true, 
-      contentId, 
-      contentName 
+
+    setDeleteModal({
+      isOpen: true,
+      contentId,
+      contentName
     });
   };
 
   // Perform delete
   const performDelete = async () => {
     const { contentId } = deleteModal;
-    
+
     try {
       setLoading(true);
       const res = await fetch(`/api/content/${contentId}`, {
@@ -194,9 +275,17 @@ export default function ContentPage() {
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Module Content</h1>
-        <p className="text-sm sm:text-base text-gray-600">Create, edit, and manage content pages</p>
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Module Content</h1>
+          <p className="text-sm sm:text-base text-gray-600">Create, edit, and manage content pages</p>
+        </div>
+        <button
+          onClick={() => router.push('/admin/module-management')}
+          className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base shadow-lg hover:shadow-xl"
+        >
+          Cancel
+        </button>
       </div>
 
       {/* Error Message */}
@@ -223,8 +312,11 @@ export default function ContentPage() {
         </div>
       )}
 
+
+      {/* basically this should be gone and replaced with the editing */}
       {/* Module Selector and Add Button */}
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+      {/* do we want to leave this in here or get rid of it cause it might make switching easier but maybe more confusing */}
+      {<div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
         <div className="flex flex-col gap-3 sm:gap-4">
           <div className="flex-1">
             <label htmlFor="module" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
@@ -244,11 +336,11 @@ export default function ContentPage() {
                 ))}
               </select>
               {/* Custom dropdown icon */}
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3 pointer-events-none">
+              {<div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3 pointer-events-none">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
-              </div>
+              </div>}
             </div>
             {modules.length > 0 && selectedModule && (
               <p className="mt-2 text-xs sm:text-sm text-gray-500">
@@ -268,7 +360,21 @@ export default function ContentPage() {
             </button>
           </div>
         </div>
-      </div>
+      </div>}
+
+      {/*input the code here to edit heading and sub-heading */}
+      {(mode === "new" || currentModule) && (
+        <EditModule
+          module={currentModule}
+          heading={heading}
+          subHeading={subHeading}
+          onHeadingChange={(e) => setHeading(e.target.value)}
+          onSubHeadingChange={(e) => setSubHeading(e.target.value)}
+          onContentChange={(e) => setContent(e.target.value)}
+        />
+      )}
+
+
 
       {/* Create New Content Form */}
       {showCreateForm && (
@@ -286,7 +392,7 @@ export default function ContentPage() {
               ×
             </button>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -300,7 +406,7 @@ export default function ContentPage() {
                 rows="2"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Content (Reading Material)
@@ -313,7 +419,7 @@ export default function ContentPage() {
                 rows="8"
               />
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={createNewContent}
@@ -412,7 +518,7 @@ export default function ContentPage() {
                           </div>
                           <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 break-words">{item.Overview}</h3>
                         </div>
-                        
+
                         {/* Action Buttons - Stack on mobile */}
                         <div className="flex flex-col sm:flex-row gap-2">
                           <button
@@ -429,7 +535,7 @@ export default function ContentPage() {
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-green-400">
                         <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Content:</h4>
                         <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{item.Reading}</p>
