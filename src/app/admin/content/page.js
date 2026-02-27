@@ -191,6 +191,17 @@ export default function ContentPage() {
     }
   };
 
+  // Set image URL for image upload preview
+  const [imageSrc, setImageSrc] = useState(null);
+
+  function handleChange(event) {
+    const file = event.target.files[0];
+    if (file) {
+      // Create a temporary local URL for the selected file
+      setImageSrc(URL.createObjectURL(file)); 
+    }
+  }
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
@@ -316,17 +327,28 @@ export default function ContentPage() {
 
             {/* Image Upload goes here */}
             <div>
-                <input 
-                  type="file" 
-                  className="px-4 py-3 mr-2 border border-gray-300 rounded-lg"
-                  accept="image/png, image/jpeg"
-                  name="filename"></input>
-                <button
-                  // onClick={}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
-                >
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Image Upload
+              </label>
+               <input 
+                type="file" 
+                className="px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                accept="image/png, image/jpeg"
+                name="imageInput" 
+                onChange={handleChange}></input>
+              <button
+                // onClick={}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
                 Upload Image
-                </button>
+              </button>
+              {imageSrc && (
+                <img 
+                  src={imageSrc} 
+                  alt="Uploaded preview" 
+                  style={{ maxWidth: "200px", marginTop: "10px" }} 
+                />
+              )}
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2">
