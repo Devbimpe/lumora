@@ -127,6 +127,29 @@ export default function ModuleManagementPage() {
     router.push(`/admin/content?moduleId=${id}`);
   };
 
+  const handlePublishToggle = async (id, currentPublished) => {
+    try {
+      const response = await fetch("/api/admin/modules", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, published: !currentPublished }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update publish status");
+      }
+
+      await fetchModules();
+      setSubmitStatus(!currentPublished ? "Module published!" : "Module unpublished!");
+      setTimeout(() => setSubmitStatus(""), 3000);
+    } catch (err) {
+      console.error("Publish toggle error:", err);
+      setSubmitStatus("Failed to update publish status");
+      setTimeout(() => setSubmitStatus(""), 3000);
+    }
+  };
+
   // --- Reorder mode handlers ---
 
   const enterReorderMode = () => {
@@ -375,14 +398,32 @@ export default function ModuleManagementPage() {
                 <ModuleRow
                   key={module.id}
                   module={module}
-                  onEdit={() => router.push(`/admin/content?moduleId=${module.id}`)}
-                  onDelete={() =>
-                    setDeleteModal({
-                      isOpen: true,
-                      moduleId: module.id,
-                      moduleName: module.Heading,
-                    })
-                  }
+                  isExpanded={expandedModuleId === module.id}
+                  heading={heading}
+                  subHeading={subHeading}
+                  onHeadingChange={(e) => setHeading(e.target.value)}
+                  onSubHeadingChange={(e) => setSubHeading(e.target.value)}
+                  onEdit={(id) => {
+                    // Show the inline module edit form at the top of this card.
+                    setExpandedModuleId(id);
+                    setHeading(module.Heading);
+                    setSubHeading(module.SubHeading);
+                  }}
+                  onDelete={handleDeleteClick}
+                  onPublishToggle={handlePublishToggle}
+                  onSubmit={handleSubmit}
+                  onModuleClick={handleModuleClick}
+                  onClose={() => {
+                    setExpandedModuleId(null);
+                    setHeading("");
+                    setSubHeading("");
+                  }}
+                  // Reorder props
+                  isReordering={isReordering}
+                  isDraggedOver={draggedOverIndex === index}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={() => handleDrop(index)}
                 />
               ))
             ) : (

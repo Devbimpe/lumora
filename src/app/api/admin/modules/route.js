@@ -89,24 +89,41 @@ export async function PUT(req) {
   }
 }
 
-// PATCH handler: Reorders modules based on drag-and-drop
-// Expects a JSON body with 'order' array, e.g. { order: [3, 1, 2] }
+// PATCH handler: Handles both reordering and publish toggling
+// For reorder: expects { order: [3, 1, 2] }
+// For publish: expects { id: "moduleId", published: true/false }
 export async function PATCH(req) {
   try {
-    const { order } = await req.json();
+    const body = await req.json();
+    const { order, id, published } = body;
 
-    if (!order || !Array.isArray(order) || order.length === 0) {
-      return new Response(JSON.stringify({ error: 'Missing or invalid order array' }), {
-        status: 400,
-      });
+    // Handle reorder request
+    if (order) {
+      if (!Array.isArray(order) || order.length === 0) {
+        return new Response(JSON.stringify({ error: 'Invalid order array' }), {
+          status: 400,
+        });
+      }
+      const result = await reorderModulesHandler({ order });
+      return new Response(JSON.stringify(result), { status: 200 });
     }
 
-    const result = await reorderModulesHandler({ order });
-    return new Response(JSON.stringify(result), { status: 200 });
+    // Handle publish toggle request
+    if (id !== undefined && published !== undefined) {
+      const { updateModulePublished } = await import("@db/db.js");
+      await updateModulePublished(id, published);
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    }
+
+    // Neither reorder nor publish
+    return new Response(JSON.stringify({ error: 'Invalid PATCH request' }), {
+      status: 400,
+    });
+
   } catch (error) {
-    console.error('❌ Reorder route error:', error);
+    console.error('❌ PATCH route error:', error);
     return new Response(JSON.stringify({ 
-      error: error.message || 'Failed to reorder modules' 
+      error: error.message || 'Failed to process request' 
     }), { status: 500 });
   }
 }

@@ -447,6 +447,25 @@ export async function reorderModules(newOrder) {
   await batch.commit();
 }
 
+/**
+ * Toggle published status of a module
+ */
+export async function updateModulePublished(moduleId, published) {
+  const modulesRef = collection(db, COLLECTIONS.MODULES);
+  const q = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    throw new Error('Module not found');
+  }
+
+  const moduleDoc = querySnapshot.docs[0];
+  await updateDoc(moduleDoc.ref, {
+    published,
+    updatedAt: Timestamp.now()
+  });
+}
+
 // ==================== CONTENT OPERATIONS ====================
 
 /**
@@ -1021,5 +1040,6 @@ export default {
   updateUserModuleProgress,
   markContentViewed,
   markContentCompleted,
+  updateModulePublished,
   markModuleCompleted
 };

@@ -42,8 +42,12 @@ const TrainingModule = () => {
         }
         const data = await response.json();
         
-        // Map API data to component format
-        const formattedModules = data.map((module, index) => ({
+        // FILTER: Only keep modules where published is true
+        // We filter BEFORE mapping so the index (used for bgColor) stays consistent (Green, Orange, Green...)
+        const publishedModules = data.filter(module => module.published === true);
+
+        // Map filtered data to component format
+        const formattedModules = publishedModules.map((module, index) => ({
           id: module.ModuleID,
           title: `MODULE ${module.ModuleID}: ${module.Heading}`,
           subtitle: module.Subheading || "",
@@ -76,7 +80,7 @@ const TrainingModule = () => {
         </div>
       ) : modules.length === 0 ? (
         <div className="text-center py-8 text-gray-600">
-          No modules available
+          No active modules available.
         </div>
       ) : (
         <ModuleWrapper>
