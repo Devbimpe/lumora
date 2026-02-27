@@ -1,5 +1,6 @@
 "use client"
 
+import { markModuleCompleted } from "@/db/db.js";
 import { useState, useEffect, useRef, useCallback } from "react"
 import { 
   Trophy, 
@@ -29,6 +30,7 @@ export default function Dashboard({ user: userProp }) {
   const [submitStatus, setSubmitStatus] = useState(null) // 'success' or 'error'
   const [user, setUser] = useState(userProp || null)
   const fetchingRef = useRef(false) // Prevent duplicate calls
+  const [showPopup, setShowPopup] = useState(false);
 
   const checkAuthStatus = async () => {
     try {
@@ -370,9 +372,9 @@ export default function Dashboard({ user: userProp }) {
           {/* Status Cards with Fun Icons */}
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* Completed Card */}
-            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-2 sm:p-4 border-2 border-orange-300 hover:shadow-lg transition-all">
+            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-lg p-2 sm:p-4 border-2 border-green-300 hover:shadow-lg transition-all">
               <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
+                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
                   <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
@@ -400,9 +402,9 @@ export default function Dashboard({ user: userProp }) {
             </div>
 
             {/* Not Started Card */}
-            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-lg p-2 sm:p-4 border-2 border-green-300 hover:shadow-lg transition-all">
+            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-2 sm:p-4 border-2 border-orange-300 hover:shadow-lg transition-all">
               <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
+                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
                   <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
@@ -475,18 +477,22 @@ export default function Dashboard({ user: userProp }) {
               modules.map((module) => (
               <div
                 key={module.id}
-                className={`rounded-lg p-3 sm:p-4 border-2 hover:shadow-lg transition-all ${
+                onClick={() => {
+                  setSelectedModule(module);
+                  setShowPopup(true);
+                }}
+                className={`cursor-pointer rounded-lg p-3 sm:p-4 border-2 hover:shadow-lg transition-all ${
                   module.status === "completed"
-                    ? "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300"
+                    ? "bg-gradient-to-br from-green-50 to-green-100 border-green-300"
                     : module.status === "in-progress"
                     ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300"
-                    : "bg-gradient-to-br from-green-50 to-green-100 border-green-300"
+                    : "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300"
                 }`}
               >
                 <div className="flex items-start sm:items-center justify-between gap-2 mb-2 sm:mb-3">
                   <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                     {module.status === "completed" ? (
-                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
+                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
                         <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                     ) : module.status === "in-progress" ? (
@@ -494,8 +500,8 @@ export default function Dashboard({ user: userProp }) {
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                     ) : (
-                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-green-600 flex items-center justify-center bg-white">
-                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-orange-600 flex items-center justify-center bg-white">
+                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                       </div>
                     )}
                     <span className="font-semibold text-gray-800 text-sm sm:text-lg truncate">{module.title}</span>
@@ -503,10 +509,10 @@ export default function Dashboard({ user: userProp }) {
                   <span
                     className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold shadow-sm whitespace-nowrap ${
                       module.status === "completed"
-                        ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white"
+                        ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
                         : module.status === "in-progress"
                         ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white"
-                        : "bg-gradient-to-r from-green-100 to-green-200 text-green-700"
+                        : "bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700"
                     }`}
                   >
                     {module.status === "completed" 
@@ -534,7 +540,7 @@ export default function Dashboard({ user: userProp }) {
                       <div
                         className={`h-full rounded-full transition-all duration-500 relative ${
                           module.status === "completed"
-                            ? "bg-gradient-to-r from-orange-400 to-orange-600"
+                            ? "bg-gradient-to-r from-green-400 to-green-600"
                             : "bg-gradient-to-r from-yellow-400 to-yellow-600"
                         }`}
                         style={{ width: `${module.progressPercentage}%` }}
@@ -567,6 +573,71 @@ export default function Dashboard({ user: userProp }) {
               ))
             )}
           </div>
+
+          {/* Module Popup */}
+          {showPopup && selectedModule && (
+            <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-md relative">
+
+                <button onClick={() => setShowPopup(false)}
+                  className="pr-3 absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-lg">
+                  x
+                </button>
+
+                <h3 className="text-xl font-bold mb-2 text-green-700">
+                  {selectedModule.title}
+                </h3>
+                
+                <p className="text-sm">
+                  Status:  
+                  { selectedModule.status === "completed" ? (
+                    <span className="text-sm text-green-600 mb-4 pl-1">
+                      Completed
+                    </span>
+                  ):(
+                    selectedModule.status === "in-progress" ? (
+                    <span className="text-sm text-yellow-600 mb-4 pl-1">
+                      In Progress
+                    </span>
+                    ):(
+                      <span className="text-sm text-orange-600 mb-4 pl-1">
+                        Not Started
+                      </span>
+                    )
+                  )}
+                </p>
+
+                <p className="text-sm mb-4">
+                  Progress: {selectedModule.progressPercentage}%
+                </p>
+
+                {selectedModule.status === "completed" ? (
+                  <button className="w-full bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 rounded-lg transition" disabled>
+                  Mark as Complete
+                  </button>
+                  ):(
+                    <button
+                    onClick={() => {
+
+                      console.log("user.id", user.id);
+                      console.log("selectedModule.id", selectedModule.id);
+
+                      markModuleCompleted(user.id, selectedModule.id);
+                      setShowPopup(false);
+
+                      setTimeout(() => {
+                         window.location.reload();
+                      }, 1000);
+                         
+                    }}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition">
+                    Mark as Complete
+                    </button>
+                  )
+                }
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Feedback Section */}
@@ -653,6 +724,6 @@ export default function Dashboard({ user: userProp }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 

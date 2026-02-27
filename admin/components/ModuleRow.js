@@ -65,7 +65,7 @@ export default function ModuleRow({
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={onClose}
                 className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200 text-xs sm:text-sm"
@@ -78,16 +78,23 @@ export default function ModuleRow({
               >
                 Update
               </button>
+              {/* Go to content editing for this module. */}
+              <button
+                onClick={() => onModuleClick(module.id)}
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-xs sm:text-sm"
+              >
+                Edit Content
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* Module Display */}
+      {/* Keep card click disabled so navigation happens only from action buttons. */}
       <div
-        className={`p-4 sm:p-6 transition-colors duration-200 ${
-          isReordering ? "select-none" : "hover:bg-gray-50 cursor-pointer group relative"
-        }`}
+        className={`p-4 sm:p-6 transition-colors duration-200 ${isReordering ? "select-none" : "hover:bg-gray-50 cursor-pointer group relative"
+          }`}
         onClick={isReordering ? undefined : () => onModuleClick(module.id)}
       >
         <div className="flex items-center gap-3">
