@@ -313,6 +313,21 @@ export default function ContentPage() {
                 rows="8"
               />
             </div>
+
+            {/* Image Upload goes here */}
+            <div>
+                <input 
+                  type="file" 
+                  className="px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                  accept="image/png, image/jpeg"
+                  name="filename"></input>
+                <button
+                  // onClick={}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                >
+                Upload Image
+                </button>
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-2">
               <button
