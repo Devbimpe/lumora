@@ -18,6 +18,7 @@ export default function ContentPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
+  const [imageSrc, setImageSrc] = useState('');
 
   // Modal state
   const [deleteModal, setDeleteModal] = useState({ 
@@ -192,8 +193,6 @@ export default function ContentPage() {
   };
 
   // Set image URL for image upload preview
-  const [imageSrc, setImageSrc] = useState(null);
-
   function handleChange(event) {
     const file = event.target.files[0];
     if (file) {
@@ -327,14 +326,17 @@ export default function ContentPage() {
 
             {/* Image Upload goes here */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2" for='file_input'>
                 Image Upload
               </label>
-               <input 
+              
+              <input 
                 type="file" 
-                className="px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
                 accept="image/png, image/jpeg"
                 name="imageInput" 
+                id='file_input'
+                
                 onChange={handleChange}></input>
               <button
                 // onClick={}
@@ -342,6 +344,7 @@ export default function ContentPage() {
               >
                 Upload Image
               </button>
+
               {imageSrc && (
                 <img 
                   src={imageSrc} 
@@ -363,6 +366,7 @@ export default function ContentPage() {
                   setShowCreateForm(false);
                   setNewOverview('');
                   setNewReading('');
+                  setImageSrc('');
                 }}
                 className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
               >
