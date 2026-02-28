@@ -5,10 +5,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import imageHosting from '@/image-hosting/imageHosting.js';
+import ImageHosting from '@/image-hosting/imageHosting.js';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
-const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(request) {
   try {
@@ -19,7 +19,7 @@ export async function POST(request) {
     }
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.length > MAX_SIZE) {
-      return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 400 });
+      return NextResponse.json({ error: 'File too large (max 5 MB)' }, { status: 400 });
     }
     const mimeType = file.type || 'application/octet-stream';
     if (!ALLOWED_TYPES.includes(mimeType)) {
@@ -27,7 +27,7 @@ export async function POST(request) {
     }
     const filename = file.name || `upload-${Date.now()}.${mimeType.split('/')[1] || 'bin'}`;
 
-    const { id, url } = await imageHosting.uploadFileFromBuffer(buffer, filename, mimeType);
+    const { id, url } = await ImageHosting.uploadFileFromBuffer(buffer, filename);
     return NextResponse.json({ id, url });
   } catch (err) {
     console.error('Upload error:', err);

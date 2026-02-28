@@ -1,106 +1,110 @@
-import process from 'node:process';
-import { Readable } from 'node:stream';
-import { google } from 'googleapis';
-import fs from 'fs';
+import cloudinary from './cloudinary.js';
 
-const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-const IMAGE_FILE_TYPES = {
-  "jpeg": "image/jpeg",
-  "png": "image/png",
-  "gif": "image/gif",
-  "bmp": "image/bmp",
-  "webp": "image/webp",
-}
-
-const LUMORA_APP_FOLDER_ID = "1wuuNdeJS_lpU69CN_npFyp8q-vrF7QBG";
-const LUMORA_IMAGES_FOLDER_ID = "1dDnQ-fnDO6sOLSLvIccLEUcL4safS0Rh";
-
-const credentials = JSON.parse(process.env.GOOGLE_CLOUD_OAUTH_CREDNTIALS);
-const { client_id, client_secret, redirect_uris } = credentials.installed;
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-// Load saved refresh token
-const token = JSON.parse(process.env.GOOGLE_CLOUD_OAUTH_TOKEN);
-oAuth2Client.setCredentials(token);
-
-const drive = google.drive({ version: 'v3', auth: oAuth2Client });
+/*
+Because we are using normal URL's for images, we can just simply use the img src atribute to download them, meaning we shouldnt ever need a "get image" function, this should be handleed by the client side.
+*/
 
 
-async function uploadFile() {
-  const fileMetadata = {
-    name: 'Lumoralogo.jpeg',
-    parents: [LUMORA_IMAGES_FOLDER_ID], // optional: upload to specific folder
-  };
-  const media = { body: fs.createReadStream('../public/Lumoralogo.jpeg') };
+export async function uploadImageFromBuffer(buffer, filename=null) {
 
-  const file = await drive.files.create({
-    resource: fileMetadata,
-    media,
-    fields: 'id',
-  });
-
-    await drive.permissions.create({
-      fileId: file.data.id,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
+    const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+            {
+                public_id: filename || undefined,
+                resource_type: 'auto',
+            },
+            (error, result) => {
+                if (error) {
+                    console.error('Upload error:', error);
+                    reject(error);
+                } else {
+                    console.log('Upload result:', result);
+                    resolve(result);
+                }
+            }
+        ).end(buffer);
     });
 
-  console.log('File uploaded, ID:', file.data.id);
+    // ? We might want to just return the entire promise, but this lets us only reveal certain things from the upload 
+    return {
+        id: uploadResult.public_id,
+        url: uploadResult.url,
+    };
 }
 
-/** Upload from in-memory buffer. Returns { id, url }. */
-async function uploadFileFromBuffer_deprecated(buffer, filename, mimeType) {
-  const fileMetadata = {
-    name: filename,
-    parents: [LUMORA_IMAGES_FOLDER_ID],
-  };
-  const media = {
-    mimeType: mimeType || 'application/octet-stream',
-    body: Readable.from(buffer),
-  };
-  const file = await drive.files.create({
-    resource: fileMetadata,
-    media,
-    fields: 'id',
-  });
-  await drive.permissions.create({
-    fileId: file.data.id,
-    requestBody: {
-      role: 'reader',
-      type: 'anyone',
-    },
-  });
+export async function uploadImageFromURL(imageURL, filename=null) {
+    const uploadResult = await cloudinary.uploader.upload(
+        imageURL,
+        {
+            public_id: filename ? filename : extractFilename(imageURL),
+            resource_type: 'auto',
+        }
+    );
 
-  const id = file.data.id;
-  return { id, url: `https://drive.google.com/uc?id=${id}` };
+    // ? We might want to just return the entire promise, but this lets us only reveal certain things from the upload 
+    
+    return {
+        id: uploadResult.public_id,
+        url: uploadResult.url,
+    };
 }
 
-if (process.argv[1]?.includes('imageHosting.js')) {
-  uploadFile();
+export async function uploadImageFromLocalPath(imagePath, filename=null) {
+    const uploadResult = await cloudinary.uploader.upload(
+        imagePath,
+        {
+            public_id: filename ? filename : extractFilename(imagePath),
+            resource_type: 'auto',
+        }
+    );
+
+    // ? We might want to just return the entire promise, but this lets us only reveal certain things from the upload
+    return {
+        id: uploadResult.public_id,
+        url: uploadResult.url,
+    };
 }
 
-async function listImages() {
-  const res = await drive.files.list({
-    q: `'${LUMORA_IMAGES_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed = false`,
-    fields: "files(id, name)"
-  });
-
-  return res.data.files.map(file => ({
-    name: file.name,
-    url: `https://drive.google.com/uc?id=${file.id}`
-  }));
-}
-
-async function getImageUrl(fileId) {
-  return `https://drive.google.com/uc?id=${fileId}`;
+export async function autoUploadImage(imageSource, filename=null) {
+    if (imageSource instanceof Buffer) {
+        return await uploadImageFromBuffer(imageSource, filename);
+    } else if (typeof imageSource === 'string' && (imageSource.match("^https?:\/\/"))) {
+        return await uploadImageFromURL(imageSource, filename);
+    } else if (typeof imageSource === 'string') {
+        return await uploadImageFromLocalPath(imageSource, filename);
+    } else {
+        throw new Error('Unsupported image source type');
+    }
 }
 
 
-export default {
-  listImages,
-  getImageUrl,
-  uploadFile,
-  uploadFileFromBuffer,
+export async function deleteImage(imageURL) {
+    // Extract public_id from the URL
+    const urlParts = imageURL.split('/');
+    const publicId = urlParts[urlParts.length - 1].split('.')[0];
+    return new Promise((resolve, reject) => {
+        cloudinary.uploader.destroy(publicId, { resource_type: 'auto' }, (error, result) => {
+            if (error) {
+                console.error('Delete error:', error);
+                reject(error);
+            } else {
+                console.log('Delete result:', result);
+                resolve(result);
+            }
+        });
+    });
+}
+
+
+function extractFilename(imagePath) {
+    return imagePath.split('/').pop().replace(/\.[^/.]+$/, "");
+}
+
+export default { 
+    uploadImageFromBuffer,
+    uploadImageFromURL,
+    uploadImageFromLocalPath,
+    autoUploadImage,
+    deleteImage,
 };
+

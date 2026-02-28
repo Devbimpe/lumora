@@ -11,6 +11,7 @@ export default function ModuleRow({
   onSubHeadingChange,
   onEdit,
   onDelete,
+  onPublishToggle,
   onSubmit,
   onModuleClick,
   onClose,
@@ -23,8 +24,9 @@ export default function ModuleRow({
 }) {
   return (
     <div
-      className={`bg-white rounded-xl shadow-lg overflow-hidden ${isReordering ? "cursor-grab active:cursor-grabbing" : ""
-        } ${isDraggedOver ? "border-t-4 border-green-500" : ""}`}
+      className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-200 ${
+        isReordering ? "cursor-grab active:cursor-grabbing" : ""
+      } ${isDraggedOver ? "border-t-4 border-green-500" : ""}`}
       draggable={isReordering}
       onDragStart={isReordering ? onDragStart : undefined}
       onDragOver={isReordering ? onDragOver : undefined}
@@ -115,14 +117,33 @@ export default function ModuleRow({
               <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full flex-shrink-0">
                 Module {module.id}
               </span>
+              {module.published && (
+                <span className="text-[10px] uppercase tracking-wider font-bold text-green-600">Published</span>
+              )}
             </div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-1 break-words">{module.Heading}</h3>
+            <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-1 break-words">
+              {module.Heading}
+            </h3>
             <p className="text-xs sm:text-sm text-gray-600 break-words">{module.SubHeading}</p>
           </div>
 
-          {/* Action Buttons - hidden during reorder mode */}
+          {/* Action Buttons - Consolidated styling */}
           {!isReordering && (
             <div className="flex flex-col sm:flex-row gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onPublishToggle(module.id, module.published)
+                }}
+                className={`w-full sm:w-auto text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg transition-colors duration-200 font-medium ${
+                  module.published
+                    ? "bg-amber-500 hover:bg-amber-600"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {module.published ? "Unpublish" : "Publish"}
+              </button>
+              
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -132,10 +153,11 @@ export default function ModuleRow({
               >
                 Edit
               </button>
+
               <button
                 onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(module.id)
+                  e.stopPropagation();
+                  onDelete();
                 }}
                 className="w-full sm:w-auto bg-red-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
               >
