@@ -51,7 +51,7 @@ async function uploadFile() {
 }
 
 /** Upload from in-memory buffer. Returns { id, url }. */
-async function uploadFileFromBuffer(buffer, filename, mimeType) {
+async function uploadFileFromBuffer_deprecated(buffer, filename, mimeType) {
   const fileMetadata = {
     name: filename,
     parents: [LUMORA_IMAGES_FOLDER_ID],
@@ -72,7 +72,7 @@ async function uploadFileFromBuffer(buffer, filename, mimeType) {
       type: 'anyone',
     },
   });
-  
+
   const id = file.data.id;
   return { id, url: `https://drive.google.com/uc?id=${id}` };
 }
