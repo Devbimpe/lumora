@@ -1,11 +1,11 @@
 /**
- * API endpoint to upload an image to Google Drive
- * Expects a form data with a file field
- * Returns the file ID and URL
+ * API endpoint to upload an image via image hosting (Cloudinary).
+ * Expects form data with a file field.
+ * Returns the file ID and URL.
  */
 
 import { NextResponse } from 'next/server';
-import ImageHosting from '@/image-hosting/imageHosting.js';
+import imageHosting from '@/image-hosting/imageHosting.js';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -27,7 +27,7 @@ export async function POST(request) {
     }
     const filename = file.name || `upload-${Date.now()}.${mimeType.split('/')[1] || 'bin'}`;
 
-    const { id, url } = await ImageHosting.uploadFileFromBuffer(buffer, filename);
+    const { id, url } = await imageHosting.autoUploadImage(buffer, filename);
     return NextResponse.json({ id, url });
   } catch (err) {
     console.error('Upload error:', err);

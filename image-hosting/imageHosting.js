@@ -10,7 +10,7 @@ export async function uploadImageFromBuffer(buffer, filename=null) {
     const uploadResult = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
             {
-                public_id: filename || undefined,
+                public_id: filename.replace(/\.[^/.]+$/, '') || undefined,
                 resource_type: 'auto',
             },
             (error, result) => {
