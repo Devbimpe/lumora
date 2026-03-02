@@ -93,7 +93,7 @@ export default function ModuleManagementPage() {
 
   const handleDeleteClick = (id) => {
     const module = modules.find((m) => m.id === id);
-    const moduleName = module?.heading || module?.subHeading || "this module";
+    const moduleName = module?.Heading || module?.SubHeading || "this module";
 
     setDeleteModal({
       isOpen: true,
