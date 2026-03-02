@@ -37,3 +37,21 @@ export async function POST(request) {
     );
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const formData = await request.formData();
+    const imageUrl = formData.get('imageUrl');
+    if (!imageUrl) {
+      return NextResponse.json({ error: 'Missing imageUrl' }, { status: 400 });
+    }
+    await imageHosting.deleteImage(imageUrl);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('Delete error:', err);
+    return NextResponse.json(
+      { error: 'Delete failed', details: err.message },
+      { status: 500 }
+    );
+  }
+}

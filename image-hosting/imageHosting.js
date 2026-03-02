@@ -84,7 +84,7 @@ export async function deleteImage(imageURL) {
     const urlParts = imageURL.split('/');
     const publicId = urlParts[urlParts.length - 1].split('.')[0];
     return new Promise((resolve, reject) => {
-        cloudinary.uploader.destroy(publicId, { resource_type: 'auto' }, (error, result) => {
+        cloudinary.uploader.destroy(publicId, { resource_type: 'image' }, (error, result) => {
             if (error) {
                 console.error('Delete error:', error);
                 reject(error);
