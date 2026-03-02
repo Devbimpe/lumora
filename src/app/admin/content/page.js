@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '@/admin/components/EditModule';
-import { set } from 'express/lib/application';
 
 export default function ContentPage() {
   // Read moduleId from URL so the page can open the right module directly.
