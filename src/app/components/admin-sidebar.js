@@ -37,7 +37,7 @@ export default function Sidebar({ activeSection }) {
         <div className="flex items-center justify-between p-4">
           <Link href="/" className="flex items-center">
             <Image 
-              src="/logolong.png" 
+              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772423261/LumoraLogo-Transparent.png" 
               alt="Lumora Logo" 
               width={150} 
               height={45} 
@@ -105,7 +105,7 @@ export default function Sidebar({ activeSection }) {
         <div className="p-6 border-b border-gray-200">
           <Link href="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
             <Image 
-              src="/logolong.png" 
+              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772423261/LumoraLogo-Transparent.png" 
               alt="Lumora Logo" 
               width={200} 
               height={60} 

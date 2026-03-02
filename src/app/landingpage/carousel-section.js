@@ -173,7 +173,7 @@ export default function CarouselSection() {
             {/* Main Circle with Image */}
             <div className="relative w-56 h-56 md:w-80 md:h-80 lg:w-96 lg:h-96 rounded-full overflow-hidden shadow-2xl border-4 md:border-8 border-green-500" style={{ backgroundColor: "#dbfbe7" }}>
               <img
-                src="/main-page-illustration.png"
+                src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772417656/main-page-illustration.png"
                 alt="LUMORA Platform"
                 className="w-full h-full object-cover"
               />
