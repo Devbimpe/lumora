@@ -20,7 +20,9 @@ export default function ContentPage() {
   const [editingId, setEditingId] = useState(null);
   const [editOverview, setEditOverview] = useState('');
   const [editReading, setEditReading] = useState('');
+  const [showEditPreview, setShowEditPreview] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
@@ -166,6 +168,7 @@ export default function ContentPage() {
     setEditingId(item.ContentID);
     setEditOverview(item.Overview);
     setEditReading(item.Reading);
+    setShowEditPreview(false);
   };
 
   // Cancel editing
@@ -173,6 +176,7 @@ export default function ContentPage() {
     setEditingId(null);
     setEditOverview('');
     setEditReading('');
+    setShowEditPreview(false);
   };
 
   // Save edit
@@ -263,6 +267,7 @@ export default function ContentPage() {
 
       // Reset form
       setShowCreateForm(false);
+      setShowCreatePreview(false);
       setNewOverview('');
       setNewReading('');
     } catch (err) {
@@ -384,6 +389,7 @@ export default function ContentPage() {
             <button
               onClick={() => {
                 setShowCreateForm(false);
+                setShowCreatePreview(false);
                 setNewOverview('');
                 setNewReading('');
               }}
@@ -421,6 +427,13 @@ export default function ContentPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2">
+              {/* Added preview button for new content drafts. */}
+              <button
+                onClick={() => setShowCreatePreview((prev) => !prev)}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                {showCreatePreview ? 'Hide Preview' : 'Preview'}
+              </button>
               <button
                 onClick={createNewContent}
                 className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
@@ -430,6 +443,7 @@ export default function ContentPage() {
               <button
                 onClick={() => {
                   setShowCreateForm(false);
+                  setShowCreatePreview(false);
                   setNewOverview('');
                   setNewReading('');
                 }}
@@ -438,6 +452,17 @@ export default function ContentPage() {
                 Cancel
               </button>
             </div>
+            {showCreatePreview && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
+                  {newOverview || 'Untitled page'}
+                </h5>
+                <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words">
+                  {newReading || 'No content to preview.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -490,6 +515,13 @@ export default function ContentPage() {
                           />
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">
+                          {/* Added preview button next to save while editing content. */}
+                          <button
+                            className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                            onClick={() => setShowEditPreview((prev) => !prev)}
+                          >
+                            {showEditPreview ? 'Hide Preview' : 'Preview'}
+                          </button>
                           <button
                             className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
                             onClick={saveEdit}
@@ -503,6 +535,17 @@ export default function ContentPage() {
                             Cancel
                           </button>
                         </div>
+                        {showEditPreview && (
+                          <div className="bg-white rounded-lg p-4 border border-gray-200">
+                            <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                            <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
+                              {editOverview || 'Untitled page'}
+                            </h5>
+                            <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words">
+                              {editReading || 'No content to preview.'}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
