@@ -26,6 +26,17 @@ export default function ContentPage() {
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
+  const [knowledgeChecks, setKnowledgeChecks] = useState([]);
+  const [showKCForm, setShowKCForm] = useState(false);
+  const [kcQuestion, setKcQuestion] = useState('');
+  const [kcChoices, setKcChoices] = useState(['', '']);
+  const [kcAnswer, setKcAnswer] = useState('');
+  const [kcExplain, setKcExplain] = useState('');
+  const [editingKCId, setEditingKCId] = useState(null);
+  const [editKCQuestion, setEditKCQuestion] = useState('');
+  const [editKCChoices, setEditKCChoices] = useState(['', '']);
+  const [editKCAnswer, setEditKCAnswer] = useState('');
+  const [editKCExplain, setEditKCExplain] = useState('');
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
   const currentModule = modules.find((m) => m.ModuleID.toString() === selectedModule);
@@ -139,17 +150,22 @@ export default function ContentPage() {
     };
   }, [requestedModuleId]);
 
-  // Fetch content for selected module
+  // Fetch content and knowledge checks for selected module
   useEffect(() => {
     if (!selectedModule) return;
 
     let isMounted = true;
     setLoading(true);
 
-    fetch(`/api/content?moduleId=${selectedModule}`)
-      .then(res => res.json())
-      .then(data => {
-        if (isMounted) setContent(data);
+    Promise.all([
+      fetch(`/api/content?moduleId=${selectedModule}`).then(r => r.json()),
+      fetch(`/api/knowledge-checks?moduleId=${selectedModule}`).then(r => r.json())
+    ])
+      .then(([contentData, checksData]) => {
+        if (isMounted) {
+          setContent(contentData);
+          setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+        }
       })
       .catch(err => {
         if (isMounted) setError(err.message);
@@ -277,6 +293,145 @@ export default function ContentPage() {
     }
   };
 
+  const resetKCForm = () => {
+    setShowKCForm(false);
+    setKcQuestion('');
+    setKcChoices(['', '']);
+    setKcAnswer('');
+    setKcExplain('');
+  };
+
+  const createNewKnowledgeCheck = async () => {
+    if (!kcQuestion.trim()) {
+      setError('Question is required');
+      return;
+    }
+    const filledChoices = kcChoices.filter(c => c.trim());
+    if (filledChoices.length < 2) {
+      setError('At least 2 choices are required');
+      return;
+    }
+    if (!kcAnswer) {
+      setError('Please select the correct answer');
+      return;
+    }
+
+    const formattedChoices = filledChoices.map((text, i) => `${String.fromCharCode(65 + i)}: ${text}`);
+
+    try {
+      setLoading(true);
+      const res = await fetch('/api/knowledge-checks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moduleID: selectedModule,
+          contentId: null,
+          question: kcQuestion,
+          choices: formattedChoices,
+          answer: kcAnswer,
+          explain: kcExplain,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create knowledge check');
+
+      const checksRes = await fetch(`/api/knowledge-checks?moduleId=${selectedModule}`);
+      const checksData = await checksRes.json();
+      setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+      resetKCForm();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteKC = async (knowledgeCheckId) => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/knowledge-checks', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ knowledgeCheckId, moduleID: selectedModule }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete knowledge check');
+
+      const checksRes = await fetch(`/api/knowledge-checks?moduleId=${selectedModule}`);
+      const checksData = await checksRes.json();
+      setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditKC = (kc) => {
+    const plainChoices = (Array.isArray(kc.choices) ? kc.choices : []).map(c => {
+      const match = c.match(/^[A-Z]:\s*(.*)/);
+      return match ? match[1] : c;
+    });
+    setEditingKCId(kc.knowledgeCheckId);
+    setEditKCQuestion(kc.question || '');
+    setEditKCChoices(plainChoices.length >= 2 ? plainChoices : ['', '']);
+    setEditKCAnswer(kc.answer || '');
+    setEditKCExplain(kc.explain || '');
+  };
+
+  const cancelEditKC = () => {
+    setEditingKCId(null);
+    setEditKCQuestion('');
+    setEditKCChoices(['', '']);
+    setEditKCAnswer('');
+    setEditKCExplain('');
+  };
+
+  const saveEditKC = async () => {
+    if (!editKCQuestion.trim()) {
+      setError('Question is required');
+      return;
+    }
+    const filledChoices = editKCChoices.filter(c => c.trim());
+    if (filledChoices.length < 2) {
+      setError('At least 2 choices are required');
+      return;
+    }
+    if (!editKCAnswer) {
+      setError('Please select the correct answer');
+      return;
+    }
+
+    const formattedChoices = filledChoices.map((text, i) => `${String.fromCharCode(65 + i)}: ${text}`);
+
+    try {
+      setLoading(true);
+      const res = await fetch('/api/knowledge-checks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          knowledgeCheckId: editingKCId,
+          moduleID: selectedModule,
+          question: editKCQuestion,
+          choices: formattedChoices,
+          answer: editKCAnswer,
+          explain: editKCExplain,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to update knowledge check');
+
+      const checksRes = await fetch(`/api/knowledge-checks?moduleId=${selectedModule}`);
+      const checksData = await checksRes.json();
+      setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+      cancelEditKC();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
@@ -362,6 +517,17 @@ export default function ContentPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Content Page
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={() => setShowKCForm(!showKCForm)}
+              className="w-full bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Knowledge Check
             </button>
           </div>
         </div>
@@ -463,6 +629,116 @@ export default function ContentPage() {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Create Knowledge Check Form */}
+      {showKCForm && (
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-blue-500">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-800">New Knowledge Check for Module {selectedModule}</h3>
+            <button
+              onClick={resetKCForm}
+              className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Question</label>
+              <textarea
+                placeholder="Enter the question"
+                value={kcQuestion}
+                onChange={(e) => setKcQuestion(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                rows="3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Choices</label>
+              {kcChoices.map((choice, idx) => {
+                const letter = String.fromCharCode(65 + idx);
+                return (
+                  <div key={idx} className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-gray-700 w-6">{letter}:</span>
+                    <input
+                      type="text"
+                      placeholder={`Choice ${letter}`}
+                      value={choice}
+                      onChange={(e) => {
+                        const updated = [...kcChoices];
+                        updated[idx] = e.target.value;
+                        setKcChoices(updated);
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                    {kcChoices.length > 2 && (
+                      <button
+                        onClick={() => {
+                          const updated = kcChoices.filter((_, i) => i !== idx);
+                          setKcChoices(updated);
+                          setKcAnswer('');
+                        }}
+                        className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              <button
+                onClick={() => setKcChoices([...kcChoices, ''])}
+                className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
+              >
+                + Add Choice
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Correct Answer</label>
+              <select
+                value={kcAnswer}
+                onChange={(e) => setKcAnswer(e.target.value)}
+                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+              >
+                <option value="">Select correct answer</option>
+                {kcChoices.map((_, idx) => {
+                  const letter = String.fromCharCode(65 + idx);
+                  return <option key={letter} value={letter}>{letter}</option>;
+                })}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Explanation (optional)</label>
+              <textarea
+                placeholder="Explain why the correct answer is right"
+                value={kcExplain}
+                onChange={(e) => setKcExplain(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                rows="3"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={createNewKnowledgeCheck}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                Save Knowledge Check
+              </button>
+              <button
+                onClick={resetKCForm}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -609,6 +885,170 @@ export default function ContentPage() {
               <p className="text-gray-500 text-sm">Click "Add Content Page" to create your first content page.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Knowledge Checks List */}
+      {!loading && knowledgeChecks.length > 0 && (
+        <div className="mt-6 sm:mt-8">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Knowledge Checks</h2>
+          <div className="space-y-4">
+            {knowledgeChecks.map((kc, index) => (
+              <div key={kc.knowledgeCheckId} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                {editingKCId === kc.knowledgeCheckId ? (
+                  <div className="p-4 sm:p-6 bg-blue-50 border-l-4 border-blue-500">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">Editing Check {index + 1}</h3>
+                      <button
+                        onClick={cancelEditKC}
+                        className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Question</label>
+                        <textarea
+                          value={editKCQuestion}
+                          onChange={(e) => setEditKCQuestion(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          rows="3"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Choices</label>
+                        {editKCChoices.map((choice, idx) => {
+                          const letter = String.fromCharCode(65 + idx);
+                          return (
+                            <div key={idx} className="flex items-center gap-2 mb-2">
+                              <span className="font-semibold text-gray-700 w-6">{letter}:</span>
+                              <input
+                                type="text"
+                                value={choice}
+                                onChange={(e) => {
+                                  const updated = [...editKCChoices];
+                                  updated[idx] = e.target.value;
+                                  setEditKCChoices(updated);
+                                }}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                              />
+                              {editKCChoices.length > 2 && (
+                                <button
+                                  onClick={() => {
+                                    const updated = editKCChoices.filter((_, i) => i !== idx);
+                                    setEditKCChoices(updated);
+                                    setEditKCAnswer('');
+                                  }}
+                                  className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
+                                >
+                                  X
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <button
+                          onClick={() => setEditKCChoices([...editKCChoices, ''])}
+                          className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
+                        >
+                          + Add Choice
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Correct Answer</label>
+                        <select
+                          value={editKCAnswer}
+                          onChange={(e) => setEditKCAnswer(e.target.value)}
+                          className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                        >
+                          <option value="">Select correct answer</option>
+                          {editKCChoices.map((_, idx) => {
+                            const letter = String.fromCharCode(65 + idx);
+                            return <option key={letter} value={letter}>{letter}</option>;
+                          })}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Explanation (optional)</label>
+                        <textarea
+                          value={editKCExplain}
+                          onChange={(e) => setEditKCExplain(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          rows="3"
+                        />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          onClick={saveEditKC}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                        >
+                          Save changes
+                        </button>
+                        <button
+                          onClick={cancelEditKC}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 sm:p-6">
+                    <div className="flex flex-col gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                            Check {index + 1}
+                          </span>
+                          <span className="text-xs sm:text-sm text-gray-500">Module {kc.moduleID}</span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{kc.question}</h3>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          onClick={() => startEditKC(kc)}
+                          className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteKC(kc.knowledgeCheckId)}
+                          className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-xs sm:text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-blue-400">
+                      <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Choices:</h4>
+                      <ul className="space-y-1">
+                        {(Array.isArray(kc.choices) ? kc.choices : []).map((choice, i) => (
+                          <li key={i} className="text-xs sm:text-sm text-gray-700">
+                            {choice}
+                            {kc.answer && choice.startsWith(kc.answer + ':') && (
+                              <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                      {kc.explain && (
+                        <p className="mt-2 text-xs sm:text-sm text-gray-600">
+                          <span className="font-medium">Explanation:</span> {kc.explain}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

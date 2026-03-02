@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getKnowledgeChecksByModuleId } from '@db/db.js';
+import { getKnowledgeChecksByModuleId, createKnowledgeCheck, deleteKnowledgeCheck, updateKnowledgeCheck } from '@db/db.js';
 
 /**
  * GET handler: Retrieves knowledge checks for a module
@@ -33,6 +33,82 @@ export async function GET(request) {
         error: 'Failed to fetch knowledge checks',
         details: error.message 
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const { moduleID, contentId, question, choices, answer, explain, allowance } = body;
+
+    if (!moduleID || !question || !choices || !answer) {
+      return NextResponse.json(
+        { error: 'moduleID, question, choices, and answer are required' },
+        { status: 400 }
+      );
+    }
+
+    const result = await createKnowledgeCheck({
+      moduleID, contentId, question, choices, answer, explain, allowance
+    });
+
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    console.error('API POST error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create knowledge check', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const body = await request.json();
+    const { knowledgeCheckId, moduleID } = body;
+
+    if (!knowledgeCheckId || !moduleID) {
+      return NextResponse.json(
+        { error: 'knowledgeCheckId and moduleID are required' },
+        { status: 400 }
+      );
+    }
+
+    await deleteKnowledgeCheck(knowledgeCheckId, moduleID);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('API DELETE error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete knowledge check', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const body = await request.json();
+    const { knowledgeCheckId, moduleID, question, choices, answer, explain } = body;
+
+    if (!knowledgeCheckId || !moduleID) {
+      return NextResponse.json(
+        { error: 'knowledgeCheckId and moduleID are required' },
+        { status: 400 }
+      );
+    }
+
+    await updateKnowledgeCheck(knowledgeCheckId, moduleID, {
+      question, choices, answer, explain: explain || ''
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('API PUT error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update knowledge check', details: error.message },
       { status: 500 }
     );
   }
