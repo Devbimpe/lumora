@@ -1,8 +1,9 @@
 import cloudinary from './cloudinary.js';
 
-/*
-Because we are using normal URL's for images, we can just simply use the img src atribute to download them, meaning we shouldnt ever need a "get image" function, this should be handleed by the client side.
-*/
+/**
+ * Because we are using normal URL's for images, we can just simply use the img src atribute to download them,
+ * meaning we shouldnt ever need a "get image" function, this should be handleed by the client side.
+ */
 
 
 export async function uploadImageFromBuffer(buffer, filename=null) {
