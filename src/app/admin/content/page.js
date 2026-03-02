@@ -302,6 +302,7 @@ export default function ContentPage() {
   };
 
   const createNewKnowledgeCheck = async () => {
+    setError(null);
     if (!kcQuestion.trim()) {
       setError('Question is required');
       return;
@@ -388,6 +389,7 @@ export default function ContentPage() {
   };
 
   const saveEditKC = async () => {
+    setError(null);
     if (!editKCQuestion.trim()) {
       setError('Question is required');
       return;
@@ -707,10 +709,13 @@ export default function ContentPage() {
                 className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
               >
                 <option value="">Select correct answer</option>
-                {kcChoices.map((_, idx) => {
-                  const letter = String.fromCharCode(65 + idx);
-                  return <option key={letter} value={letter}>{letter}</option>;
-                })}
+                {kcChoices.reduce((opts, choice, idx) => {
+                  if (choice.trim()) {
+                    const letter = String.fromCharCode(65 + opts.length);
+                    opts.push(<option key={letter} value={letter}>{letter}</option>);
+                  }
+                  return opts;
+                }, [])}
               </select>
             </div>
 
@@ -965,10 +970,13 @@ export default function ContentPage() {
                           className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
                         >
                           <option value="">Select correct answer</option>
-                          {editKCChoices.map((_, idx) => {
-                            const letter = String.fromCharCode(65 + idx);
-                            return <option key={letter} value={letter}>{letter}</option>;
-                          })}
+                          {editKCChoices.reduce((opts, choice, idx) => {
+                            if (choice.trim()) {
+                              const letter = String.fromCharCode(65 + opts.length);
+                              opts.push(<option key={letter} value={letter}>{letter}</option>);
+                            }
+                            return opts;
+                          }, [])}
                         </select>
                       </div>
 
