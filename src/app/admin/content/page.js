@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '@/admin/components/EditModule';
 
-
 export default function ContentPage() {
   // Read moduleId from URL so the page can open the right module directly.
   const router = useRouter();
@@ -25,6 +24,7 @@ export default function ContentPage() {
   const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
+  const [imageFile, setImageFile] = useState(null);
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
@@ -189,6 +189,7 @@ export default function ContentPage() {
         body: JSON.stringify({
           Overview: editOverview,
           Reading: editReading,
+          imageURL: editImage // ! Placeholder for future image upload integration PLEASE UPLOAD THE IMAGE BEFORE CALLING THIS AND THEN PASS THE URL IN HERE
         }),
       });
       if (!res.ok) throw new Error('Failed to update content');
@@ -255,6 +256,7 @@ export default function ContentPage() {
           moduleId: selectedModule,
           overview: newOverview,
           reading: newReading,
+          imageURL: imageURL // ! Placeholder for future image upload integration PLEASE UPLOAD THE IMAGE BEFORE CALLING THIS AND THEN PASS THE URL IN HERE
         }),
       });
 
@@ -270,6 +272,7 @@ export default function ContentPage() {
       setShowCreatePreview(false);
       setNewOverview('');
       setNewReading('');
+      setImageFile(null);
     } catch (err) {
       setError(err.message);
     } finally {

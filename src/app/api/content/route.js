@@ -37,7 +37,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { moduleId, overview, reading } = body;
+    const { moduleId, overview, reading, imageURL } = body;
     
     if (!moduleId || !overview || !reading) {
       return NextResponse.json({ 
@@ -48,7 +48,8 @@ export async function POST(request) {
     const result = await createContent({
       moduleId: parseInt(moduleId),
       overview,
-      reading
+      reading,
+      imageURL
     });
     
     return NextResponse.json({ 

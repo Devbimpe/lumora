@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { getModuleImageUrl } from "../lib/module-images";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref className="h-full block">
@@ -52,7 +53,7 @@ const TrainingModule = () => {
           title: `MODULE ${module.ModuleID}: ${module.Heading}`,
           subtitle: module.Subheading || "",
           href: `/modules/module${module.ModuleID}`,
-          icon: `/M${module.ModuleID}.jpg`,
+          icon: getModuleImageUrl(module.ModuleID),
           bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
         }));
         

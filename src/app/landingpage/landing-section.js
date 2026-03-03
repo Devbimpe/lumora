@@ -19,7 +19,7 @@ export default function LandingSection() {
         </div>
         <div className="flex justify-center">
           <img
-            src="/main-page-illustration.png"
+            src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772417656/main-page-illustration.png"
             alt="Interactive learning illustration"
             className="max-w-full h-auto w-96"
           />
