@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { getModuleImageUrl } from "../lib/module-images"
 
 export default function TrainingModulesSection() {
   const [modules, setModules] = useState([])
@@ -21,7 +22,7 @@ export default function TrainingModulesSection() {
           id: module.ModuleID,
           title: module.Heading,
           description: module.Subheading || "",
-          image: `/M${module.ModuleID}.jpg`, // Map module ID to image path
+          image: getModuleImageUrl(module.ModuleID),
         }))
         
         setModules(formattedModules)

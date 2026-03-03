@@ -24,6 +24,7 @@ export default function ContentPage() {
   const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newOverview, setNewOverview] = useState("");
   const [newReading, setNewReading] = useState("");
+  const [imageFile, setImageFile] = useState(null);
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [knowledgeChecks, setKnowledgeChecks] = useState([]);
   const [showKCForm, setShowKCForm] = useState(false);
@@ -208,6 +209,7 @@ export default function ContentPage() {
         body: JSON.stringify({
           Overview: editOverview,
           Reading: editReading,
+          imageURL: editImage // ! Placeholder for future image upload integration PLEASE UPLOAD THE IMAGE BEFORE CALLING THIS AND THEN PASS THE URL IN HERE
         }),
       });
       if (!res.ok) throw new Error("Failed to update content");
@@ -276,6 +278,7 @@ export default function ContentPage() {
           moduleId: selectedModule,
           overview: newOverview,
           reading: newReading,
+          imageURL: imageURL // ! Placeholder for future image upload integration PLEASE UPLOAD THE IMAGE BEFORE CALLING THIS AND THEN PASS THE URL IN HERE
         }),
       });
 
@@ -451,6 +454,7 @@ export default function ContentPage() {
       const checksData = await checksRes.json();
       setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
       cancelEditKC();
+      setImageFile(null);
     } catch (err) {
       setError(err.message);
     } finally {

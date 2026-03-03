@@ -124,6 +124,19 @@ export async function getUserByActivationToken(token) {
 }
 
 /**
+ * Get all users
+ */
+export async function getAllUsers() {
+  const usersRef = collection(db, COLLECTIONS.USERS);
+  const querySnapshot = await getDocs(usersRef);
+  
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+
+/**
  * Create a new user
  */
 export async function createUser(userData) {
@@ -172,18 +185,6 @@ export async function deleteUser(userId) {
   await batch.commit();
 }
 
-/**
- * Get all users
- */
-export async function getAllUsers() {
-  const usersRef = collection(db, COLLECTIONS.USERS);
-  const querySnapshot = await getDocs(usersRef);
-  
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-}
 
 // ==================== MODULE OPERATIONS ====================
 
@@ -518,7 +519,8 @@ export async function updateContent(contentId, updates) {
   await updateDoc(contentDoc.ref, {
     overview: updates.Overview || updates.overview,
     reading: updates.Reading || updates.reading,
-    updatedAt: Timestamp.now()
+    updatedAt: Timestamp.now(),
+    image: updates.Image || null
   });
 }
 
@@ -539,7 +541,8 @@ export async function createContent(contentData) {
     moduleId: parseInt(contentData.moduleId),
     overview: contentData.overview,
     reading: contentData.reading,
-    createdAt: Timestamp.now()
+    createdAt: Timestamp.now(),
+    image: contentData.image || null
   });
   
   return { id: docRef.id, contentId: maxContentId + 1 };
