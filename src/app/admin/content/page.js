@@ -11,7 +11,9 @@ export default function ContentPage() {
   const requestedModuleId = searchParams.get('moduleId');
   const moduleId = searchParams.get('moduleId');
   const mode = searchParams.get('mode');
+  const showCreateParam = searchParams.get('showCreate');
   const [content, setContent] = useState([]);
+  const [submitStatus, setSubmitStatus] = useState('');
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,7 +22,7 @@ export default function ContentPage() {
   const [editOverview, setEditOverview] = useState('');
   const [editReading, setEditReading] = useState('');
   const [showEditPreview, setShowEditPreview] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(showCreateParam === 'true');
   const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
@@ -69,6 +71,18 @@ export default function ContentPage() {
     contentName: ''
   });
 
+  const fetchModules = async () => {
+    try {
+      const res = await fetch('/api/modules');
+      const data = await res.json();
+      setModules(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch modules:', err);
+      return [];
+    }
+  };
+
   const handleSubmit = async () => {
     if (!heading.trim() || !subHeading.trim()) {
       setSubmitStatus("Both fields are required.");
@@ -76,12 +90,12 @@ export default function ContentPage() {
     }
 
     try {
-      setSubmitStatus(expandedModuleId === "new" ? "Saving..." : "Updating...");
-      const isNew = selectedModule === "new";
+      const isNew = mode === "new";
+      setSubmitStatus(isNew ? "Saving..." : "Updating...");
       const method = isNew ? "POST" : "PUT";
       const body = isNew
         ? JSON.stringify({ heading, subHeading })
-        : JSON.stringify({ id: expandedModuleId, heading, subHeading });
+        : JSON.stringify({ id: selectedModule, heading, subHeading });
 
       const response = await fetch("/api/admin/modules", {
         method,
@@ -96,16 +110,53 @@ export default function ContentPage() {
         );
       }
 
-      await fetchModules();
+      const updatedModules = await fetchModules();
       setSubmitStatus(
         isNew ? "Module added successfully!" : "Module updated successfully!"
       );
-      setHeading("");
-      setSubHeading("");
-      setExpandedModuleId(null);
+
+      if (isNew && updatedModules.length > 0) {
+        // Navigate to the newly created module
+        const newModule = updatedModules[updatedModules.length - 1];
+        router.push(`/admin/content?moduleId=${newModule.ModuleID}`);
+      }
+
+      setTimeout(() => setSubmitStatus(''), 3000);
     } catch (err) {
       console.error("Submit error:", err);
       setSubmitStatus(err.message);
+      setTimeout(() => setSubmitStatus(''), 3000);
+    }
+  };
+
+  const handleSubmitAndAddContent = async () => {
+    if (!heading.trim() || !subHeading.trim()) {
+      setSubmitStatus("Both fields are required.");
+      return;
+    }
+
+    try {
+      setSubmitStatus("Saving...");
+      const response = await fetch("/api/admin/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ heading, subHeading }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Submission failed.");
+      }
+
+      const updatedModules = await fetchModules();
+      if (updatedModules.length > 0) {
+        const newModule = updatedModules[updatedModules.length - 1];
+        router.push(`/admin/content?moduleId=${newModule.ModuleID}&showCreate=true`);
+      }
+    } catch (err) {
+      console.error("Submit error:", err);
+      setSubmitStatus(err.message);
+      setTimeout(() => setSubmitStatus(''), 3000);
     }
   };
 
@@ -189,7 +240,7 @@ export default function ContentPage() {
         body: JSON.stringify({
           Overview: editOverview,
           Reading: editReading,
-          imageURL: editImage // ! Placeholder for future image upload integration PLEASE UPLOAD THE IMAGE BEFORE CALLING THIS AND THEN PASS THE URL IN HERE
+          imageURL: null // TODO: image upload not yet implemented
         }),
       });
       if (!res.ok) throw new Error('Failed to update content');
@@ -256,7 +307,7 @@ export default function ContentPage() {
           moduleId: selectedModule,
           overview: newOverview,
           reading: newReading,
-          imageURL: imageURL // ! Placeholder for future image upload integration PLEASE UPLOAD THE IMAGE BEFORE CALLING THIS AND THEN PASS THE URL IN HERE
+          imageURL: null // TODO: image upload not yet implemented
         }),
       });
 
@@ -285,14 +336,17 @@ export default function ContentPage() {
       {/* Header */}
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Module Content</h1>
-          <p className="text-sm sm:text-base text-gray-600">Create, edit, and manage content pages</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">{mode === 'new' ? 'Create New Module' : 'Module Content'}</h1>
+          <p className="text-sm sm:text-base text-gray-600">{mode === 'new' ? 'Set up heading and sub-heading for your new module' : 'Create, edit, and manage content pages'}</p>
         </div>
         <button
           onClick={() => router.push('/admin/module-management')}
-          className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors duration-200 font-medium text-sm sm:text-base shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
         >
-          Cancel
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Done Editing
         </button>
       </div>
 
@@ -320,68 +374,49 @@ export default function ContentPage() {
         </div>
       )}
 
-
-      {/* basically this should be gone and replaced with the editing */}
-      {/* Module Selector and Add Button */}
-      {/* do we want to leave this in here or get rid of it cause it might make switching easier but maybe more confusing */}
-      {<div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex-1">
-            <label htmlFor="module" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-              Select Module
-            </label>
-            <div className="relative">
-              <select
-                id="module"
-                value={selectedModule}
-                onChange={(e) => setSelectedModule(e.target.value)}
-                className="block w-full px-3 sm:px-4 py-2 sm:py-3 pr-8 sm:pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white cursor-pointer hover:border-gray-400 transition-colors duration-200 font-medium text-gray-900 text-sm sm:text-base"
-              >
-                {modules.map((mod) => (
-                  <option key={mod.ModuleID} value={mod.ModuleID}>
-                    Module {mod.ModuleID}: {mod.Heading}
-                  </option>
-                ))}
-              </select>
-              {/* Custom dropdown icon */}
-              {<div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3 pointer-events-none">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>}
-            </div>
-            {modules.length > 0 && selectedModule && (
-              <p className="mt-2 text-xs sm:text-sm text-gray-500">
-                {content.length} {content.length === 1 ? 'page' : 'pages'}
-              </p>
-            )}
-          </div>
-          <div>
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="w-full bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Content Page
-            </button>
-          </div>
+      {/* Status message */}
+      {submitStatus && (
+        <div className={`rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-sm sm:text-base font-medium ${submitStatus.includes('successfully') || submitStatus.includes('Saving') || submitStatus.includes('Updating')
+          ? 'bg-green-50 text-green-700 border border-green-200'
+          : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+          {submitStatus}
         </div>
-      </div>}
+      )}
 
-      {/*input the code here to edit heading and sub-heading */}
+      {/* Edit/Create Module Form */}
       {(mode === "new" || currentModule) && (
         <EditModule
-          module={currentModule}
           heading={heading}
           subHeading={subHeading}
           onHeadingChange={(e) => setHeading(e.target.value)}
           onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-          onContentChange={(e) => setContent(e.target.value)}
+          onSubmit={handleSubmit}
+          onClose={() => router.push('/admin/module-management')}
+          isNew={mode === 'new'}
+          onSubmitAndAdd={handleSubmitAndAddContent}
         />
       )}
 
+      {/* Add Content Page Button - only shown when editing an existing module */}
+      {mode !== 'new' && selectedModule && (
+        <div className="mb-4 sm:mb-6">
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Content Page
+          </button>
+          {modules.length > 0 && (
+            <p className="mt-2 text-xs sm:text-sm text-gray-500">
+              {content.length} {content.length === 1 ? 'page' : 'pages'}
+            </p>
+          )}
+        </div>
+      )}
 
 
       {/* Create New Content Form */}
@@ -471,7 +506,7 @@ export default function ContentPage() {
       )}
 
       {/* Loading Spinner */}
-      {loading ? (
+      {mode !== 'new' && loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
           <span className="text-gray-600 text-lg font-medium">Loading content...</span>
