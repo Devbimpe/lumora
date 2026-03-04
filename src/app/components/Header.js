@@ -103,7 +103,7 @@ export function Header() {
                 href="/training-module" 
                 className="text-gray-700 hover:text-green-600 font-medium transition-colors"
               >
-                Training Module
+                Training Modules
               </Link>
             )}
 
@@ -161,7 +161,7 @@ export function Header() {
                 className="block text-gray-700 hover:text-green-600 font-medium transition-colors py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Training Module
+                Training Modules
               </Link>
             )}
 
