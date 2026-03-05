@@ -28,6 +28,8 @@ export default function ContentPage() {
   const [newReading, setNewReading] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imageSrc, setImageSrc] = useState(null); // preview image
+  const [uploadedImageURL, setUploadedImageURL] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
@@ -242,7 +244,7 @@ export default function ContentPage() {
         body: JSON.stringify({
           Overview: editOverview,
           Reading: editReading,
-          imageURL: null // TODO: image upload not yet implemented
+          imageURL: uploadedImageURL || null
         }),
       });
       if (!res.ok) throw new Error('Failed to update content');
@@ -252,6 +254,9 @@ export default function ContentPage() {
       const data = await updatedRes.json();
       setContent(data);
       cancelEdit();
+      setUploadedImageURL(null);
+      setImageFile(null);
+      setImageSrc(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -309,7 +314,7 @@ export default function ContentPage() {
           moduleId: selectedModule,
           overview: newOverview,
           reading: newReading,
-          imageURL: null // TODO: image upload not yet implemented
+          imageURL: uploadedImageURL || null
         }),
       });
 
@@ -326,6 +331,8 @@ export default function ContentPage() {
       setNewOverview('');
       setNewReading('');
       setImageFile(null);
+      setImageSrc(null);
+      setUploadedImageURL(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -337,12 +344,45 @@ export default function ContentPage() {
   function handleChange(event) {
     const file = event.target.files[0];
     if (file) {
-      setImageFile(file); 
+      setImageFile(file);
+      setUploadedImageURL(null); // reset any previously uploaded URL
 
       // Create a temporary local URL for the selected file
-      setImageSrc(URL.createObjectURL(file)); 
+      setImageSrc(URL.createObjectURL(file));
     }
   }
+
+  // Upload the selected image to Cloudinary via the API
+  const uploadImage = async () => {
+    if (!imageFile) {
+      setError('Please select an image file first');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('file', imageFile);
+
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Upload failed');
+
+      setUploadedImageURL(data.url);
+      setImageSrc(data.url); // show the Cloudinary URL as preview
+      setSubmitStatus('Image uploaded successfully!');
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setError(`Image upload failed: ${err.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto">
@@ -479,34 +519,38 @@ export default function ContentPage() {
 
             {/* Image Upload goes here */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2" for='file_input'>
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor='file_input'>
                 Image Upload
               </label>
-              
-              <input 
-                type="file" 
+
+              <input
+                type="file"
                 className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
                 accept="image/png, image/jpeg"
-                name="imageInput" 
+                name="imageInput"
                 id='file_input'
-                
+
                 onChange={handleChange}></input>
               <button
-                // onClick={}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                onClick={uploadImage}
+                disabled={uploadingImage || !imageFile}
+                className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+                  }`}
               >
-                Upload Image
+                {uploadingImage ? 'Uploading...' : uploadedImageURL ? '✓ Uploaded' : 'Upload Image'}
               </button>
 
               {imageSrc && (
-                <img 
-                  src={imageSrc} 
-                  alt="Uploaded preview" 
-                  style={{ maxWidth: "200px", marginTop: "10px" }} 
+                <img
+                  src={imageSrc}
+                  alt="Uploaded preview"
+                  style={{ maxWidth: "200px", marginTop: "10px" }}
                 />
               )}
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Added preview button for new content drafts. */}
               <button
