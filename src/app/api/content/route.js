@@ -8,27 +8,29 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const moduleId = searchParams.get('moduleId');
-    
+
     if (!moduleId) {
       return NextResponse.json({ error: 'Module ID is required' }, { status: 400 });
     }
 
     const content = await getContentByModuleId(moduleId);
-    
+
     // Transform to match expected format
     const formattedContent = content.map(item => ({
       ContentID: item.contentId,
       ModuleID: item.moduleId,
       Overview: item.overview,
-      Reading: item.reading
+      Reading: item.reading,
+      ImageURL: item.image || null,
+      ImageDescription: item.imageDescription || null
     }));
-    
+
     return NextResponse.json(formattedContent);
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch content from database',
-      details: error.message 
+      details: error.message
     }, { status: 500 });
   }
 }
@@ -37,11 +39,11 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { moduleId, overview, reading, imageURL } = body;
-    
-    if (!moduleId || !overview || !reading) {
-      return NextResponse.json({ 
-        error: 'Module ID, overview, and reading are required' 
+    const { moduleId, overview, reading, imageURL, imageDescription } = body;
+
+    if (!moduleId || !overview || (!reading && !imageURL)) {
+      return NextResponse.json({
+        error: 'Module ID, overview, and either reading or image are required'
       }, { status: 400 });
     }
 
@@ -49,18 +51,19 @@ export async function POST(request) {
       moduleId: parseInt(moduleId),
       overview,
       reading,
-      imageURL
+      imageURL,
+      imageDescription
     });
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       success: true,
-      contentId: result.contentId 
+      contentId: result.contentId
     }, { status: 201 });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to create content',
-      details: error.message 
+      details: error.message
     }, { status: 500 });
   }
 }
