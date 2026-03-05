@@ -8,13 +8,13 @@ import { db } from '@db/firebase.js';
 // Expects a JSON body with 'Overview' and 'Reading' fields, and a ContentID from route parameters
 export async function PUT(req, context) {
   try {
-    const { Overview, Reading, imageURL } = await req.json();
+    const { Overview, Reading, imageURL, imageDescription } = await req.json();
     const params = await context.params;
     const id = params.id;
-    
+
     // Update content in Firestore
-    await updateContent(id, { Overview, Reading, imageURL });
-    
+    await updateContent(id, { Overview, Reading, imageURL, imageDescription });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -25,14 +25,14 @@ export async function PUT(req, context) {
 export async function GET() {
   try {
     const modules = await getAllModules();
-    
+
     // Transform to match expected format
     const formattedModules = modules.map(module => ({
       ModuleID: module.moduleId,
       Heading: module.heading,
       Subheading: module.subheading
     }));
-    
+
     return NextResponse.json(formattedModules);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -60,9 +60,9 @@ export async function DELETE(req, context) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete API Error:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to delete content',
-      details: error.message 
-    }, { status: 500 });  
+      details: error.message
+    }, { status: 500 });
   }
 }

@@ -517,10 +517,11 @@ export async function updateContent(contentId, updates) {
 
   const contentDoc = querySnapshot.docs[0];
   await updateDoc(contentDoc.ref, {
-    overview: updates.Overview || updates.overview,
-    reading: updates.Reading || updates.reading,
+    overview: updates.Overview ?? updates.overview ?? '',
+    reading: updates.Reading ?? updates.reading ?? '',
     updatedAt: Timestamp.now(),
-    image: updates.imageURL || updates.Image || updates.image || null
+    image: updates.imageURL ?? updates.Image ?? updates.image ?? null,
+    imageDescription: updates.imageDescription ?? updates.ImageDescription ?? null
   });
 }
 
@@ -542,7 +543,8 @@ export async function createContent(contentData) {
     overview: contentData.overview,
     reading: contentData.reading,
     createdAt: Timestamp.now(),
-    image: contentData.imageURL || contentData.image || null
+    image: contentData.imageURL || contentData.image || null,
+    imageDescription: contentData.imageDescription || null
   });
 
   return { id: docRef.id, contentId: maxContentId + 1 };

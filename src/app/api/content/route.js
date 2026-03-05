@@ -21,7 +21,8 @@ export async function GET(request) {
       ModuleID: item.moduleId,
       Overview: item.overview,
       Reading: item.reading,
-      ImageURL: item.image || null
+      ImageURL: item.image || null,
+      ImageDescription: item.imageDescription || null
     }));
 
     return NextResponse.json(formattedContent);
@@ -38,11 +39,11 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { moduleId, overview, reading, imageURL } = body;
+    const { moduleId, overview, reading, imageURL, imageDescription } = body;
 
-    if (!moduleId || !overview || !reading) {
+    if (!moduleId || !overview || (!reading && !imageURL)) {
       return NextResponse.json({
-        error: 'Module ID, overview, and reading are required'
+        error: 'Module ID, overview, and either reading or image are required'
       }, { status: 400 });
     }
 
@@ -50,7 +51,8 @@ export async function POST(request) {
       moduleId: parseInt(moduleId),
       overview,
       reading,
-      imageURL
+      imageURL,
+      imageDescription
     });
 
     return NextResponse.json({

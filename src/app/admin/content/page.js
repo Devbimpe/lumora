@@ -30,6 +30,7 @@ export default function ContentPage() {
   const [imageSrc, setImageSrc] = useState(null); // preview image
   const [uploadedImageURL, setUploadedImageURL] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageDescription, setImageDescription] = useState('');
 
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
@@ -224,6 +225,11 @@ export default function ContentPage() {
     setEditOverview(item.Overview);
     setEditReading(item.Reading);
     setShowEditPreview(false);
+    // Load existing image if present
+    setImageSrc(item.ImageURL || null);
+    setUploadedImageURL(item.ImageURL || null);
+    setImageFile(null);
+    setImageDescription(item.ImageDescription || '');
   };
 
   // Cancel editing
@@ -232,6 +238,10 @@ export default function ContentPage() {
     setEditOverview('');
     setEditReading('');
     setShowEditPreview(false);
+    setImageSrc(null);
+    setUploadedImageURL(null);
+    setImageFile(null);
+    setImageDescription('');
   };
 
   // Save edit
@@ -243,8 +253,9 @@ export default function ContentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           Overview: editOverview,
-          Reading: editReading,
-          imageURL: uploadedImageURL || null
+          Reading: uploadedImageURL ? '' : editReading,
+          imageURL: uploadedImageURL || null,
+          imageDescription: uploadedImageURL ? imageDescription : null
         }),
       });
       if (!res.ok) throw new Error('Failed to update content');
@@ -300,8 +311,12 @@ export default function ContentPage() {
 
   // Create new content
   const createNewContent = async () => {
-    if (!newOverview.trim() || !newReading.trim()) {
-      setError('Both Overview and Reading fields are required');
+    if (!newOverview.trim()) {
+      setError('Overview (heading) is required');
+      return;
+    }
+    if (!newReading.trim() && !uploadedImageURL) {
+      setError('Either Reading content or an uploaded Image is required');
       return;
     }
 
@@ -313,8 +328,9 @@ export default function ContentPage() {
         body: JSON.stringify({
           moduleId: selectedModule,
           overview: newOverview,
-          reading: newReading,
-          imageURL: uploadedImageURL || null
+          reading: uploadedImageURL ? '' : newReading,
+          imageURL: uploadedImageURL || null,
+          imageDescription: uploadedImageURL ? imageDescription : null
         }),
       });
 
@@ -374,11 +390,60 @@ export default function ContentPage() {
 
       setUploadedImageURL(data.url);
       setImageSrc(data.url); // show the Cloudinary URL as preview
+      // Auto-clear text content since it's either image or text
+      setNewReading('');
+      setEditReading('');
       setSubmitStatus('Image uploaded successfully!');
       setTimeout(() => setSubmitStatus(''), 3000);
     } catch (err) {
       console.error('Image upload error:', err);
       setError(`Image upload failed: ${err.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Delete the uploaded image from Cloudinary and clear from Firebase
+  const deleteImage = async () => {
+    if (!uploadedImageURL) return;
+
+    try {
+      setUploadingImage(true);
+      // Delete from Cloudinary
+      const res = await fetch(`/api/admin/upload-image?imageUrl=${encodeURIComponent(uploadedImageURL)}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Delete failed');
+
+      // If we're editing an existing content item, update Firebase to remove the image
+      if (editingId) {
+        await fetch(`/api/content/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            Overview: editOverview,
+            Reading: editReading,
+            imageURL: null,
+            imageDescription: null
+          }),
+        });
+        // Refresh content list
+        const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
+        const contentData = await updatedRes.json();
+        setContent(contentData);
+      }
+
+      setImageFile(null);
+      setImageSrc(null);
+      setUploadedImageURL(null);
+      setImageDescription('');
+      setSubmitStatus('Image deleted successfully!');
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error('Image delete error:', err);
+      setError(`Image delete failed: ${err.message}`);
     } finally {
       setUploadingImage(false);
     }
@@ -506,50 +571,94 @@ export default function ContentPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content (Reading Material)
+                Content (Reading Material or Image)
               </label>
-              <textarea
-                placeholder="Enter the main content for this page"
-                value={newReading}
-                onChange={(e) => setNewReading(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                rows="8"
-              />
-            </div>
-
-            {/* Image Upload goes here */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor='file_input'>
-                Image Upload
-              </label>
-
-              <input
-                type="file"
-                className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
-                accept="image/png, image/jpeg"
-                name="imageInput"
-                id='file_input'
-
-                onChange={handleChange}></input>
-              <button
-                onClick={uploadImage}
-                disabled={uploadingImage || !imageFile}
-                className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700'
-                  }`}
-              >
-                {uploadingImage ? 'Uploading...' : uploadedImageURL ? '✓ Uploaded' : 'Upload Image'}
-              </button>
-
-              {imageSrc && (
-                <img
-                  src={imageSrc}
-                  alt="Uploaded preview"
-                  style={{ maxWidth: "200px", marginTop: "10px" }}
+              {imageSrc ? (
+                <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
+                  <img
+                    src={imageSrc}
+                    alt="Uploaded content"
+                    className="rounded-lg max-w-full"
+                    style={{ maxHeight: "400px", objectFit: "contain" }}
+                  />
+                  {!uploadedImageURL && imageFile && (
+                    <button
+                      onClick={uploadImage}
+                      disabled={uploadingImage}
+                      className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                    </button>
+                  )}
+                  {!uploadedImageURL && (
+                    <button
+                      onClick={() => {
+                        setImageFile(null);
+                        setImageSrc(null);
+                        setUploadedImageURL(null);
+                      }}
+                      className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                  {uploadedImageURL && (
+                    <button
+                      onClick={deleteImage}
+                      disabled={uploadingImage}
+                      className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      {uploadingImage ? 'Deleting...' : 'Delete Image'}
+                    </button>
+                  )}
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Description / Presenter's Notes</label>
+                    <textarea
+                      placeholder="Add a description or notes for this image..."
+                      value={imageDescription}
+                      onChange={(e) => setImageDescription(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <textarea
+                  placeholder="Enter the main content for this page"
+                  value={newReading}
+                  onChange={(e) => setNewReading(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  rows="8"
                 />
               )}
             </div>
+
+            {/* Image Upload */}
+            {!imageSrc && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor='file_input'>
+                  Or Upload an Image Instead
+                </label>
+                <input
+                  type="file"
+                  className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                  accept="image/png, image/jpeg"
+                  name="imageInput"
+                  id='file_input'
+                  onChange={handleChange}
+                />
+                <button
+                  onClick={uploadImage}
+                  disabled={uploadingImage || !imageFile}
+                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                </button>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Added preview button for new content drafts. */}
@@ -631,15 +740,91 @@ export default function ContentPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Content (Reading Material)
+                            Content (Reading Material or Image)
                           </label>
-                          <textarea
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            value={editReading}
-                            onChange={e => setEditReading(e.target.value)}
-                            rows="8"
-                          />
+                          {imageSrc ? (
+                            <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
+                              <img
+                                src={imageSrc}
+                                alt="Current content image"
+                                className="rounded-lg max-w-full"
+                                style={{ maxHeight: "400px", objectFit: "contain" }}
+                              />
+                              {!uploadedImageURL && imageFile && (
+                                <button
+                                  onClick={uploadImage}
+                                  disabled={uploadingImage}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+                              {!uploadedImageURL && (
+                                <button
+                                  onClick={() => {
+                                    setImageFile(null);
+                                    setImageSrc(null);
+                                    setUploadedImageURL(null);
+                                  }}
+                                  className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  Remove Image
+                                </button>
+                              )}
+                              {uploadedImageURL && (
+                                <button
+                                  onClick={deleteImage}
+                                  disabled={uploadingImage}
+                                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Deleting...' : 'Delete Image'}
+                                </button>
+                              )}
+                              <div className="mt-3">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Description / Presenter's Notes</label>
+                                <textarea
+                                  placeholder="Add a description or notes for this image..."
+                                  value={imageDescription}
+                                  onChange={(e) => setImageDescription(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                                  rows="3"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <textarea
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                              value={editReading}
+                              onChange={e => setEditReading(e.target.value)}
+                              rows="8"
+                            />
+                          )}
                         </div>
+                        {/* Image upload for editing - only shown when no image */}
+                        {!imageSrc && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor='edit_file_input'>
+                              Or Upload an Image Instead
+                            </label>
+                            <input
+                              type="file"
+                              className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                              accept="image/png, image/jpeg"
+                              id='edit_file_input'
+                              onChange={handleChange}
+                            />
+                            <button
+                              onClick={uploadImage}
+                              disabled={uploadingImage || !imageFile}
+                              className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 hover:bg-green-700'
+                                }`}
+                            >
+                              {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                            </button>
+                          </div>
+                        )}
                         <div className="flex flex-col sm:flex-row gap-2">
                           {/* Added preview button next to save while editing content. */}
                           <button
@@ -700,14 +885,28 @@ export default function ContentPage() {
                             className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-xs sm:text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
                             onClick={() => handleDeleteClick(item.ContentID)}
                           >
-                            Delete
+                            Delete Page
                           </button>
                         </div>
                       </div>
 
                       <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-green-400">
                         <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Content:</h4>
-                        <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{item.Reading}</p>
+                        {item.ImageURL ? (
+                          <div>
+                            <img
+                              src={item.ImageURL}
+                              alt={`Image for ${item.Overview}`}
+                              className="rounded-lg border border-gray-200"
+                              style={{ maxWidth: "300px" }}
+                            />
+                            {item.ImageDescription && (
+                              <p className="mt-2 text-xs sm:text-sm text-gray-600 italic">{item.ImageDescription}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{item.Reading}</p>
+                        )}
                       </div>
                     </div>
                   )}
