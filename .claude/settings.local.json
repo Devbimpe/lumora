@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"Training Module\\\\|training.*module\\\\|TrainingModule\" /Users/khalilsenan/git/LumorProject/lumora --include=\"*.js\" --include=\"*.jsx\" --include=\"*.ts\" --include=\"*.tsx\" 2>/dev/null | grep -v node_modules | grep -v \".next\")",
+      "Bash(grep -r \"tabs\\\\|Tab\\\\|tabs.map\" /Users/khalilsenan/git/LumorProject/lumora/admin --include=\"*.js\" --include=\"*.jsx\" 2>/dev/null | head -20)",
+      "Bash(find /Users/khalilsenan/git/LumorProject/lumora -type f -path \"*user*detail*\" -o -path \"*user*view*\" -o -path \"*user*modal*\" 2>/dev/null | grep -v node_modules | grep -v \".next\")",
+      "Bash(grep -r \"setActiveTab\\\\|activeTab\" /Users/khalilsenan/git/LumorProject/lumora --include=\"*.js\" --include=\"*.jsx\" 2>/dev/null | grep -v node_modules | grep -v \".next\")"
+    ]
+  }
+}
