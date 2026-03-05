@@ -27,6 +27,8 @@ export default function ContentPage() {
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const [imageSrc, setImageSrc] = useState(null); // preview image
+
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
@@ -331,6 +333,17 @@ export default function ContentPage() {
     }
   };
 
+  // Set image URL for image upload preview
+  function handleChange(event) {
+    const file = event.target.files[0];
+    if (file) {
+      setImageFile(file); 
+
+      // Create a temporary local URL for the selected file
+      setImageSrc(URL.createObjectURL(file)); 
+    }
+  }
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
@@ -464,6 +477,36 @@ export default function ContentPage() {
               />
             </div>
 
+            {/* Image Upload goes here */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" for='file_input'>
+                Image Upload
+              </label>
+              
+              <input 
+                type="file" 
+                className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                accept="image/png, image/jpeg"
+                name="imageInput" 
+                id='file_input'
+                
+                onChange={handleChange}></input>
+              <button
+                // onClick={}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                Upload Image
+              </button>
+
+              {imageSrc && (
+                <img 
+                  src={imageSrc} 
+                  alt="Uploaded preview" 
+                  style={{ maxWidth: "200px", marginTop: "10px" }} 
+                />
+              )}
+            </div>
+            
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Added preview button for new content drafts. */}
               <button
@@ -484,6 +527,7 @@ export default function ContentPage() {
                   setShowCreatePreview(false);
                   setNewOverview('');
                   setNewReading('');
+                  setImageSrc('');
                 }}
                 className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
               >
