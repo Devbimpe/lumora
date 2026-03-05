@@ -37,6 +37,10 @@ export default function ContentPage() {
   const [editKCChoices, setEditKCChoices] = useState(["", ""]);
   const [editKCAnswer, setEditKCAnswer] = useState("");
   const [editKCExplain, setEditKCExplain] = useState("");
+  const [kcTab, setKcTab] = useState("multiple-choice");
+  const [kcDescAnswer, setKcDescAnswer] = useState("");
+  const [editKCTab, setEditKCTab] = useState("multiple-choice");
+  const [editKCDescAnswer, setEditKCDescAnswer] = useState("");
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
   const currentModule = modules.find(
@@ -309,6 +313,8 @@ export default function ContentPage() {
     setKcChoices(["", ""]);
     setKcAnswer("");
     setKcExplain("");
+    setKcTab("multiple-choice");
+    setKcDescAnswer("");
   };
 
   // Create New Knowledge Check
@@ -394,11 +400,15 @@ export default function ContentPage() {
         return match ? match[1] : c;
       },
     );
+    const isDescriptive =
+      !kc.choices || kc.choices.filter((c) => c.trim()).length === 0;
     setEditingKCId(kc.knowledgeCheckId);
     setEditKCQuestion(kc.question || "");
     setEditKCChoices(plainChoices.length >= 2 ? plainChoices : ["", ""]);
     setEditKCAnswer(kc.answer || "");
     setEditKCExplain(kc.explain || "");
+    setEditKCTab(isDescriptive ? "descriptive" : "multiple-choice");
+    setEditKCDescAnswer(isDescriptive ? kc.explain || "" : "");
   };
 
   // Cancel Editing Knowledge Check
@@ -408,6 +418,8 @@ export default function ContentPage() {
     setEditKCChoices(["", ""]);
     setEditKCAnswer("");
     setEditKCExplain("");
+    setEditKCTab("multiple-choice");
+    setEditKCDescAnswer("");
   };
 
   // Save Editing Knowledge Check
@@ -736,6 +748,30 @@ export default function ContentPage() {
             </button>
           </div>
 
+          {/* Tab Switcher */}
+          <div className="flex border-b border-gray-200 mb-5">
+            <button
+              onClick={() => setKcTab("multiple-choice")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                kcTab === "multiple-choice"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Multiple Choice
+            </button>
+            <button
+              onClick={() => setKcTab("descriptive")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                kcTab === "descriptive"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Descriptive
+            </button>
+          </div>
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -750,81 +786,106 @@ export default function ContentPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Choices
-              </label>
-              {kcChoices.map((choice, idx) => {
-                const letter = String.fromCharCode(65 + idx);
-                return (
-                  <div key={idx} className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold text-gray-700 w-6">
-                      {letter}:
-                    </span>
-                    <input
-                      type="text"
-                      placeholder={`Choice ${letter}`}
-                      value={choice}
-                      onChange={(e) => {
-                        const updated = [...kcChoices];
-                        updated[idx] = e.target.value;
-                        setKcChoices(updated);
-                      }}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                    {kcChoices.length > 2 && (
-                      <button
-                        onClick={() => {
-                          const updated = kcChoices.filter((_, i) => i !== idx);
-                          setKcChoices(updated);
-                          setKcAnswer("");
-                        }}
-                        className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
-                      >
-                        X
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              <button
-                onClick={() => setKcChoices([...kcChoices, ""])}
-                className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
-              >
-                + Add Choice
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Correct Answer
-              </label>
-              <select
-                value={kcAnswer}
-                onChange={(e) => setKcAnswer(e.target.value)}
-                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-              >
-                <option value="">Select correct answer</option>
-                {kcChoices.reduce((opts, choice, idx) => {
-                  if (choice.trim()) {
-                    const letter = String.fromCharCode(65 + opts.length);
-                    opts.push(
-                      <option key={letter} value={letter}>
-                        {letter}
-                      </option>,
+            {kcTab === "multiple-choice" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Choices
+                  </label>
+                  {kcChoices.map((choice, idx) => {
+                    const letter = String.fromCharCode(65 + idx);
+                    return (
+                      <div key={idx} className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-gray-700 w-6">
+                          {letter}:
+                        </span>
+                        <input
+                          type="text"
+                          placeholder={`Choice ${letter}`}
+                          value={choice}
+                          onChange={(e) => {
+                            const updated = [...kcChoices];
+                            updated[idx] = e.target.value;
+                            setKcChoices(updated);
+                          }}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                        {kcChoices.length > 2 && (
+                          <button
+                            onClick={() => {
+                              const updated = kcChoices.filter(
+                                (_, i) => i !== idx,
+                              );
+                              setKcChoices(updated);
+                              setKcAnswer("");
+                            }}
+                            className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
+                          >
+                            X
+                          </button>
+                        )}
+                      </div>
                     );
-                  }
-                  return opts;
-                }, [])}
-              </select>
-            </div>
+                  })}
+                  <button
+                    onClick={() => setKcChoices([...kcChoices, ""])}
+                    className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
+                  >
+                    + Add Choice
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Correct Answer
+                  </label>
+                  <select
+                    value={kcAnswer}
+                    onChange={(e) => setKcAnswer(e.target.value)}
+                    className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">Select correct answer</option>
+                    {kcChoices.reduce((opts, choice, idx) => {
+                      if (choice.trim()) {
+                        const letter = String.fromCharCode(65 + opts.length);
+                        opts.push(
+                          <option key={letter} value={letter}>
+                            {letter}
+                          </option>,
+                        );
+                      }
+                      return opts;
+                    }, [])}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {kcTab === "descriptive" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sample Answer
+                </label>
+                <textarea
+                  placeholder="Enter a sample or expected answer for grading reference"
+                  value={kcDescAnswer}
+                  onChange={(e) => setKcDescAnswer(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  rows="5"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Explanation (optional)
               </label>
               <textarea
-                placeholder="Explain why the correct answer is right"
+                placeholder={
+                  kcTab === "descriptive"
+                    ? "Add any additional notes or context"
+                    : "Explain why the correct answer is right"
+                }
                 value={kcExplain}
                 onChange={(e) => setKcExplain(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -1041,6 +1102,31 @@ export default function ContentPage() {
                         ×
                       </button>
                     </div>
+
+                    {/* Edit Tab Switcher */}
+                    <div className="flex border-b border-blue-200 mb-5">
+                      <button
+                        onClick={() => setEditKCTab("multiple-choice")}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                          editKCTab === "multiple-choice"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        Multiple Choice
+                      </button>
+                      <button
+                        onClick={() => setEditKCTab("descriptive")}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                          editKCTab === "descriptive"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        Descriptive
+                      </button>
+                    </div>
+
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1054,88 +1140,114 @@ export default function ContentPage() {
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Choices
-                        </label>
-                        {editKCChoices.map((choice, idx) => {
-                          const letter = String.fromCharCode(65 + idx);
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2 mb-2"
-                            >
-                              <span className="font-semibold text-gray-700 w-6">
-                                {letter}:
-                              </span>
-                              <input
-                                type="text"
-                                value={choice}
-                                onChange={(e) => {
-                                  const updated = [...editKCChoices];
-                                  updated[idx] = e.target.value;
-                                  setEditKCChoices(updated);
-                                }}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                              />
-                              {editKCChoices.length > 2 && (
-                                <button
-                                  onClick={() => {
-                                    const updated = editKCChoices.filter(
-                                      (_, i) => i !== idx,
-                                    );
-                                    setEditKCChoices(updated);
-                                    setEditKCAnswer("");
-                                  }}
-                                  className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
+                      {editKCTab === "multiple-choice" && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Choices
+                            </label>
+                            {editKCChoices.map((choice, idx) => {
+                              const letter = String.fromCharCode(65 + idx);
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-2 mb-2"
                                 >
-                                  X
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                        <button
-                          onClick={() =>
-                            setEditKCChoices([...editKCChoices, ""])
-                          }
-                          className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
-                        >
-                          + Add Choice
-                        </button>
-                      </div>
+                                  <span className="font-semibold text-gray-700 w-6">
+                                    {letter}:
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={choice}
+                                    onChange={(e) => {
+                                      const updated = [...editKCChoices];
+                                      updated[idx] = e.target.value;
+                                      setEditKCChoices(updated);
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  />
+                                  {editKCChoices.length > 2 && (
+                                    <button
+                                      onClick={() => {
+                                        const updated = editKCChoices.filter(
+                                          (_, i) => i !== idx,
+                                        );
+                                        setEditKCChoices(updated);
+                                        setEditKCAnswer("");
+                                      }}
+                                      className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
+                                    >
+                                      X
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            <button
+                              onClick={() =>
+                                setEditKCChoices([...editKCChoices, ""])
+                              }
+                              className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
+                            >
+                              + Add Choice
+                            </button>
+                          </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Correct Answer
-                        </label>
-                        <select
-                          value={editKCAnswer}
-                          onChange={(e) => setEditKCAnswer(e.target.value)}
-                          className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-                        >
-                          <option value="">Select correct answer</option>
-                          {editKCChoices.reduce((opts, choice, idx) => {
-                            if (choice.trim()) {
-                              const letter = String.fromCharCode(
-                                65 + opts.length,
-                              );
-                              opts.push(
-                                <option key={letter} value={letter}>
-                                  {letter}
-                                </option>,
-                              );
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Correct Answer
+                            </label>
+                            <select
+                              value={editKCAnswer}
+                              onChange={(e) => setEditKCAnswer(e.target.value)}
+                              className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                            >
+                              <option value="">Select correct answer</option>
+                              {editKCChoices.reduce((opts, choice, idx) => {
+                                if (choice.trim()) {
+                                  const letter = String.fromCharCode(
+                                    65 + opts.length,
+                                  );
+                                  opts.push(
+                                    <option key={letter} value={letter}>
+                                      {letter}
+                                    </option>,
+                                  );
+                                }
+                                return opts;
+                              }, [])}
+                            </select>
+                          </div>
+                        </>
+                      )}
+
+                      {editKCTab === "descriptive" && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Sample Answer
+                          </label>
+                          <textarea
+                            placeholder="Enter a sample or expected answer for grading reference"
+                            value={editKCDescAnswer}
+                            onChange={(e) =>
+                              setEditKCDescAnswer(e.target.value)
                             }
-                            return opts;
-                          }, [])}
-                        </select>
-                      </div>
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            rows="5"
+                          />
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Explanation (optional)
                         </label>
                         <textarea
+                          placeholder={
+                            editKCTab === "descriptive"
+                              ? "Add any additional notes or context"
+                              : "Explain why the correct answer is right"
+                          }
                           value={editKCExplain}
                           onChange={(e) => setEditKCExplain(e.target.value)}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -1167,6 +1279,19 @@ export default function ContentPage() {
                           <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
                             Check {index + 1}
                           </span>
+                          {(!kc.choices ||
+                            kc.choices.filter((c) => c.trim()).length ===
+                              0) && (
+                            <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
+                              Descriptive
+                            </span>
+                          )}
+                          {kc.choices &&
+                            kc.choices.filter((c) => c.trim()).length > 0 && (
+                              <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
+                                Multiple Choice
+                              </span>
+                            )}
                           <span className="text-xs sm:text-sm text-gray-500">
                             Module {kc.moduleID}
                           </span>
@@ -1191,6 +1316,21 @@ export default function ContentPage() {
                       </div>
                     </div>
 
+                    {(!kc.choices ||
+                      kc.choices.filter((c) => c.trim()).length === 0) ? (
+                      <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-purple-400">
+                        <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">
+                          Sample Answer:
+                        </h4>
+                        <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
+                          {kc.explain || (
+                            <span className="italic text-gray-400">
+                              No sample answer provided
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    ) : (
                     <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-blue-400">
                       <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">
                         Choices:
@@ -1220,6 +1360,7 @@ export default function ContentPage() {
                         </p>
                       )}
                     </div>
+                    )}
                   </div>
                 )}
               </div>
