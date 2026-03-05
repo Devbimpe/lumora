@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { getModuleImageUrl } from "../lib/module-images";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref className="h-full block">
@@ -42,13 +43,17 @@ const TrainingModule = () => {
         }
         const data = await response.json();
         
-        // Map API data to component format
-        const formattedModules = data.map((module, index) => ({
+        // FILTER: Only keep modules where published is true
+        // We filter BEFORE mapping so the index (used for bgColor) stays consistent (Green, Orange, Green...)
+        const publishedModules = data.filter(module => module.published === true);
+
+        // Map filtered data to component format
+        const formattedModules = publishedModules.map((module, index) => ({
           id: module.ModuleID,
           title: `MODULE ${module.ModuleID}: ${module.Heading}`,
           subtitle: module.Subheading || "",
           href: `/modules/module${module.ModuleID}`,
-          icon: `/M${module.ModuleID}.jpg`,
+          icon: getModuleImageUrl(module.ModuleID),
           bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
         }));
         
@@ -76,7 +81,7 @@ const TrainingModule = () => {
         </div>
       ) : modules.length === 0 ? (
         <div className="text-center py-8 text-gray-600">
-          No modules available
+          No active modules available.
         </div>
       ) : (
         <ModuleWrapper>

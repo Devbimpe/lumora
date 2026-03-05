@@ -12,8 +12,8 @@ To run this migration, use `node db/tools/migrateModProgressIDfromRandToUID_MODI
 
 // Load env from project root before any Firebase imports
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "..", ".env.local") });
-dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
+dotenv.config({ path: path.resolve(__dirname, "..", "..", ".env.local") });
+dotenv.config({ path: path.resolve(__dirname, "..", "..", ".env") });
 
 const DRY_RUN = process.argv.includes("--dry-run");
 

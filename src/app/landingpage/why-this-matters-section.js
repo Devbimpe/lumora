@@ -26,7 +26,7 @@ export default function WhyThisMattersSection() {
           {/* Image side with enhanced styling */}
           <div className="flex justify-center order-2 lg:order-1">
             <img
-              src="/main-page-illustration.png"
+              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772417656/main-page-illustration.png"
               alt="LUMORA illustration"
               className="w-full max-w-md md:max-w-lg h-auto"
             />

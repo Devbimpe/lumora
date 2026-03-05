@@ -66,7 +66,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
             <Image 
-              src="/Lumoralogo.jpeg" 
+              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772421438/Lumoralogo.jpg" 
               alt="LumoraLogo" 
               width={180} 
               height={72} 

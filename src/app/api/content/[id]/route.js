@@ -8,12 +8,12 @@ import { db } from '@db/firebase.js';
 // Expects a JSON body with 'Overview' and 'Reading' fields, and a ContentID from route parameters
 export async function PUT(req, context) {
   try {
-    const { Overview, Reading } = await req.json();
+    const { Overview, Reading, imageURL } = await req.json();
     const params = await context.params;
     const id = params.id;
     
     // Update content in Firestore
-    await updateContent(id, { Overview, Reading });
+    await updateContent(id, { Overview, Reading, imageURL });
     
     return NextResponse.json({ success: true });
   } catch (error) {
