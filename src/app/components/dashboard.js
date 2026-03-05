@@ -1,6 +1,5 @@
 "use client"
 
-import { markModuleCompleted } from "@/db/db.js";
 import { useState, useEffect, useRef, useCallback } from "react"
 import { 
   Trophy, 
@@ -30,7 +29,6 @@ export default function Dashboard({ user: userProp }) {
   const [submitStatus, setSubmitStatus] = useState(null) // 'success' or 'error'
   const [user, setUser] = useState(userProp || null)
   const fetchingRef = useRef(false) // Prevent duplicate calls
-  const [showPopup, setShowPopup] = useState(false);
 
   const checkAuthStatus = async () => {
     try {
@@ -478,8 +476,11 @@ export default function Dashboard({ user: userProp }) {
               <div
                 key={module.id}
                 onClick={() => {
-                  setSelectedModule(module);
-                  setShowPopup(true);
+                  const lastItemId = module.progress?.lastViewedContentId;
+                  const url = lastItemId
+                    ? `/modules/module${module.id}?item=${lastItemId}`
+                    : `/modules/module${module.id}`;
+                  window.location.href = url;
                 }}
                 className={`cursor-pointer rounded-lg p-3 sm:p-4 border-2 hover:shadow-lg transition-all ${
                   module.status === "completed"
@@ -574,70 +575,6 @@ export default function Dashboard({ user: userProp }) {
             )}
           </div>
 
-          {/* Module Popup */}
-          {showPopup && selectedModule && (
-            <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-md relative">
-
-                <button onClick={() => setShowPopup(false)}
-                  className="pr-3 absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-lg">
-                  x
-                </button>
-
-                <h3 className="text-xl font-bold mb-2 text-green-700">
-                  {selectedModule.title}
-                </h3>
-                
-                <p className="text-sm">
-                  Status:  
-                  { selectedModule.status === "completed" ? (
-                    <span className="text-sm text-green-600 mb-4 pl-1">
-                      Completed
-                    </span>
-                  ):(
-                    selectedModule.status === "in-progress" ? (
-                    <span className="text-sm text-yellow-600 mb-4 pl-1">
-                      In Progress
-                    </span>
-                    ):(
-                      <span className="text-sm text-orange-600 mb-4 pl-1">
-                        Not Started
-                      </span>
-                    )
-                  )}
-                </p>
-
-                <p className="text-sm mb-4">
-                  Progress: {selectedModule.progressPercentage}%
-                </p>
-
-                {selectedModule.status === "completed" ? (
-                  <button className="w-full bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 rounded-lg transition" disabled>
-                  Mark as Complete
-                  </button>
-                  ):(
-                    <button
-                    onClick={() => {
-
-                      console.log("user.id", user.id);
-                      console.log("selectedModule.id", selectedModule.id);
-
-                      markModuleCompleted(user.id, selectedModule.id);
-                      setShowPopup(false);
-
-                      setTimeout(() => {
-                         window.location.reload();
-                      }, 1000);
-                         
-                    }}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition">
-                    Mark as Complete
-                    </button>
-                  )
-                }
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Feedback Section */}
