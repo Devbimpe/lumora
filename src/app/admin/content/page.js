@@ -25,6 +25,8 @@ export default function ContentPage() {
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const [imageSrc, setImageSrc] = useState(null); // preview image
+
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
@@ -284,6 +286,8 @@ export default function ContentPage() {
   function handleChange(event) {
     const file = event.target.files[0];
     if (file) {
+      setImageFile(file); 
+
       // Create a temporary local URL for the selected file
       setImageSrc(URL.createObjectURL(file)); 
     }
