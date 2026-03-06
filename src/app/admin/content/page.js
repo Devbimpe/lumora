@@ -31,6 +31,7 @@ export default function ContentPage() {
   const [uploadedImageURL, setUploadedImageURL] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageDescription, setImageDescription] = useState('');
+  const [inputURLSet, setInputURLSet] = useState(false);
 
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
@@ -672,9 +673,9 @@ export default function ContentPage() {
                   onChange={handleChange}
                 />
                 <button
-                  //onClick={uploadImage}
+                  onClick={uploadImage}
                   //disabled={uploadingImage || !imageFile}
-                  disabled="false"
+                  //disabled="false"
                   className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700'
@@ -863,8 +864,8 @@ export default function ContentPage() {
                             />
                             <button
                               //onClick={uploadImage}
-                              //disabled={uploadingImage || !imageFile}
-                              className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                              disabled={uploadingImage || !inputURLSet}
+                              className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputURLSet
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-blue-600 hover:bg-blue-700'
                                 }`}
