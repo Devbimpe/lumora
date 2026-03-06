@@ -1,10 +1,12 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import '../globals.css';
 import '../login/login.css';
 
 export default function Page() {
+  const router = useRouter();
   const [form, setForm] = useState({
     name: '',
     userName: '',
@@ -15,6 +17,34 @@ export default function Page() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Check if user is already authenticated and redirect if so
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      try {      
+        const response = await fetch("/api/check-auth");
+        const data = await response.json();
+        if (data.authenticated) {
+          console.log("User is already authenticated, redirecting...");
+          if(data.user.role === "Admin") {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
+        } else {
+          console.log("User is not authenticated, showing signup form.");
+          setCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+        setCheckingAuth(false);
+      }
+    };
+    checkAuthentication();
+  }, [router]);
+
+
 
   function validateEmail(email) {
     return /\S+@\S+\.\S+/.test(email);
@@ -84,6 +114,22 @@ export default function Page() {
       setIsLoading(false);
     }
   };
+
+  // Show checking auth state
+  if (checkingAuth) {
+    return (
+      <div className="page">
+        <main className="w-full">
+          <div className="LoginPage">
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+              <span className="text-gray-600 text-lg font-medium">Checking authentication...</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
