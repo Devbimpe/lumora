@@ -2,13 +2,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
+import EditModule from '../components/EditModule';
 
 export default function ContentPage() {
   // Read moduleId from URL so the page can open the right module directly.
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedModuleId = searchParams.get('moduleId');
+  const moduleId = searchParams.get('moduleId');
+  const mode = searchParams.get('mode');
+  const showCreateParam = searchParams.get('showCreate');
   const [content, setContent] = useState([]);
+  const [submitStatus, setSubmitStatus] = useState('');
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,17 +21,149 @@ export default function ContentPage() {
   const [editingId, setEditingId] = useState(null);
   const [editOverview, setEditOverview] = useState('');
   const [editReading, setEditReading] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditPreview, setShowEditPreview] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(showCreateParam === 'true');
+  const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
-  const [imageSrc, setImageSrc] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imageSrc, setImageSrc] = useState(null); // preview image
+  const [uploadedImageURL, setUploadedImageURL] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageDescription, setImageDescription] = useState('');
+
+  // const [expandedModuleId, setExpandedModuleId] = useState(null);
+  const [heading, setHeading] = useState("");
+  const [subHeading, setSubHeading] = useState("");
+  const currentModule = modules.find((m) => m.ModuleID.toString() === selectedModule);
+  useEffect(() => {
+    if (currentModule) {
+      setHeading(currentModule.Heading);
+      setSubHeading(currentModule.Subheading);
+    }
+  });
+  // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
+  useEffect(() => {
+
+    if (mode === "new") {
+      setHeading("");
+      setSubHeading("");
+      setSelectedModule("");
+      setLoading(false);
+      return;
+    }
+
+    if (modules.length === 0) return;
+
+    const moduleToEdit = modules.find(
+      (m) => m.ModuleID.toString() === moduleId
+    );
+
+    if (moduleToEdit) {
+      setHeading(moduleToEdit.Heading);
+      setSubHeading(moduleToEdit.Subheading);
+      console.log(moduleToEdit);
+
+    }
+
+  }, [mode, moduleId, modules]);
+
 
   // Modal state
-  const [deleteModal, setDeleteModal] = useState({ 
-    isOpen: false, 
-    contentId: null, 
-    contentName: '' 
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    contentId: null,
+    contentName: ''
   });
+
+  const fetchModules = async () => {
+    try {
+      const res = await fetch('/api/modules');
+      const data = await res.json();
+      setModules(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch modules:', err);
+      return [];
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!heading.trim() || !subHeading.trim()) {
+      setSubmitStatus("Both fields are required.");
+      return;
+    }
+
+    try {
+      const isNew = mode === "new";
+      setSubmitStatus(isNew ? "Saving..." : "Updating...");
+      const method = isNew ? "POST" : "PUT";
+      const body = isNew
+        ? JSON.stringify({ heading, subHeading })
+        : JSON.stringify({ id: selectedModule, heading, subHeading });
+
+      const response = await fetch("/api/admin/modules", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || (isNew ? "Submission failed." : "Update failed.")
+        );
+      }
+
+      const updatedModules = await fetchModules();
+      setSubmitStatus(
+        isNew ? "Module added successfully!" : "Module updated successfully!"
+      );
+
+      if (isNew && updatedModules.length > 0) {
+        // Navigate to the newly created module
+        const newModule = updatedModules[updatedModules.length - 1];
+        router.push(`/admin/content?moduleId=${newModule.ModuleID}`);
+      }
+
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error("Submit error:", err);
+      setSubmitStatus(err.message);
+      setTimeout(() => setSubmitStatus(''), 3000);
+    }
+  };
+
+  const handleSubmitAndAddContent = async () => {
+    if (!heading.trim() || !subHeading.trim()) {
+      setSubmitStatus("Both fields are required.");
+      return;
+    }
+
+    try {
+      setSubmitStatus("Saving...");
+      const response = await fetch("/api/admin/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ heading, subHeading }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Submission failed.");
+      }
+
+      const updatedModules = await fetchModules();
+      if (updatedModules.length > 0) {
+        const newModule = updatedModules[updatedModules.length - 1];
+        router.push(`/admin/content?moduleId=${newModule.ModuleID}&showCreate=true`);
+      }
+    } catch (err) {
+      console.error("Submit error:", err);
+      setSubmitStatus(err.message);
+      setTimeout(() => setSubmitStatus(''), 3000);
+    }
+  };
 
   // Fetch modules
   useEffect(() => {
@@ -48,7 +185,7 @@ export default function ContentPage() {
             );
           }
         }
-      })
+      },)
       .catch(() => {
         if (isMounted) setModules([]);
       });
@@ -61,10 +198,10 @@ export default function ContentPage() {
   // Fetch content for selected module
   useEffect(() => {
     if (!selectedModule) return;
-    
+
     let isMounted = true;
     setLoading(true);
-    
+
     fetch(`/api/content?moduleId=${selectedModule}`)
       .then(res => res.json())
       .then(data => {
@@ -87,6 +224,12 @@ export default function ContentPage() {
     setEditingId(item.ContentID);
     setEditOverview(item.Overview);
     setEditReading(item.Reading);
+    setShowEditPreview(false);
+    // Load existing image if present
+    setImageSrc(item.ImageURL || null);
+    setUploadedImageURL(item.ImageURL || null);
+    setImageFile(null);
+    setImageDescription(item.ImageDescription || '');
   };
 
   // Cancel editing
@@ -94,6 +237,11 @@ export default function ContentPage() {
     setEditingId(null);
     setEditOverview('');
     setEditReading('');
+    setShowEditPreview(false);
+    setImageSrc(null);
+    setUploadedImageURL(null);
+    setImageFile(null);
+    setImageDescription('');
   };
 
   // Save edit
@@ -105,16 +253,21 @@ export default function ContentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           Overview: editOverview,
-          Reading: editReading,
+          Reading: uploadedImageURL ? '' : editReading,
+          imageURL: uploadedImageURL || null,
+          imageDescription: uploadedImageURL ? imageDescription : null
         }),
       });
       if (!res.ok) throw new Error('Failed to update content');
-      
+
       // Refresh content
       const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
       const data = await updatedRes.json();
       setContent(data);
       cancelEdit();
+      setUploadedImageURL(null);
+      setImageFile(null);
+      setImageSrc(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -126,18 +279,18 @@ export default function ContentPage() {
   const handleDeleteClick = (contentId) => {
     const item = content.find(c => c.ContentID === contentId);
     const contentName = item?.Overview || `Item #${contentId}`;
-    
-    setDeleteModal({ 
-      isOpen: true, 
-      contentId, 
-      contentName 
+
+    setDeleteModal({
+      isOpen: true,
+      contentId,
+      contentName
     });
   };
 
   // Perform delete
   const performDelete = async () => {
     const { contentId } = deleteModal;
-    
+
     try {
       setLoading(true);
       const res = await fetch(`/api/content/${contentId}`, {
@@ -158,8 +311,12 @@ export default function ContentPage() {
 
   // Create new content
   const createNewContent = async () => {
-    if (!newOverview.trim() || !newReading.trim()) {
-      setError('Both Overview and Reading fields are required');
+    if (!newOverview.trim()) {
+      setError('Overview (heading) is required');
+      return;
+    }
+    if (!newReading.trim() && !uploadedImageURL) {
+      setError('Either Reading content or an uploaded Image is required');
       return;
     }
 
@@ -171,7 +328,9 @@ export default function ContentPage() {
         body: JSON.stringify({
           moduleId: selectedModule,
           overview: newOverview,
-          reading: newReading,
+          reading: uploadedImageURL ? '' : newReading,
+          imageURL: uploadedImageURL || null,
+          imageDescription: uploadedImageURL ? imageDescription : null
         }),
       });
 
@@ -184,8 +343,12 @@ export default function ContentPage() {
 
       // Reset form
       setShowCreateForm(false);
+      setShowCreatePreview(false);
       setNewOverview('');
       setNewReading('');
+      setImageFile(null);
+      setImageSrc(null);
+      setUploadedImageURL(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -197,24 +360,111 @@ export default function ContentPage() {
   function handleChange(event) {
     const file = event.target.files[0];
     if (file) {
+      setImageFile(file);
+      setUploadedImageURL(null); // reset any previously uploaded URL
+
       // Create a temporary local URL for the selected file
-      setImageSrc(URL.createObjectURL(file)); 
+      setImageSrc(URL.createObjectURL(file));
     }
   }
+
+  // Upload the selected image to Cloudinary via the API
+  const uploadImage = async () => {
+    if (!imageFile) {
+      setError('Please select an image file first');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('file', imageFile);
+
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Upload failed');
+
+      setUploadedImageURL(data.url);
+      setImageSrc(data.url); // show the Cloudinary URL as preview
+      // Auto-clear text content since it's either image or text
+      setNewReading('');
+      setEditReading('');
+      setSubmitStatus('Image uploaded successfully!');
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setError(`Image upload failed: ${err.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Delete the uploaded image from Cloudinary and clear from Firebase
+  const deleteImage = async () => {
+    if (!uploadedImageURL) return;
+
+    try {
+      setUploadingImage(true);
+      // Delete from Cloudinary
+      const res = await fetch(`/api/admin/upload-image?imageUrl=${encodeURIComponent(uploadedImageURL)}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Delete failed');
+
+      // If we're editing an existing content item, update Firebase to remove the image
+      if (editingId) {
+        await fetch(`/api/content/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            Overview: editOverview,
+            Reading: editReading,
+            imageURL: null,
+            imageDescription: null
+          }),
+        });
+        // Refresh content list
+        const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
+        const contentData = await updatedRes.json();
+        setContent(contentData);
+      }
+
+      setImageFile(null);
+      setImageSrc(null);
+      setUploadedImageURL(null);
+      setImageDescription('');
+      setSubmitStatus('Image deleted successfully!');
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error('Image delete error:', err);
+      setError(`Image delete failed: ${err.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Module Content</h1>
-          <p className="text-sm sm:text-base text-gray-600">Create, edit, and manage content pages</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">{mode === 'new' ? 'Create New Module' : 'Module Content'}</h1>
+          <p className="text-sm sm:text-base text-gray-600">{mode === 'new' ? 'Set up heading and sub-heading for your new module' : 'Create, edit, and manage content pages'}</p>
         </div>
         <button
           onClick={() => router.push('/admin/module-management')}
-          className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors duration-200 font-medium text-sm sm:text-base shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
         >
-          Cancel
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Done Editing
         </button>
       </div>
 
@@ -242,52 +492,50 @@ export default function ContentPage() {
         </div>
       )}
 
-      {/* Module Selector and Add Button */}
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex-1">
-            <label htmlFor="module" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-              Select Module
-            </label>
-            <div className="relative">
-              <select
-                id="module"
-                value={selectedModule}
-                onChange={(e) => setSelectedModule(e.target.value)}
-                className="block w-full px-3 sm:px-4 py-2 sm:py-3 pr-8 sm:pr-10 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white cursor-pointer hover:border-gray-400 transition-colors duration-200 font-medium text-gray-900 text-sm sm:text-base"
-              >
-                {modules.map((mod) => (
-                  <option key={mod.ModuleID} value={mod.ModuleID}>
-                    Module {mod.ModuleID}: {mod.Heading}
-                  </option>
-                ))}
-              </select>
-              {/* Custom dropdown icon */}
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3 pointer-events-none">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-            {modules.length > 0 && selectedModule && (
-              <p className="mt-2 text-xs sm:text-sm text-gray-500">
-                {content.length} {content.length === 1 ? 'page' : 'pages'}
-              </p>
-            )}
-          </div>
-          <div>
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="w-full bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Content Page
-            </button>
-          </div>
+      {/* Status message */}
+      {submitStatus && (
+        <div className={`rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-sm sm:text-base font-medium ${submitStatus.includes('successfully') || submitStatus.includes('Saving') || submitStatus.includes('Updating')
+          ? 'bg-green-50 text-green-700 border border-green-200'
+          : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+          {submitStatus}
         </div>
-      </div>
+      )}
+
+      {/* Edit/Create Module Form */}
+      {(mode === "new" || currentModule) && (
+        <EditModule
+          heading={heading}
+          subHeading={subHeading}
+          onHeadingChange={(e) => setHeading(e.target.value)}
+          onSubHeadingChange={(e) => setSubHeading(e.target.value)}
+          onSubmit={handleSubmit}
+          onClose={() => router.push('/admin/module-management')}
+          isNew={mode === 'new'}
+          onSubmitAndAdd={handleSubmitAndAddContent}
+        />
+      )}
+
+      {/* Add Content Page Button - only shown when editing an existing module */}
+      {mode !== 'new' && selectedModule && (
+        <div className="mb-4 sm:mb-6">
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Content Page
+          </button>
+          {modules.length > 0 && (
+            <p className="mt-2 text-xs sm:text-sm text-gray-500">
+              {content.length} {content.length === 1 ? 'page' : 'pages'}
+            </p>
+          )}
+        </div>
+      )}
+
 
       {/* Create New Content Form */}
       {showCreateForm && (
@@ -297,6 +545,7 @@ export default function ContentPage() {
             <button
               onClick={() => {
                 setShowCreateForm(false);
+                setShowCreatePreview(false);
                 setNewOverview('');
                 setNewReading('');
               }}
@@ -305,7 +554,7 @@ export default function ContentPage() {
               ×
             </button>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -319,51 +568,106 @@ export default function ContentPage() {
                 rows="2"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content (Reading Material)
+                Content (Reading Material or Image)
               </label>
-              <textarea
-                placeholder="Enter the main content for this page"
-                value={newReading}
-                onChange={(e) => setNewReading(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                rows="8"
-              />
-            </div>
-
-            {/* Image Upload goes here */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2" for='file_input'>
-                Image Upload
-              </label>
-              
-              <input 
-                type="file" 
-                className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
-                accept="image/png, image/jpeg"
-                name="imageInput" 
-                id='file_input'
-                
-                onChange={handleChange}></input>
-              <button
-                // onClick={}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
-              >
-                Upload Image
-              </button>
-
-              {imageSrc && (
-                <img 
-                  src={imageSrc} 
-                  alt="Uploaded preview" 
-                  style={{ maxWidth: "200px", marginTop: "10px" }} 
+              {imageSrc ? (
+                <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
+                  <img
+                    src={imageSrc}
+                    alt="Uploaded content"
+                    className="rounded-lg max-w-full"
+                    style={{ maxHeight: "400px", objectFit: "contain" }}
+                  />
+                  {!uploadedImageURL && imageFile && (
+                    <button
+                      onClick={uploadImage}
+                      disabled={uploadingImage}
+                      className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                    </button>
+                  )}
+                  {!uploadedImageURL && (
+                    <button
+                      onClick={() => {
+                        setImageFile(null);
+                        setImageSrc(null);
+                        setUploadedImageURL(null);
+                      }}
+                      className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                  {uploadedImageURL && (
+                    <button
+                      onClick={deleteImage}
+                      disabled={uploadingImage}
+                      className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      {uploadingImage ? 'Deleting...' : 'Delete Image'}
+                    </button>
+                  )}
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Description / Presenter's Notes</label>
+                    <textarea
+                      placeholder="Add a description or notes for this image..."
+                      value={imageDescription}
+                      onChange={(e) => setImageDescription(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <textarea
+                  placeholder="Enter the main content for this page"
+                  value={newReading}
+                  onChange={(e) => setNewReading(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  rows="8"
                 />
               )}
             </div>
-            
+
+            {/* Image Upload */}
+            {!imageSrc && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor='file_input'>
+                  Or Upload an Image Instead
+                </label>
+                <input
+                  type="file"
+                  className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                  accept="image/png, image/jpeg"
+                  name="imageInput"
+                  id='file_input'
+                  onChange={handleChange}
+                />
+                <button
+                  onClick={uploadImage}
+                  disabled={uploadingImage || !imageFile}
+                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-2">
+              {/* Added preview button for new content drafts. */}
+              <button
+                onClick={() => setShowCreatePreview((prev) => !prev)}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                {showCreatePreview ? 'Hide Preview' : 'Preview'}
+              </button>
               <button
                 onClick={createNewContent}
                 className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
@@ -373,6 +677,7 @@ export default function ContentPage() {
               <button
                 onClick={() => {
                   setShowCreateForm(false);
+                  setShowCreatePreview(false);
                   setNewOverview('');
                   setNewReading('');
                   setImageSrc('');
@@ -382,12 +687,23 @@ export default function ContentPage() {
                 Cancel
               </button>
             </div>
+            {showCreatePreview && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
+                  {newOverview || 'Untitled page'}
+                </h5>
+                <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words">
+                  {newReading || 'No content to preview.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Loading Spinner */}
-      {loading ? (
+      {mode !== 'new' && loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
           <span className="text-gray-600 text-lg font-medium">Loading content...</span>
@@ -424,16 +740,99 @@ export default function ContentPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Content (Reading Material)
+                            Content (Reading Material or Image)
                           </label>
-                          <textarea
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            value={editReading}
-                            onChange={e => setEditReading(e.target.value)}
-                            rows="8"
-                          />
+                          {imageSrc ? (
+                            <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
+                              <img
+                                src={imageSrc}
+                                alt="Current content image"
+                                className="rounded-lg max-w-full"
+                                style={{ maxHeight: "400px", objectFit: "contain" }}
+                              />
+                              {!uploadedImageURL && imageFile && (
+                                <button
+                                  onClick={uploadImage}
+                                  disabled={uploadingImage}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+                              {!uploadedImageURL && (
+                                <button
+                                  onClick={() => {
+                                    setImageFile(null);
+                                    setImageSrc(null);
+                                    setUploadedImageURL(null);
+                                  }}
+                                  className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  Remove Image
+                                </button>
+                              )}
+                              {uploadedImageURL && (
+                                <button
+                                  onClick={deleteImage}
+                                  disabled={uploadingImage}
+                                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Deleting...' : 'Delete Image'}
+                                </button>
+                              )}
+                              <div className="mt-3">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Description / Presenter's Notes</label>
+                                <textarea
+                                  placeholder="Add a description or notes for this image..."
+                                  value={imageDescription}
+                                  onChange={(e) => setImageDescription(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                                  rows="3"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <textarea
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                              value={editReading}
+                              onChange={e => setEditReading(e.target.value)}
+                              rows="8"
+                            />
+                          )}
                         </div>
+                        {/* Image upload for editing - only shown when no image */}
+                        {!imageSrc && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor='edit_file_input'>
+                              Or Upload an Image Instead
+                            </label>
+                            <input
+                              type="file"
+                              className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                              accept="image/png, image/jpeg"
+                              id='edit_file_input'
+                              onChange={handleChange}
+                            />
+                            <button
+                              onClick={uploadImage}
+                              disabled={uploadingImage || !imageFile}
+                              className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 hover:bg-green-700'
+                                }`}
+                            >
+                              {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                            </button>
+                          </div>
+                        )}
                         <div className="flex flex-col sm:flex-row gap-2">
+                          {/* Added preview button next to save while editing content. */}
+                          <button
+                            className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                            onClick={() => setShowEditPreview((prev) => !prev)}
+                          >
+                            {showEditPreview ? 'Hide Preview' : 'Preview'}
+                          </button>
                           <button
                             className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
                             onClick={saveEdit}
@@ -447,6 +846,17 @@ export default function ContentPage() {
                             Cancel
                           </button>
                         </div>
+                        {showEditPreview && (
+                          <div className="bg-white rounded-lg p-4 border border-gray-200">
+                            <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                            <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
+                              {editOverview || 'Untitled page'}
+                            </h5>
+                            <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words">
+                              {editReading || 'No content to preview.'}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -462,7 +872,7 @@ export default function ContentPage() {
                           </div>
                           <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 break-words">{item.Overview}</h3>
                         </div>
-                        
+
                         {/* Action Buttons - Stack on mobile */}
                         <div className="flex flex-col sm:flex-row gap-2">
                           <button
@@ -475,14 +885,28 @@ export default function ContentPage() {
                             className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-xs sm:text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
                             onClick={() => handleDeleteClick(item.ContentID)}
                           >
-                            Delete
+                            Delete Page
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-green-400">
                         <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Content:</h4>
-                        <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{item.Reading}</p>
+                        {item.ImageURL ? (
+                          <div>
+                            <img
+                              src={item.ImageURL}
+                              alt={`Image for ${item.Overview}`}
+                              className="rounded-lg border border-gray-200"
+                              style={{ maxWidth: "300px" }}
+                            />
+                            {item.ImageDescription && (
+                              <p className="mt-2 text-xs sm:text-sm text-gray-600 italic">{item.ImageDescription}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{item.Reading}</p>
+                        )}
                       </div>
                     </div>
                   )}

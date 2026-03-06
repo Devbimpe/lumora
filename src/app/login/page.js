@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect} from "react"
 import { useRouter } from "next/navigation"
 import "../globals.css"
 import "./login.css"
@@ -13,8 +13,36 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   const router = useRouter()
+
+  // Check if user is already authenticated and redirect if so
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      try {      
+        const response = await fetch("/api/check-auth");
+        const data = await response.json();
+        if (data.authenticated) {
+          console.log("User is already authenticated, redirecting...");
+          if(data.user.role === "Admin") {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
+        } else {
+          console.log("User is not authenticated, showing signup form.");
+          setCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+        setCheckingAuth(false);
+      }
+    };
+    checkAuthentication();
+  }, [router]);
+
+
 
   // Proper password validation for EVERYONE
   const validatePassword = (password) => {
@@ -92,6 +120,24 @@ export default function Login() {
       setLoading(false)
     }
   }
+
+
+  // Show checking auth state
+  if (checkingAuth) {
+    return (
+      <div className="page">
+        <main className="w-full">
+          <div className="LoginPage">
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+              <span className="text-gray-600 text-lg font-medium">Checking authentication...</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
 
   return (
     <div className="page">

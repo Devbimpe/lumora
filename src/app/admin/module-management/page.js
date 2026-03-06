@@ -6,16 +6,12 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import StatusMessage from "../components/StatusMessage";
 import ModuleRow from "../components/ModuleRow";
-import AddModuleForm from "../components/AddModuleForm";
 import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function ModuleManagementPage() {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedModuleId, setExpandedModuleId] = useState(null);
-  const [heading, setHeading] = useState("");
-  const [subHeading, setSubHeading] = useState("");
   const [submitStatus, setSubmitStatus] = useState("");
   const router = useRouter();
 
@@ -51,49 +47,9 @@ export default function ModuleManagementPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!heading.trim() || !subHeading.trim()) {
-      setSubmitStatus("Both fields are required.");
-      return;
-    }
-
-    try {
-      setSubmitStatus(expandedModuleId === "new" ? "Saving..." : "Updating...");
-      const isNew = expandedModuleId === "new";
-      const method = isNew ? "POST" : "PUT";
-      const body = isNew
-        ? JSON.stringify({ heading, subHeading })
-        : JSON.stringify({ id: expandedModuleId, heading, subHeading });
-
-      const response = await fetch("/api/admin/modules", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || (isNew ? "Submission failed." : "Update failed.")
-        );
-      }
-
-      await fetchModules();
-      setSubmitStatus(
-        isNew ? "Module added successfully!" : "Module updated successfully!"
-      );
-      setHeading("");
-      setSubHeading("");
-      setExpandedModuleId(null);
-    } catch (err) {
-      console.error("Submit error:", err);
-      setSubmitStatus(err.message);
-    }
-  };
-
   const handleDeleteClick = (id) => {
     const module = modules.find((m) => m.id === id);
-    const moduleName = module?.heading || module?.subHeading || "this module";
+    const moduleName = module?.Heading || module?.SubHeading || "this module";
 
     setDeleteModal({
       isOpen: true,
@@ -102,9 +58,7 @@ export default function ModuleManagementPage() {
     });
   };
 
-  const performDelete = async () => {
-    const { moduleId } = deleteModal;
-
+  const performDelete = async (moduleId) => {
     try {
       const response = await fetch("/api/admin/modules", {
         method: "DELETE",
@@ -129,15 +83,35 @@ export default function ModuleManagementPage() {
     router.push(`/admin/content?moduleId=${id}`);
   };
 
+  const handlePublishToggle = async (id, currentPublished) => {
+    try {
+      const response = await fetch("/api/admin/modules", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, published: !currentPublished }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update publish status");
+      }
+
+      await fetchModules();
+      setSubmitStatus(!currentPublished ? "Module published!" : "Module unpublished!");
+      setTimeout(() => setSubmitStatus(""), 3000);
+    } catch (err) {
+      console.error("Publish toggle error:", err);
+      setSubmitStatus("Failed to update publish status");
+      setTimeout(() => setSubmitStatus(""), 3000);
+    }
+  };
+
   // --- Reorder mode handlers ---
 
   const enterReorderMode = () => {
     // Take a snapshot of current modules so we can rearrange locally
     setReorderedModules([...modules]);
     setIsReordering(true);
-    setExpandedModuleId(null); // close any open forms
-    setHeading("");
-    setSubHeading("");
   };
 
   const cancelReorder = () => {
@@ -271,7 +245,9 @@ export default function ModuleManagementPage() {
               <>
                 {/* Normal mode buttons */}
                 <button
-                  onClick={() => setExpandedModuleId("new")}
+                  // onClick={() => setExpandedModuleId("new")}
+                  // className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg hover:bg-green-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
+                  onClick={() => router.push("/admin/content?mode=new")}
                   className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg hover:bg-green-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
                 >
                   <svg
@@ -352,22 +328,6 @@ export default function ModuleManagementPage() {
             </div>
           )}
 
-          {/* Add Module Form - hidden during reorder mode */}
-          {expandedModuleId === "new" && !isReordering && (
-            <AddModuleForm
-              heading={heading}
-              subHeading={subHeading}
-              onHeadingChange={(e) => setHeading(e.target.value)}
-              onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-              onSubmit={handleSubmit}
-              onClose={() => {
-                setExpandedModuleId(null);
-                setHeading("");
-                setSubHeading("");
-              }}
-            />
-          )}
-
           {/* Modules List */}
           <div className="space-y-3 sm:space-y-4">
             {displayedModules.length > 0 ? (
@@ -375,25 +335,9 @@ export default function ModuleManagementPage() {
                 <ModuleRow
                   key={module.id}
                   module={module}
-                  isExpanded={expandedModuleId === module.id}
-                  heading={heading}
-                  subHeading={subHeading}
-                  onHeadingChange={(e) => setHeading(e.target.value)}
-                  onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-                  onEdit={(id) => {
-                    // Show the inline module edit form at the top of this card.
-                    setExpandedModuleId(id);
-                    setHeading(module.Heading);
-                    setSubHeading(module.SubHeading);
-                  }}
+                  onEdit={(id) => handleModuleClick(id)}
                   onDelete={handleDeleteClick}
-                  onSubmit={handleSubmit}
-                  onModuleClick={handleModuleClick}
-                  onClose={() => {
-                    setExpandedModuleId(null);
-                    setHeading("");
-                    setSubHeading("");
-                  }}
+                  onPublishToggle={handlePublishToggle}
                   // Reorder props
                   isReordering={isReordering}
                   isDraggedOver={draggedOverIndex === index}
@@ -431,10 +375,11 @@ export default function ModuleManagementPage() {
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={deleteModal.isOpen}
-        onClose={() =>
-          setDeleteModal({ isOpen: false, moduleId: null, moduleName: "" })
-        }
-        onConfirm={performDelete}
+        onClose={() => setDeleteModal({ isOpen: false, moduleId: null, moduleName: "" })}
+        onConfirm={() => {
+          performDelete(deleteModal.moduleId);
+          setDeleteModal({ isOpen: false, moduleId: "", moduleName: "" });
+        }}
         title="Delete Module"
         message={`Are you sure you want to delete "${deleteModal.moduleName}"? This action cannot be undone and will permanently remove the module and all its content.`}
         confirmText="Delete Module"

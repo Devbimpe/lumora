@@ -66,7 +66,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
             <Image 
-              src="/Lumoralogo.jpeg" 
+              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772421438/Lumoralogo.jpg" 
               alt="LumoraLogo" 
               width={180} 
               height={72} 
@@ -103,7 +103,7 @@ export function Header() {
                 href="/training-module" 
                 className="text-gray-700 hover:text-green-600 font-medium transition-colors"
               >
-                Training Module
+                Training Modules
               </Link>
             )}
 
@@ -161,7 +161,7 @@ export function Header() {
                 className="block text-gray-700 hover:text-green-600 font-medium transition-colors py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Training Module
+                Training Modules
               </Link>
             )}
 
