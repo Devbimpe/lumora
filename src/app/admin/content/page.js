@@ -660,6 +660,31 @@ export default function ContentPage() {
               </div>
             )}
 
+            {/* Image Upload Using URL */}
+            {!imageSrc && (
+              <div>
+                <input
+                  type="url"
+                  className="cursor-pointer w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                  name="urlInput"
+                  id='url_input'
+                  placeholder="Pasete URL here"
+                  onChange={handleChange}
+                />
+                <button
+                  //onClick={uploadImage}
+                  //disabled={uploadingImage || !imageFile}
+                  disabled="false"
+                  className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload URL'}
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Added preview button for new content drafts. */}
               <button
@@ -825,6 +850,30 @@ export default function ContentPage() {
                             </button>
                           </div>
                         )}
+
+                        {/* Image Upload Using URL - only shown when no image */}
+                        {!imageSrc && (
+                          <div>
+                            <input
+                              type="url"
+                              className="cursor-pointer w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg text-black placeholder:text-black"
+                              id='edit_url_input'
+                              placeholder="Pasete URL here"
+                              onChange={handleChange}
+                            />
+                            <button
+                              //onClick={uploadImage}
+                              //disabled={uploadingImage || !imageFile}
+                              className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-blue-600 hover:bg-blue-700'
+                                }`}
+                            >
+                              {uploadingImage ? 'Uploading...' : 'Upload URL'}
+                            </button>
+                          </div>
+                        )}
+
                         <div className="flex flex-col sm:flex-row gap-2">
                           {/* Added preview button next to save while editing content. */}
                           <button
