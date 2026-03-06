@@ -1,7 +1,5 @@
 /**
- * API endpoint to upload an image via image hosting (Cloudinary).
- * Expects form data with a file field.
- * Returns the file ID and URL.
+ * Admin API: upload and delete images via Cloudinary.
  */
 
 import { NextResponse } from 'next/server';
@@ -15,43 +13,51 @@ export async function POST(request) {
     const formData = await request.formData();
     const file = formData.get('file');
     if (!file || typeof file === 'string') {
-      return NextResponse.json({ error: 'Missing or invalid file' }, { status: 400 });
+      throw new Error('Missing or invalid file');
     }
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.length > MAX_SIZE) {
-      return NextResponse.json({ error: 'File too large (max 5 MB)' }, { status: 400 });
+      throw new Error('File too large (max 5 MB)');
     }
     const mimeType = file.type || 'application/octet-stream';
     if (!ALLOWED_TYPES.includes(mimeType)) {
-      return NextResponse.json({ error: 'Invalid file type. Allowed: jpeg, png, gif, webp, bmp' }, { status: 400 });
+      throw new Error('Invalid file type. Allowed: jpeg, png, gif, webp, bmp');
     }
     const filename = file.name || `upload-${Date.now()}.${mimeType.split('/')[1] || 'bin'}`;
+    return NextResponse.json(await imageHosting.autoUploadImage(buffer, filename));
 
-    const { id, url } = await imageHosting.autoUploadImage(buffer, filename);
-    return NextResponse.json({ id, url });
   } catch (err) {
     console.error('Upload error:', err);
     return NextResponse.json(
       { error: 'Upload failed', details: err.message },
-      { status: 500 }
+      { status: err.message?.includes('Missing') || err.message?.includes('Invalid') ? 400 : 500 }
     );
   }
 }
 
 export async function DELETE(request) {
   try {
-    const formData = await request.formData();
-    const imageUrl = formData.get('imageUrl');
+    // Support imageUrl in query string (simple curl) or in form body
+    let imageUrl = request.nextUrl.searchParams.get('imageUrl');
     if (!imageUrl) {
-      return NextResponse.json({ error: 'Missing imageUrl' }, { status: 400 });
+      try {
+        const formData = await request.formData();
+        imageUrl = formData.get('imageUrl');
+      } catch {
+        // formData() throws if Content-Type isn't form-related; ignore
+      }
+    }
+    if (!imageUrl) {
+      throw new Error('Missing imageUrl');
     }
     await imageHosting.deleteImage(imageUrl);
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Delete error:', err);
     return NextResponse.json(
       { error: 'Delete failed', details: err.message },
-      { status: 500 }
+      { status: err.message?.includes('Missing') ? 400 : 500 }
     );
   }
 }

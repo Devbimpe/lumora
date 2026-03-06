@@ -1,13 +1,13 @@
 import { db } from './firebase.js';
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
   where,
   orderBy,
   addDoc,
@@ -28,15 +28,15 @@ export const COLLECTIONS = {
 
 // Tests the Firestore connection
 export async function testConnection() {
-    try {
+  try {
     // Try to access a collection to test the connection
     const testRef = collection(db, '_connection_test');
     console.log('Firestore connection successful!');
     return true;
-    } catch (error) {
+  } catch (error) {
     console.error('Firestore connection failed:', error.message);
-        throw error;
-    }
+    throw error;
+  }
 }
 
 // ==================== USER OPERATIONS ====================
@@ -48,11 +48,11 @@ export async function getUserByEmail(email) {
   const usersRef = collection(db, COLLECTIONS.USERS);
   const q = query(usersRef, where('email', '==', email));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     return null;
   }
-  
+
   const userDoc = querySnapshot.docs[0];
   return { id: userDoc.id, ...userDoc.data() };
 }
@@ -64,11 +64,11 @@ export async function getUserByFirebaseUid(firebaseUid) {
   const usersRef = collection(db, COLLECTIONS.USERS);
   const q = query(usersRef, where('firebaseUid', '==', firebaseUid));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     return null;
   }
-  
+
   const userDoc = querySnapshot.docs[0];
   return { id: userDoc.id, ...userDoc.data() };
 }
@@ -80,11 +80,11 @@ export async function getUserByUsername(username) {
   const usersRef = collection(db, COLLECTIONS.USERS);
   const q = query(usersRef, where('username', '==', username));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     return null;
   }
-  
+
   const userDoc = querySnapshot.docs[0];
   return { id: userDoc.id, ...userDoc.data() };
 }
@@ -95,11 +95,11 @@ export async function getUserByUsername(username) {
 export async function getUserById(userId) {
   const userRef = doc(db, COLLECTIONS.USERS, userId);
   const userDoc = await getDoc(userRef);
-  
+
   if (!userDoc.exists()) {
     return null;
   }
-  
+
   return { id: userDoc.id, ...userDoc.data() };
 }
 
@@ -109,16 +109,16 @@ export async function getUserById(userId) {
 export async function getUserByActivationToken(token) {
   const usersRef = collection(db, COLLECTIONS.USERS);
   const q = query(
-    usersRef, 
+    usersRef,
     where('activationToken', '==', token),
     where('isActivated', '==', false)
   );
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     return null;
   }
-  
+
   const userDoc = querySnapshot.docs[0];
   return { id: userDoc.id, ...userDoc.data() };
 }
@@ -129,7 +129,7 @@ export async function getUserByActivationToken(token) {
 export async function getAllUsers() {
   const usersRef = collection(db, COLLECTIONS.USERS);
   const querySnapshot = await getDocs(usersRef);
-  
+
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -148,7 +148,7 @@ export async function createUser(userData) {
     isActivated: userData.isActivated || false,
     createdAt: Timestamp.now()
   });
-  
+
   return docRef.id;
 }
 
@@ -168,20 +168,20 @@ export async function updateUser(userId, updates) {
  */
 export async function deleteUser(userId) {
   const batch = writeBatch(db);
-  
+
   // Delete user document
   const userRef = doc(db, COLLECTIONS.USERS, userId);
   batch.delete(userRef);
-  
+
   // Delete related student submissions
   const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
   const submissionsQuery = query(submissionsRef, where('studentId', '==', userId));
   const submissionsSnapshot = await getDocs(submissionsQuery);
-  
+
   submissionsSnapshot.forEach((doc) => {
     batch.delete(doc.ref);
   });
-  
+
   await batch.commit();
 }
 
@@ -195,7 +195,7 @@ export async function getAllModules() {
   const modulesRef = collection(db, COLLECTIONS.MODULES);
   const q = query(modulesRef, orderBy('moduleId', 'asc'));
   const querySnapshot = await getDocs(q);
-  
+
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -209,11 +209,11 @@ export async function getModuleById(moduleId) {
   const modulesRef = collection(db, COLLECTIONS.MODULES);
   const q = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     return null;
   }
-  
+
   const moduleDoc = querySnapshot.docs[0];
   return { id: moduleDoc.id, ...moduleDoc.data() };
 }
@@ -223,20 +223,20 @@ export async function getModuleById(moduleId) {
  */
 export async function createModule(moduleData) {
   const modulesRef = collection(db, COLLECTIONS.MODULES);
-  
+
   // Get the highest moduleId
   const allModules = await getAllModules();
-  const maxModuleId = allModules.length > 0 
+  const maxModuleId = allModules.length > 0
     ? Math.max(...allModules.map(m => m.moduleId || 0))
     : 0;
-  
+
   const docRef = await addDoc(modulesRef, {
     moduleId: maxModuleId + 1,
     heading: moduleData.heading,
     subheading: moduleData.subheading || moduleData.subHeading,
     createdAt: Timestamp.now()
   });
-  
+
   return { id: docRef.id, moduleId: maxModuleId + 1 };
 }
 
@@ -247,11 +247,11 @@ export async function updateModule(moduleId, updates) {
   const modulesRef = collection(db, COLLECTIONS.MODULES);
   const q = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     throw new Error('Module not found');
   }
-  
+
   const moduleDoc = querySnapshot.docs[0];
   await updateDoc(moduleDoc.ref, {
     heading: updates.heading,
@@ -265,51 +265,51 @@ export async function updateModule(moduleId, updates) {
  */
 export async function deleteModule(moduleId) {
   const batch = writeBatch(db);
-  
+
   // Find and delete the module
   const modulesRef = collection(db, COLLECTIONS.MODULES);
   const moduleQuery = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
   const moduleSnapshot = await getDocs(moduleQuery);
-  
+
   if (moduleSnapshot.empty) {
     throw new Error('Module not found');
   }
-  
+
   moduleSnapshot.forEach(doc => {
     batch.delete(doc.ref);
   });
-  
+
   // Delete related content
   const contentRef = collection(db, COLLECTIONS.CONTENT);
   const contentQuery = query(contentRef, where('moduleId', '==', parseInt(moduleId)));
   const contentSnapshot = await getDocs(contentQuery);
-  
+
   const contentIds = contentSnapshot.docs.map(doc => doc.data().contentId);
-  
+
   contentSnapshot.forEach(doc => {
     batch.delete(doc.ref);
   });
-  
+
   // Delete related knowledge checks
   if (contentIds.length > 0) {
     const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
     for (const contentId of contentIds) {
       const checksQuery = query(checksRef, where('contentId', '==', contentId));
       const checksSnapshot = await getDocs(checksQuery);
-      
+
       const checkIds = checksSnapshot.docs.map(doc => doc.data().knowledgeCheckId);
-      
+
       checksSnapshot.forEach(doc => {
         batch.delete(doc.ref);
       });
-      
+
       // Delete related student submissions
       if (checkIds.length > 0) {
         const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
         for (const checkId of checkIds) {
           const submissionsQuery = query(submissionsRef, where('knowledgeCheckId', '==', checkId));
           const submissionsSnapshot = await getDocs(submissionsQuery);
-          
+
           submissionsSnapshot.forEach(doc => {
             batch.delete(doc.ref);
           });
@@ -317,9 +317,9 @@ export async function deleteModule(moduleId) {
       }
     }
   }
-  
+
   await batch.commit();
-  
+
   // Renumber remaining modules so there are no gaps
   await reindexModules();
 }
@@ -412,28 +412,28 @@ export async function reorderModules(newOrder) {
 
   // Update user progress
   for (const d of progressDocs.docs) {
-      // If the progress doc uses the old moduleId in its ID, rename the doc
-      const oldDocId = d.id;
-      const expectedDocId = `${d.data().userId}_${idMap[d.data().moduleId]}`;
-      console.log(`Updating progress doc ${oldDocId} for user ${d.data().userId} from module ${d.data().moduleId} to ${idMap[d.data().moduleId]}`);
-      if (oldDocId !== expectedDocId) {
-        // Copy data to new doc with updated moduleId in ID
-        const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, expectedDocId);
-        const data = d.data();
-        data.moduleId = idMap[d.data().moduleId];
+    // If the progress doc uses the old moduleId in its ID, rename the doc
+    const oldDocId = d.id;
+    const expectedDocId = `${d.data().userId}_${idMap[d.data().moduleId]}`;
+    console.log(`Updating progress doc ${oldDocId} for user ${d.data().userId} from module ${d.data().moduleId} to ${idMap[d.data().moduleId]}`);
+    if (oldDocId !== expectedDocId) {
+      // Copy data to new doc with updated moduleId in ID
+      const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, expectedDocId);
+      const data = d.data();
+      data.moduleId = idMap[d.data().moduleId];
 
-        batch.set(newDocRef, data, { merge: true });
-        batch.update(d.ref, { moduleId: idMap[d.data().moduleId] });
+      batch.set(newDocRef, data, { merge: true });
+      batch.update(d.ref, { moduleId: idMap[d.data().moduleId] });
 
-        // Delete the old doc
-        batch.delete(d.ref);
-      } else {
-        const oldId = d.data().moduleId;
-        if (idMap[oldId] !== undefined) {
-          batch.update(d.ref, { moduleId: idMap[oldId] });
-        }
-
+      // Delete the old doc
+      batch.delete(d.ref);
+    } else {
+      const oldId = d.data().moduleId;
+      if (idMap[oldId] !== undefined) {
+        batch.update(d.ref, { moduleId: idMap[oldId] });
       }
+
+    }
   }
 
   // Update knowledge checks (note: capital ID)
@@ -475,12 +475,12 @@ export async function updateModulePublished(moduleId, published) {
 export async function getContentByModuleId(moduleId) {
   const contentRef = collection(db, COLLECTIONS.CONTENT);
   const q = query(
-    contentRef, 
+    contentRef,
     where('moduleId', '==', parseInt(moduleId)),
     orderBy('contentId', 'asc')
   );
   const querySnapshot = await getDocs(q);
-  
+
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -494,11 +494,11 @@ export async function getContentById(contentId) {
   const contentRef = collection(db, COLLECTIONS.CONTENT);
   const q = query(contentRef, where('contentId', '==', parseInt(contentId)));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     return null;
   }
-  
+
   const contentDoc = querySnapshot.docs[0];
   return { id: contentDoc.id, ...contentDoc.data() };
 }
@@ -510,17 +510,18 @@ export async function updateContent(contentId, updates) {
   const contentRef = collection(db, COLLECTIONS.CONTENT);
   const q = query(contentRef, where('contentId', '==', parseInt(contentId)));
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     throw new Error('Content not found');
   }
-  
+
   const contentDoc = querySnapshot.docs[0];
   await updateDoc(contentDoc.ref, {
-    overview: updates.Overview || updates.overview,
-    reading: updates.Reading || updates.reading,
+    overview: updates.Overview ?? updates.overview ?? '',
+    reading: updates.Reading ?? updates.reading ?? '',
     updatedAt: Timestamp.now(),
-    image: updates.Image || null
+    image: updates.imageURL ?? updates.Image ?? updates.image ?? null,
+    imageDescription: updates.imageDescription ?? updates.ImageDescription ?? null
   });
 }
 
@@ -529,22 +530,23 @@ export async function updateContent(contentId, updates) {
  */
 export async function createContent(contentData) {
   const contentRef = collection(db, COLLECTIONS.CONTENT);
-  
+
   // Get the highest contentId for this module
   const moduleContent = await getContentByModuleId(contentData.moduleId);
-  const maxContentId = moduleContent.length > 0 
+  const maxContentId = moduleContent.length > 0
     ? Math.max(...moduleContent.map(c => c.contentId || 0))
     : 0;
-  
+
   const docRef = await addDoc(contentRef, {
     contentId: maxContentId + 1,
     moduleId: parseInt(contentData.moduleId),
     overview: contentData.overview,
     reading: contentData.reading,
     createdAt: Timestamp.now(),
-    image: contentData.image || null
+    image: contentData.imageURL || contentData.image || null,
+    imageDescription: contentData.imageDescription || null
   });
-  
+
   return { id: docRef.id, contentId: maxContentId + 1 };
 }
 
@@ -557,7 +559,7 @@ export async function getKnowledgeChecksByContentId(contentId) {
   const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
   const q = query(checksRef, where('contentId', '==', parseInt(contentId)));
   const querySnapshot = await getDocs(q);
-  
+
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -571,28 +573,28 @@ export async function getKnowledgeChecksByModuleId(moduleId) {
   try {
     const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
     const moduleIdNum = parseInt(moduleId);
-    
+
     // Query without orderBy first to avoid index requirement
     // We'll sort in JavaScript instead
     const q = query(
-      checksRef, 
+      checksRef,
       where('moduleID', '==', moduleIdNum)
     );
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     let results = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-    
+
     // Sort by knowledgeCheckId in JavaScript
     results.sort((a, b) => {
       const aId = a.knowledgeCheckId || 0;
       const bId = b.knowledgeCheckId || 0;
       return aId - bId;
     });
-    
+
     return results;
   } catch (error) {
     console.error('Error fetching knowledge checks by module ID:', error);
@@ -681,13 +683,13 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
  */
 export async function getModuleWithContent(moduleId) {
   const module = await getModuleById(moduleId);
-  
+
   if (!module) {
     return null;
   }
-  
+
   const content = await getContentByModuleId(moduleId);
-  
+
   // Get knowledge checks for each content
   const contentWithChecks = await Promise.all(
     content.map(async (contentItem) => {
@@ -698,7 +700,7 @@ export async function getModuleWithContent(moduleId) {
       };
     })
   );
-  
+
   return {
     ...module,
     content: contentWithChecks
@@ -712,7 +714,7 @@ export async function getModuleWithContent(moduleId) {
  */
 export async function createStudentSubmission(submissionData) {
   const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
-  
+
   const docRef = await addDoc(submissionsRef, {
     knowledgeCheckId: parseInt(submissionData.knowledgeCheckId),
     studentId: submissionData.studentId,
@@ -720,7 +722,7 @@ export async function createStudentSubmission(submissionData) {
     grade: submissionData.grade || null,
     createdAt: Timestamp.now()
   });
-  
+
   return docRef.id;
 }
 
@@ -820,7 +822,7 @@ export async function getSubmissionsByStudentId(studentId) {
   const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
   const q = query(submissionsRef, where('studentId', '==', studentId));
   const querySnapshot = await getDocs(q);
-  
+
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -836,7 +838,7 @@ export async function getUserProgress(userId) {
   const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
   const q = query(progressRef, where('userId', '==', userId));
   const querySnapshot = await getDocs(q);
-  
+
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
@@ -850,12 +852,12 @@ export async function getUserProgress(userId) {
 export async function getUserModuleProgress(userId, moduleId) {
   const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
   const q = query(
-    progressRef, 
+    progressRef,
     where('userId', '==', userId),
     where('moduleId', '==', parseInt(moduleId))
   );
   const querySnapshot = await getDocs(q);
-  
+
   if (querySnapshot.empty) {
     // Return default progress with 0% if no progress exists
     return {
@@ -867,20 +869,20 @@ export async function getUserModuleProgress(userId, moduleId) {
       percentage: 0
     };
   }
-  
+
   const data = querySnapshot.docs[0].data();
-  
+
   // Ensure percentage field exists, calculate if missing
   if (data.percentage === undefined || data.percentage === null) {
     const percentage = await calculateModuleProgress(
-      userId, 
-      moduleId, 
-      data.viewedContent || [], 
+      userId,
+      moduleId,
+      data.viewedContent || [],
       data.completedContent || []
     );
     data.percentage = percentage;
   }
-  
+
   return {
     id: querySnapshot.docs[0].id,
     ...data
@@ -919,7 +921,7 @@ async function calculateModuleProgress(userId, moduleId, viewedItems = [], compl
     // Get total items count: pages + knowledge checks
     const knowledgeChecks = await getKnowledgeChecksByModuleId(moduleId);
     const totalKnowledgeChecks = knowledgeChecks?.length || 0;
-    
+
     // Get pages count by scanning public/img directory
     let totalPages = 0;
     try {
@@ -927,20 +929,20 @@ async function calculateModuleProgress(userId, moduleId, viewedItems = [], compl
       const fs = require('fs');
       const path = require('path');
       const imgDir = path.join(process.cwd(), 'public', 'img');
-      
+
       if (fs.existsSync(imgDir)) {
         const files = fs.readdirSync(imgDir);
         const moduleNum = String(moduleId).replace('module', '');
         const pattern = new RegExp(`^mod${moduleNum}p(\\d+)\\.(jpg|jpeg|png)$`, 'i');
         const pageNumbers = new Set();
-        
+
         files.forEach(file => {
           const match = file.match(pattern);
           if (match) {
             pageNumbers.add(parseInt(match[1]));
           }
         });
-        
+
         totalPages = pageNumbers.size;
       }
     } catch (fsError) {
@@ -950,18 +952,18 @@ async function calculateModuleProgress(userId, moduleId, viewedItems = [], compl
       const pageConfig = { 1: 1, 2: 1, 3: 9 };
       totalPages = pageConfig[moduleNum] || 0;
     }
-    
+
     const totalItems = totalPages + totalKnowledgeChecks;
-    
+
     if (totalItems === 0) return 0;
-    
+
     // Count unique viewed items
     const uniqueViewed = new Set(viewedItems.map(id => String(id)));
-    
+
     // Calculate percentage based on viewed items
     const viewedCount = uniqueViewed.size;
     const percentage = Math.round((viewedCount / totalItems) * 100);
-    
+
     return Math.min(percentage, 100); // Cap at 100%
   } catch (error) {
     console.error('Error calculating module progress:', error);
@@ -978,19 +980,19 @@ async function calculateModuleProgress(userId, moduleId, viewedItems = [], compl
  */
 export async function markContentViewed(userId, moduleId, contentId) {
   const progress = await getUserModuleProgress(userId, moduleId);
-  
+
   const viewedContent = progress?.viewedContent || [];
   const contentIdStr = String(contentId);
   if (!viewedContent.includes(contentIdStr)) {
     viewedContent.push(contentIdStr);
   }
-  
+
   const completedContent = progress?.completedContent || [];
   const isCompleted = completedContent.includes(contentIdStr);
-  
+
   // Calculate percentage
   const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
-  
+
   return await updateUserModuleProgress(userId, moduleId, {
     viewedContent,
     completedContent: isCompleted ? completedContent : [...completedContent],
@@ -1005,25 +1007,25 @@ export async function markContentViewed(userId, moduleId, contentId) {
  */
 export async function markContentCompleted(userId, moduleId, contentId) {
   const progress = await getUserModuleProgress(userId, moduleId);
-  
+
   const completedContent = progress?.completedContent || [];
   const contentIdStr = String(contentId);
   if (!completedContent.includes(contentIdStr)) {
     completedContent.push(contentIdStr);
   }
-  
+
   const viewedContent = progress?.viewedContent || [];
   if (!viewedContent.includes(contentIdStr)) {
     viewedContent.push(contentIdStr);
   }
-  
+
   // Calculate percentage
   const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
-  
+
   // Check if module is completed (all items viewed)
   const totalItems = viewedContent.length;
   const isCompleted = percentage >= 100;
-  
+
   return await updateUserModuleProgress(userId, moduleId, {
     viewedContent,
     completedContent,
@@ -1041,10 +1043,10 @@ export async function markModuleCompleted(userId, moduleId) {
   const progress = await getUserModuleProgress(userId, moduleId);
   const viewedContent = progress?.viewedContent || [];
   const completedContent = progress?.completedContent || [];
-  
+
   // Calculate final percentage
   const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
-  
+
   return await updateUserModuleProgress(userId, moduleId, {
     isCompleted: true,
     completedAt: Timestamp.now(),
@@ -1059,14 +1061,14 @@ export async function markModuleCompleted(userId, moduleId) {
  */
 export async function createFeedback(feedbackData) {
   const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
-  
+
   const docRef = await addDoc(feedbackRef, {
     userId: feedbackData.userId,
     message: feedbackData.message,
     type: feedbackData.type, // 'General' (string) or module ID (number/string)
     createdAt: Timestamp.now()
   });
-  
+
   return docRef.id;
 }
 
@@ -1077,7 +1079,7 @@ export async function getFeedbackByUserId(userId) {
   const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
   const q = query(feedbackRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
   const querySnapshot = await getDocs(q);
-  
+
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()

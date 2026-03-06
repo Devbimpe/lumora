@@ -6,16 +6,12 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import StatusMessage from "../components/StatusMessage";
 import ModuleRow from "../components/ModuleRow";
-import AddModuleForm from "../components/AddModuleForm";
 import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function ModuleManagementPage() {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedModuleId, setExpandedModuleId] = useState(null);
-  const [heading, setHeading] = useState("");
-  const [subHeading, setSubHeading] = useState("");
   const [submitStatus, setSubmitStatus] = useState("");
   const router = useRouter();
 
@@ -48,46 +44,6 @@ export default function ModuleManagementPage() {
       setError(error.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!heading.trim() || !subHeading.trim()) {
-      setSubmitStatus("Both fields are required.");
-      return;
-    }
-
-    try {
-      setSubmitStatus(expandedModuleId === "new" ? "Saving..." : "Updating...");
-      const isNew = expandedModuleId === "new";
-      const method = isNew ? "POST" : "PUT";
-      const body = isNew
-        ? JSON.stringify({ heading, subHeading })
-        : JSON.stringify({ id: expandedModuleId, heading, subHeading });
-
-      const response = await fetch("/api/admin/modules", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || (isNew ? "Submission failed." : "Update failed.")
-        );
-      }
-
-      await fetchModules();
-      setSubmitStatus(
-        isNew ? "Module added successfully!" : "Module updated successfully!"
-      );
-      setHeading("");
-      setSubHeading("");
-      setExpandedModuleId(null);
-    } catch (err) {
-      console.error("Submit error:", err);
-      setSubmitStatus(err.message);
     }
   };
 
@@ -156,9 +112,6 @@ export default function ModuleManagementPage() {
     // Take a snapshot of current modules so we can rearrange locally
     setReorderedModules([...modules]);
     setIsReordering(true);
-    setExpandedModuleId(null); // close any open forms
-    setHeading("");
-    setSubHeading("");
   };
 
   const cancelReorder = () => {
@@ -375,22 +328,6 @@ export default function ModuleManagementPage() {
             </div>
           )}
 
-          {/* Add Module Form - hidden during reorder mode */}
-          {expandedModuleId === "new" && !isReordering && (
-            <AddModuleForm
-              heading={heading}
-              subHeading={subHeading}
-              onHeadingChange={(e) => setHeading(e.target.value)}
-              onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-              onSubmit={handleSubmit}
-              onClose={() => {
-                setExpandedModuleId(null);
-                setHeading("");
-                setSubHeading("");
-              }}
-            />
-          )}
-
           {/* Modules List */}
           <div className="space-y-3 sm:space-y-4">
             {displayedModules.length > 0 ? (
@@ -398,26 +335,9 @@ export default function ModuleManagementPage() {
                 <ModuleRow
                   key={module.id}
                   module={module}
-                  isExpanded={expandedModuleId === module.id}
-                  heading={heading}
-                  subHeading={subHeading}
-                  onHeadingChange={(e) => setHeading(e.target.value)}
-                  onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-                  onEdit={(id) => {
-                    // Show the inline module edit form at the top of this card.
-                    setExpandedModuleId(id);
-                    setHeading(module.Heading);
-                    setSubHeading(module.SubHeading);
-                  }}
+                  onEdit={(id) => handleModuleClick(id)}
                   onDelete={handleDeleteClick}
                   onPublishToggle={handlePublishToggle}
-                  onSubmit={handleSubmit}
-                  onModuleClick={handleModuleClick}
-                  onClose={() => {
-                    setExpandedModuleId(null);
-                    setHeading("");
-                    setSubHeading("");
-                  }}
                   // Reorder props
                   isReordering={isReordering}
                   isDraggedOver={draggedOverIndex === index}

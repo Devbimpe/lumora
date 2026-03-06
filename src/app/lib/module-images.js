@@ -1,6 +1,6 @@
 /**
  * Cloudinary URLs for module card images (M1–M7).
- * Uploaded via /api/upload-image.
+ * Uploaded via /api/admin/upload-image.
  */
 const CLOUDINARY_BASE = "http://res.cloudinary.com/du6yiw4it/image/upload";
 
