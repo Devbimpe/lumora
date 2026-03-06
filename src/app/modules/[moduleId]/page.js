@@ -3,7 +3,6 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../Module.css';
-import { getModulePages } from '../modulePages';
 
 // Helper function to parse choices into array of options
 // Handles both array of strings and single string format
@@ -126,7 +125,7 @@ export default function ModulePage() {
     checkAuthStatus();
   }, [user]); // Only check if user is not set
 
-  // Load pages and knowledge checks when moduleId changes
+  // Load content and knowledge checks when moduleId changes
   useEffect(() => {
     setLoading(true);
     
@@ -134,11 +133,20 @@ export default function ModulePage() {
       try {
         const moduleNum = moduleId.replace('module', '');
         
-        // Fetch pages and knowledge checks in parallel
-        const [modulePages, knowledgeChecksRes] = await Promise.all([
-          getModulePages(moduleId),
+        // Fetch content from Firestore and knowledge checks in parallel
+        const [contentRes, knowledgeChecksRes] = await Promise.all([
+          fetch(`/api/content?moduleId=${moduleNum}`),
           fetch(`/api/knowledge-checks?moduleId=${moduleNum}`)
         ]);
+        
+        let contentItems = [];
+        if (contentRes.ok) {
+          try {
+            contentItems = await contentRes.json();
+          } catch (parseError) {
+            console.error('Failed to parse content response:', parseError);
+          }
+        }
         
         let knowledgeChecks = [];
         if (knowledgeChecksRes.ok) {
@@ -147,107 +155,40 @@ export default function ModulePage() {
           } catch (parseError) {
             console.error('Failed to parse knowledge checks response:', parseError);
           }
-        } else {
-          const errorData = await knowledgeChecksRes.json().catch(() => ({}));
-          console.error('Failed to fetch knowledge checks:', errorData);
-          // Continue without knowledge checks rather than failing completely
         }
         
-        // Build unified array: pages first (sorted by pageNumber), then knowledge checks inserted at specific positions
-        const items = [];
-        
-        // Sort pages by pageNumber to ensure correct order
-        const sortedPages = [...modulePages].sort((a, b) => a.pageNumber - b.pageNumber);
-        
-        // Check if this is module 3 for special knowledge check placement
-        const isModule3 = moduleNum === '3';
-        
-        if (isModule3 && knowledgeChecks.length > 0) {
-          // For module 3: insert knowledge checks at specific positions
-          // First knowledge check after page 4 (or after page 3 if page 4 doesn't exist)
-          // Second knowledge check after page 9 (or after page 8 if page 9 doesn't exist)
-          // Rest at the end
-          let knowledgeCheckIndex = 0;
-          
-          // Check which pages exist (calculate once before loop)
-          const hasPage4 = sortedPages.some(p => p.pageNumber === 4);
-          const hasPage9 = sortedPages.some(p => p.pageNumber === 9);
-          
-          sortedPages.forEach(page => {
-            // Add the page
-            items.push({
-              id: `page-${page.pageNumber}`,
-              type: 'page',
-              pageNumber: page.pageNumber,
-              imagePath: page.imagePath,
-              title: page.title
-            });
-            
-            // Insert first knowledge check after page 4 (or page 3 if 4 doesn't exist)
-            if ((page.pageNumber === 4 || (!hasPage4 && page.pageNumber === 3)) && knowledgeCheckIndex < knowledgeChecks.length) {
-              const check = knowledgeChecks[knowledgeCheckIndex];
-              items.push({
-                id: `check-${check.knowledgeCheckId}`,
-                type: 'knowledgeCheck',
-                knowledgeCheckId: check.knowledgeCheckId,
-                question: check.question,
-                choices: parseChoices(check.choices),
-                answer: check.answer?.trim(),
-                explain: check.explain,
-                allowance: check.allowance,
-                contentId: check.contentId
-              });
-              knowledgeCheckIndex++;
+        // Group knowledge checks by their contentId for insertion after associated content
+        const checksByContentId = {};
+        const unassociatedChecks = [];
+        knowledgeChecks.forEach(check => {
+          if (check.contentId != null) {
+            if (!checksByContentId[check.contentId]) {
+              checksByContentId[check.contentId] = [];
             }
-            
-            // Insert second knowledge check after page 9 (or page 8 if 9 doesn't exist)
-            if ((page.pageNumber === 9 || (!hasPage9 && page.pageNumber === 8)) && knowledgeCheckIndex < knowledgeChecks.length) {
-              const check = knowledgeChecks[knowledgeCheckIndex];
-              items.push({
-                id: `check-${check.knowledgeCheckId}`,
-                type: 'knowledgeCheck',
-                knowledgeCheckId: check.knowledgeCheckId,
-                question: check.question,
-                choices: parseChoices(check.choices),
-                answer: check.answer?.trim(),
-                explain: check.explain,
-                allowance: check.allowance,
-                contentId: check.contentId
-              });
-              knowledgeCheckIndex++;
-            }
-          });
-          
-          // Add any remaining knowledge checks at the end
-          while (knowledgeCheckIndex < knowledgeChecks.length) {
-            const check = knowledgeChecks[knowledgeCheckIndex];
-            items.push({
-              id: `check-${check.knowledgeCheckId}`,
-              type: 'knowledgeCheck',
-              knowledgeCheckId: check.knowledgeCheckId,
-              question: check.question,
-              choices: parseChoices(check.choices),
-              answer: check.answer?.trim(),
-              explain: check.explain,
-              allowance: check.allowance,
-              contentId: check.contentId
-            });
-            knowledgeCheckIndex++;
+            checksByContentId[check.contentId].push(check);
+          } else {
+            unassociatedChecks.push(check);
           }
-        } else {
-          // For other modules: add all pages first, then knowledge checks at the end
-          sortedPages.forEach(page => {
-            items.push({
-              id: `page-${page.pageNumber}`,
-              type: 'page',
-              pageNumber: page.pageNumber,
-              imagePath: page.imagePath,
-              title: page.title
-            });
+        });
+        
+        // Build unified items array: each content item followed by its knowledge checks
+        const items = [];
+        const sortedContent = [...contentItems].sort((a, b) => a.ContentID - b.ContentID);
+        
+        sortedContent.forEach(content => {
+          items.push({
+            id: `content-${content.ContentID}`,
+            type: 'content',
+            contentId: content.ContentID,
+            overview: content.Overview,
+            reading: content.Reading,
+            image: content.ImageURL,
+            imageDescription: content.ImageDescription
           });
           
-          // Add knowledge checks at the end (after all pages)
-          knowledgeChecks.forEach((check, index) => {
+          // Insert knowledge checks associated with this content item
+          const associatedChecks = checksByContentId[content.ContentID] || [];
+          associatedChecks.forEach(check => {
             items.push({
               id: `check-${check.knowledgeCheckId}`,
               type: 'knowledgeCheck',
@@ -260,11 +201,25 @@ export default function ModulePage() {
               contentId: check.contentId
             });
           });
-        }
+        });
+        
+        // Append any knowledge checks not linked to a specific content item
+        unassociatedChecks.forEach(check => {
+          items.push({
+            id: `check-${check.knowledgeCheckId}`,
+            type: 'knowledgeCheck',
+            knowledgeCheckId: check.knowledgeCheckId,
+            question: check.question,
+            choices: parseChoices(check.choices),
+            answer: check.answer?.trim(),
+            explain: check.explain,
+            allowance: check.allowance,
+            contentId: check.contentId
+          });
+        });
         
         setAllItems(items);
         
-        // Set module heading from API if available (fallback to default if allModules not loaded yet)
         const currentModule = allModules.length > 0 ? allModules.find(m => m.ModuleID === parseInt(moduleNum)) : null;
         if (currentModule) {
           setModuleHeading(currentModule.Heading || `Module ${moduleNum}`);
@@ -276,8 +231,7 @@ export default function ModulePage() {
         
         // Set current item based on URL or first item
         const itemToShow = currentItemId
-          ? items.find(item => item.id === currentItemId || 
-              (item.type === 'page' && item.id === `page-${currentItemId}`))
+          ? items.find(item => item.id === currentItemId)
           : items[0];
         setCurrentItem(itemToShow || items[0]);
       } catch (err) {
@@ -288,7 +242,7 @@ export default function ModulePage() {
     }
     
     loadContent();
-  }, [moduleId, currentItemId]); // Removed allModules to avoid re-fetching when modules load
+  }, [moduleId, currentItemId]);
 
   // Update module heading when allModules loads
   useEffect(() => {
@@ -316,8 +270,8 @@ export default function ModulePage() {
     
     try {
       const item = allItems.find(i => i.id === itemId);
-      const contentId = item?.type === 'page' 
-        ? item.pageNumber 
+      const contentId = item?.type === 'content' 
+        ? item.contentId 
         : item?.knowledgeCheckId || itemId;
       
       await fetch('/api/progress', {
@@ -577,10 +531,11 @@ export default function ModulePage() {
               const isCompleted = index < currentIndex;
               const displayNumber = index + 1;
               
-              // Determine title based on type
-              let title = item.title || `Item ${displayNumber}`;
-              if (item.type === 'knowledgeCheck') {
-                title = `Knowledge Check ${item.knowledgeCheckId}`;
+              let title = `Item ${displayNumber}`;
+              if (item.type === 'content') {
+                title = item.overview || `Section ${displayNumber}`;
+              } else if (item.type === 'knowledgeCheck') {
+                title = `Knowledge Check`;
               }
               
               return (
@@ -633,22 +588,32 @@ export default function ModulePage() {
         <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 lg:py-12">
           {/* Content Display */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8">
-            {currentItem.type === 'page' && (
-              <div className="flex justify-center items-center">
-                <img
-                  src={currentItem.imagePath}
-                  alt={`${moduleHeading} - ${currentItem.title}`}
-                  className="max-w-full h-auto rounded-lg"
-                  onError={(e) => {
-                    console.error('Failed to load image:', currentItem.imagePath);
-                    e.target.style.display = 'none';
-                    e.target.nextSibling?.classList.remove('hidden');
-                  }}
-                />
-                <div className="hidden text-center text-gray-600 p-8">
-                  <p className="text-lg mb-2">Image not found</p>
-                  <p className="text-sm">Path: {currentItem.imagePath}</p>
-                </div>
+            {currentItem.type === 'content' && (
+              <div className="space-y-6">
+                {currentItem.overview && (
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800">
+                    {currentItem.overview}
+                  </h3>
+                )}
+                {currentItem.image && (
+                  <div className="flex justify-center items-center">
+                    <img
+                      src={currentItem.image}
+                      alt={currentItem.imageDescription || currentItem.overview || 'Module content'}
+                      className="max-w-full h-auto rounded-lg"
+                    />
+                  </div>
+                )}
+                {currentItem.reading && (
+                  <div className="prose prose-green max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {currentItem.reading}
+                  </div>
+                )}
+                {!currentItem.overview && !currentItem.reading && !currentItem.image && (
+                  <div className="text-center text-gray-500 p-8">
+                    <p>No content available for this section.</p>
+                  </div>
+                )}
               </div>
             )}
 
