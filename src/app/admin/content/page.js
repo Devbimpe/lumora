@@ -398,32 +398,44 @@ export default function ContentPage() {
       setError("Question is required");
       return;
     }
-    const filledChoices = kcChoices.filter((c) => c.trim());
-    if (filledChoices.length < 2) {
-      setError("At least 2 choices are required");
-      return;
-    }
-    if (!kcAnswer) {
-      setError("Please select the correct answer");
-      return;
+
+    // descriptive questions don't need choices or a correct answer
+    const isDescriptive = kcTab === "descriptive";
+
+    // only validate choices/answer for multiple-choice questions
+    if (!isDescriptive) {
+      const filledChoices = kcChoices.filter((c) => c.trim());
+      if (filledChoices.length < 2) {
+        setError("At least 2 choices are required");
+        return;
+      }
+      if (!kcAnswer) {
+        setError("Please select the correct answer");
+        return;
+      }
     }
 
-    const formattedChoices = filledChoices.map(
-      (text, i) => `${String.fromCharCode(65 + i)}: ${text}`,
-    );
+    // for descriptive, send empty choices; for MC, format as "A: ...", "B: ..." etc.
+    const filledChoices = kcChoices.filter((c) => c.trim());
+    const formattedChoices = isDescriptive
+      ? []
+      : filledChoices.map(
+          (text, i) => `${String.fromCharCode(65 + i)}: ${text}`,
+        );
 
     try {
       setLoading(true);
       const res = await fetch("/api/knowledge-checks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // for descriptive: no answer, sample answer goes in explain field
         body: JSON.stringify({
           moduleID: selectedModule,
           contentId: null,
           question: kcQuestion,
           choices: formattedChoices,
-          answer: kcAnswer,
-          explain: kcExplain,
+          answer: isDescriptive ? "" : kcAnswer,
+          explain: isDescriptive ? kcDescAnswer : kcExplain,
         }),
       });
 
@@ -503,32 +515,44 @@ export default function ContentPage() {
       setError("Question is required");
       return;
     }
-    const filledChoices = editKCChoices.filter((c) => c.trim());
-    if (filledChoices.length < 2) {
-      setError("At least 2 choices are required");
-      return;
-    }
-    if (!editKCAnswer) {
-      setError("Please select the correct answer");
-      return;
+
+    // same logic as create — descriptive doesn't use choices/answer
+    const isDescriptive = editKCTab === "descriptive";
+
+    // skip choice/answer validation when editing a descriptive question
+    if (!isDescriptive) {
+      const filledChoices = editKCChoices.filter((c) => c.trim());
+      if (filledChoices.length < 2) {
+        setError("At least 2 choices are required");
+        return;
+      }
+      if (!editKCAnswer) {
+        setError("Please select the correct answer");
+        return;
+      }
     }
 
-    const formattedChoices = filledChoices.map(
-      (text, i) => `${String.fromCharCode(65 + i)}: ${text}`,
-    );
+    // descriptive sends empty choices; MC formats them with letter prefixes
+    const filledChoices = editKCChoices.filter((c) => c.trim());
+    const formattedChoices = isDescriptive
+      ? []
+      : filledChoices.map(
+          (text, i) => `${String.fromCharCode(65 + i)}: ${text}`,
+        );
 
     try {
       setLoading(true);
       const res = await fetch("/api/knowledge-checks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        // for descriptive: sample answer stored in explain, no correct answer needed
         body: JSON.stringify({
           knowledgeCheckId: editingKCId,
           moduleID: selectedModule,
           question: editKCQuestion,
           choices: formattedChoices,
-          answer: editKCAnswer,
-          explain: editKCExplain,
+          answer: isDescriptive ? "" : editKCAnswer,
+          explain: isDescriptive ? editKCDescAnswer : editKCExplain,
         }),
       });
 
@@ -726,9 +750,9 @@ export default function ContentPage() {
         />
       )}
 
-      {/* Add Content Page Button - only shown when editing an existing module */}
+      {/* Add Content Page & Knowledge Check Buttons - only shown when editing an existing module */}
       {mode !== 'new' && selectedModule && (
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
@@ -738,8 +762,17 @@ export default function ContentPage() {
             </svg>
             Add Content Page
           </button>
+          <button
+            onClick={() => setShowKCForm(!showKCForm)}
+            className="w-full sm:w-auto bg-blue-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Knowledge Check
+          </button>
           {modules.length > 0 && (
-            <p className="mt-2 text-xs sm:text-sm text-gray-500">
+            <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
               {content.length} {content.length === 1 ? 'page' : 'pages'}
             </p>
           )}

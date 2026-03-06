@@ -46,7 +46,8 @@ export async function GET(request) {
 }
 /**
  * POST handler: Creates a new knowledge check
- * Expects a JSON body with 'moduleID', 'contentId', 'question', 'choices', 'answer', 'explain', and 'allowance' fields
+ * Supports both multiple-choice and descriptive question types.
+ * For descriptive questions, choices and answer can be empty.
  */
 export async function POST(request) {
   try {
@@ -61,19 +62,22 @@ export async function POST(request) {
       allowance,
     } = body;
 
-    if (!moduleID || !question || !choices || !answer) {
+    // only moduleID and question are required — descriptive questions
+    // won't have choices or a correct answer
+    if (!moduleID || !question) {
       return NextResponse.json(
-        { error: "moduleID, question, choices, and answer are required" },
+        { error: "moduleID and question are required" },
         { status: 400 },
       );
     }
 
+    // default to empty choices/answer for descriptive questions
     const result = await createKnowledgeCheck({
       moduleID,
       contentId,
       question,
-      choices,
-      answer,
+      choices: choices || [],
+      answer: answer || "",
       explain,
       allowance,
     });
