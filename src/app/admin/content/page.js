@@ -26,11 +26,14 @@ export default function ContentPage() {
   const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+
+  const [faviconFile, setFaviconFile] = useState(null);
   const [imageSrc, setImageSrc] = useState(null); // preview image
   const [uploadedImageURL, setUploadedImageURL] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageDescription, setImageDescription] = useState('');
+
+  const [faviconURL, setFaviconURL] = useState('');
 
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");

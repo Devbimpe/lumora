@@ -3,6 +3,10 @@
 export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd }) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 border-l-4 border-green-500">
+      <div>
+        
+      </div>
+
       <div className="flex justify-between items-center mb-3 sm:mb-4">
         <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-gray-800">{isNew ? 'Create New Module' : 'Edit Module'}</h3>
         <button
