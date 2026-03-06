@@ -46,8 +46,10 @@ export default function ContentPage() {
   const [editKCExplain, setEditKCExplain] = useState("");
   const [kcTab, setKcTab] = useState("multiple-choice");
   const [kcDescAnswer, setKcDescAnswer] = useState("");
+  const [showKCPreview, setShowKCPreview] = useState(false);
   const [editKCTab, setEditKCTab] = useState("multiple-choice");
   const [editKCDescAnswer, setEditKCDescAnswer] = useState("");
+  const [showEditKCPreview, setShowEditKCPreview] = useState(false);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
   const currentModule = modules.find(
@@ -389,6 +391,7 @@ export default function ContentPage() {
     setKcExplain("");
     setKcTab("multiple-choice");
     setKcDescAnswer("");
+    setShowKCPreview(false);
   };
 
   // Create New Knowledge Check
@@ -506,6 +509,7 @@ export default function ContentPage() {
     setEditKCExplain("");
     setEditKCTab("multiple-choice");
     setEditKCDescAnswer("");
+    setShowEditKCPreview(false);
   };
 
   // Save Editing Knowledge Check
@@ -773,7 +777,7 @@ export default function ContentPage() {
           </button>
           {modules.length > 0 && (
             <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
-              {content.length} {content.length === 1 ? 'page' : 'pages'}
+              {content.length} {content.length === 1 ? 'page' : 'pages'} · {knowledgeChecks.length} {knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}
             </p>
           )}
         </div>
@@ -1110,6 +1114,12 @@ export default function ContentPage() {
 
             <div className="flex flex-col sm:flex-row gap-2">
               <button
+                onClick={() => setShowKCPreview((prev) => !prev)}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                {showKCPreview ? "Hide Preview" : "Preview"}
+              </button>
+              <button
                 onClick={createNewKnowledgeCheck}
                 className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
               >
@@ -1122,6 +1132,58 @@ export default function ContentPage() {
                 Cancel
               </button>
             </div>
+
+            {/* Live preview of the knowledge check before saving */}
+            {showKCPreview && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 mt-4">
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 break-words">
+                  {kcQuestion || "No question entered"}
+                </h5>
+
+                {kcTab === "multiple-choice" ? (
+                  <div className="space-y-2 mb-3">
+                    {kcChoices.filter((c) => c.trim()).length > 0 ? (
+                      kcChoices
+                        .map((choice, i) => ({ label: String.fromCharCode(65 + i), text: choice }))
+                        .filter((c) => c.text.trim())
+                        .map((choice) => (
+                          <div
+                            key={choice.label}
+                            className={`p-2 rounded-lg border text-sm ${
+                              kcAnswer === choice.label
+                                ? "border-green-500 bg-green-50 text-green-800"
+                                : "border-gray-200 bg-gray-50 text-gray-700"
+                            }`}
+                          >
+                            <span className="font-medium mr-2">{choice.label}:</span>
+                            {choice.text}
+                            {kcAnswer === choice.label && (
+                              <span className="ml-2 text-green-600 text-xs font-semibold">✓ Correct</span>
+                            )}
+                          </div>
+                        ))
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">No choices added yet</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Sample Answer:</p>
+                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
+                      {kcDescAnswer || <span className="italic text-gray-400">No sample answer entered</span>}
+                    </div>
+                  </div>
+                )}
+
+                {kcExplain && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{kcExplain}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1558,6 +1620,12 @@ export default function ContentPage() {
 
                       <div className="flex flex-col sm:flex-row gap-2">
                         <button
+                          onClick={() => setShowEditKCPreview((prev) => !prev)}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                        >
+                          {showEditKCPreview ? "Hide Preview" : "Preview"}
+                        </button>
+                        <button
                           onClick={saveEditKC}
                           className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
                         >
@@ -1570,6 +1638,58 @@ export default function ContentPage() {
                           Cancel
                         </button>
                       </div>
+
+                      {/* Live preview of the knowledge check while editing */}
+                      {showEditKCPreview && (
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 mt-4">
+                          <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                          <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 break-words">
+                            {editKCQuestion || "No question entered"}
+                          </h5>
+
+                          {editKCTab === "multiple-choice" ? (
+                            <div className="space-y-2 mb-3">
+                              {editKCChoices.filter((c) => c.trim()).length > 0 ? (
+                                editKCChoices
+                                  .map((choice, i) => ({ label: String.fromCharCode(65 + i), text: choice }))
+                                  .filter((c) => c.text.trim())
+                                  .map((choice) => (
+                                    <div
+                                      key={choice.label}
+                                      className={`p-2 rounded-lg border text-sm ${
+                                        editKCAnswer === choice.label
+                                          ? "border-green-500 bg-green-50 text-green-800"
+                                          : "border-gray-200 bg-gray-50 text-gray-700"
+                                      }`}
+                                    >
+                                      <span className="font-medium mr-2">{choice.label}:</span>
+                                      {choice.text}
+                                      {editKCAnswer === choice.label && (
+                                        <span className="ml-2 text-green-600 text-xs font-semibold">✓ Correct</span>
+                                      )}
+                                    </div>
+                                  ))
+                              ) : (
+                                <p className="text-sm text-gray-400 italic">No choices added yet</p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-gray-600 mb-1">Sample Answer:</p>
+                              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
+                                {editKCDescAnswer || <span className="italic text-gray-400">No sample answer entered</span>}
+                              </div>
+                            </div>
+                          )}
+
+                          {editKCExplain && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap">{editKCExplain}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
