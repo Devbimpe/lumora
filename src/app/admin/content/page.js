@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '../components/EditModule';
@@ -90,6 +90,15 @@ export default function ContentPage() {
     contentId: null,
     contentName: "",
   });
+
+  // Listen for sidebar "Add Page" button
+  useEffect(() => {
+    const handleToggleCreate = () => {
+      setShowCreateForm(prev => !prev);
+    };
+    window.addEventListener('toggle-create-form', handleToggleCreate);
+    return () => window.removeEventListener('toggle-create-form', handleToggleCreate);
+  }, []);
 
   const fetchModules = async () => {
     try {
@@ -290,6 +299,7 @@ export default function ContentPage() {
       const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
       const data = await updatedRes.json();
       setContent(data);
+      window.dispatchEvent(new Event('content-updated'));
       cancelEdit();
       setUploadedImageURL(null);
       setImageFile(null);
@@ -330,6 +340,7 @@ export default function ContentPage() {
       );
       const data = await updatedContent.json();
       setContent(data);
+      window.dispatchEvent(new Event('content-updated'));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -370,6 +381,7 @@ export default function ContentPage() {
       );
       const data = await updatedContent.json();
       setContent(data);
+      window.dispatchEvent(new Event('content-updated'));
 
       // Reset form
       setShowCreateForm(false);
@@ -655,6 +667,7 @@ export default function ContentPage() {
         const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
         const contentData = await updatedRes.json();
         setContent(contentData);
+        window.dispatchEvent(new Event('content-updated'));
       }
 
       setImageFile(null);
@@ -1201,10 +1214,7 @@ export default function ContentPage() {
           {content.length > 0 ? (
             <div className="space-y-4">
               {content.map((item, index) => (
-                <div
-                  key={item.ContentID}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden"
-                >
+                <div key={item.ContentID} id={`content-page-${item.ContentID}`} className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300">
                   {editingId === item.ContentID ? (
                     // Edit Mode
                     <div className="p-6 bg-green-50 border-l-4 border-green-500">
