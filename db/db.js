@@ -604,6 +604,81 @@ export async function getKnowledgeChecksByModuleId(moduleId) {
 }
 
 /**
+ * Create a new knowledge check for a module
+ */
+export async function createKnowledgeCheck(data) {
+  const { moduleID, contentId, question, choices, answer, explain, allowance } = data;
+
+  const existing = await getKnowledgeChecksByModuleId(moduleID);
+  const maxId = existing.reduce((max, c) => Math.max(max, c.knowledgeCheckId || 0), 0);
+
+  const newCheck = {
+    knowledgeCheckId: maxId + 1,
+    moduleID: parseInt(moduleID),
+    contentId: contentId ? parseInt(contentId) : null,
+    question,
+    choices,
+    answer,
+    explain: explain || '',
+    allowance: allowance || '',
+    createdAt: Timestamp.now()
+  };
+
+  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+  const docRef = await addDoc(checksRef, newCheck);
+
+  return { id: docRef.id, ...newCheck };
+}
+
+/**
+ * Delete a knowledge check by its knowledgeCheckId and moduleID
+ */
+export async function deleteKnowledgeCheck(knowledgeCheckId, moduleID) {
+  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = query(
+    checksRef,
+    where('knowledgeCheckId', '==', parseInt(knowledgeCheckId)),
+    where('moduleID', '==', parseInt(moduleID))
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    throw new Error('Knowledge check not found');
+  }
+
+  const batch = writeBatch(db);
+  snapshot.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+
+  return { deleted: true };
+}
+
+/**
+ * Update a knowledge check by its knowledgeCheckId and moduleID
+ */
+export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) {
+  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = query(
+    checksRef,
+    where('knowledgeCheckId', '==', parseInt(knowledgeCheckId)),
+    where('moduleID', '==', parseInt(moduleID))
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    throw new Error('Knowledge check not found');
+  }
+
+  const docRef = snapshot.docs[0].ref;
+  await updateDoc(docRef, {
+    ...updates,
+    updatedAt: Timestamp.now()
+  });
+
+  return { updated: true };
+}
+
+/**
  * Get module with content and knowledge checks
  */
 export async function getModuleWithContent(moduleId) {
