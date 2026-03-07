@@ -31,8 +31,8 @@ export default function ContentPage() {
   const [uploadedImageURL, setUploadedImageURL] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageDescription, setImageDescription] = useState('');
-  const [inputURLSet, setInputURLSet] = useState(false);
-
+  const [inputURL, setInputURL] = useState('');
+  const [inputIsURL, setInputIsURL] = useState(false);
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
@@ -243,6 +243,7 @@ export default function ContentPage() {
     setUploadedImageURL(null);
     setImageFile(null);
     setImageDescription('');
+    setInputIsURL(false);
   };
 
   // Save edit
@@ -369,6 +370,11 @@ export default function ContentPage() {
     }
   }
 
+  function handleURLChange(event){
+    setInputURL(event.target.value);
+    setInputIsURL(event.target.value.match("^https?:\/\/"));
+  }
+
   // Upload the selected image to Cloudinary via the API
   const uploadImage = async () => {
     if (!imageFile) {
@@ -400,6 +406,39 @@ export default function ContentPage() {
       console.error('Image upload error:', err);
       setError(`Image upload failed: ${err.message}`);
     } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const uploadURLImage = async () =>{
+    if(!inputURL.trim()){
+      setError('Please input an URL first');
+      return;
+    }
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('file', inputURL);
+
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Upload failed');
+
+      setUploadedImageURL(data.url);
+      setImageSrc(data.url);
+      setNewReading('');
+      setEditReading('');
+      setSubmitStatus('Image uploaded successfully!');
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setError(`Image upload failed: ${err.message}`);
+    } finally {
+      setInputIsURL(false);
       setUploadingImage(false);
     }
   };
@@ -669,14 +708,13 @@ export default function ContentPage() {
                   className="cursor-pointer w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg"
                   name="urlInput"
                   id='url_input'
-                  placeholder="Pasete URL here"
-                  onChange={handleChange}
+                  placeholder="Paste URL here"
+                  onChange={handleURLChange}
                 />
                 <button
-                  onClick={uploadImage}
-                  //disabled={uploadingImage || !imageFile}
-                  //disabled="false"
-                  className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
+                  onClick={uploadURLImage}
+                  disabled={uploadingImage || !inputIsURL}
+                  className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputIsURL
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700'
                     }`}
@@ -859,13 +897,13 @@ export default function ContentPage() {
                               type="url"
                               className="cursor-pointer w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg text-black placeholder:text-black"
                               id='edit_url_input'
-                              placeholder="Pasete URL here"
-                              onChange={handleChange}
+                              placeholder="Paste URL here"
+                              onChange={handleURLChange}
                             />
                             <button
-                              //onClick={uploadImage}
-                              disabled={uploadingImage || !inputURLSet}
-                              className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputURLSet
+                              onClick={uploadURLImage}
+                              disabled={uploadingImage || !inputIsURL}
+                              className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputIsURL
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-blue-600 hover:bg-blue-700'
                                 }`}
