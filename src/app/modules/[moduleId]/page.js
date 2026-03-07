@@ -75,6 +75,7 @@ export default function ModulePage() {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
   
   // Refs to prevent duplicate API calls
   const allModulesFetched = useRef(false);
@@ -365,6 +366,20 @@ export default function ModulePage() {
     }
   }, [user, trackKnowledgeCheckCompletion]);
 
+  const handleDescriptiveSubmit = useCallback((knowledgeCheckId, answerText) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [knowledgeCheckId]: '__submitted__'
+    }));
+    setDescriptiveAnswers(prev => ({
+      ...prev,
+      [knowledgeCheckId]: answerText
+    }));
+    if (user) {
+      trackKnowledgeCheckCompletion(knowledgeCheckId);
+    }
+  }, [user, trackKnowledgeCheckCompletion]);
+
   // Track item view when current item changes
   useEffect(() => {
     if (currentItem?.id && user) {
@@ -449,9 +464,13 @@ export default function ModulePage() {
   
   // Check if we should show "Go to Next Module" button or completion message
   const isKnowledgeCheck = currentItem.type === 'knowledgeCheck';
+  const isDescriptive = isKnowledgeCheck && (!currentItem.choices || currentItem.choices.length === 0);
   const isKnowledgeCheckAnswered = isKnowledgeCheck && selectedAnswers[currentItem.knowledgeCheckId] !== undefined;
-  const isKnowledgeCheckCorrect = isKnowledgeCheck && 
-    selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer;
+  const isKnowledgeCheckCorrect = isKnowledgeCheck && (
+    isDescriptive
+      ? selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__'
+      : selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer
+  );
   const showNextModuleButton = isLastItem && isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && nextModule;
   const showCompletionMessage = isLastItem && isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && !nextModule;
 
@@ -677,6 +696,37 @@ export default function ModulePage() {
                     );
                   })}
                 </ul>
+                ) : isDescriptive ? (
+                  <div className="space-y-4">
+                    <textarea
+                      value={descriptiveAnswers[currentItem.knowledgeCheckId] ?? ''}
+                      onChange={(e) => setDescriptiveAnswers(prev => ({
+                        ...prev,
+                        [currentItem.knowledgeCheckId]: e.target.value
+                      }))}
+                      placeholder="Type your answer here..."
+                      rows={5}
+                      disabled={selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__'}
+                      className="w-full min-h-[120px] p-3 sm:p-4 border-2 border-gray-300 rounded-lg bg-white hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none transition-all resize-y text-gray-800 disabled:bg-gray-50 disabled:opacity-60"
+                    />
+                    {selectedAnswers[currentItem.knowledgeCheckId] !== '__submitted__' ? (
+                      <button
+                        onClick={() => handleDescriptiveSubmit(
+                          currentItem.knowledgeCheckId,
+                          descriptiveAnswers[currentItem.knowledgeCheckId] ?? ''
+                        )}
+                        disabled={!(descriptiveAnswers[currentItem.knowledgeCheckId]?.trim())}
+                        className="px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        Submit Answer
+                      </button>
+                    ) : descriptiveAnswers[currentItem.knowledgeCheckId] && (
+                      <div className="p-4 bg-gray-50 border-l-4 border-gray-400 rounded">
+                        <h4 className="font-semibold text-gray-800 mb-2">Your answer:</h4>
+                        <p className="text-gray-700 whitespace-pre-wrap">{descriptiveAnswers[currentItem.knowledgeCheckId]}</p>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="text-gray-500 text-center p-4">
                     <p>No choices available for this question.</p>
