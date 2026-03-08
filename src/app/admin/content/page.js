@@ -1,8 +1,10 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '../components/EditModule';
+import NewContentPageForm from '../components/NewContentPageForm';
+import CreateKnowledgeCheckForm from '../components/CreateKnowledgeCheckForm';
 import { getFaviconUrl, getDefaultFaviconUrl } from '../../lib/favicons';
 
 export default function ContentPage() {
@@ -10,10 +12,8 @@ export default function ContentPage() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
-  const requestedModuleId = searchParams.get('moduleId');
   const moduleId = searchParams.get('moduleId');
   const mode = searchParams.get('mode');
-  const showCreateParam = searchParams.get('showCreate');
 
   const [content, setContent] = useState([]);
   const [modules, setModules] = useState([]);
@@ -29,11 +29,7 @@ export default function ContentPage() {
   const [editReading, setEditReading] = useState("");
 
   const [showEditPreview, setShowEditPreview] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(showCreateParam === 'true');
-  const [showCreatePreview, setShowCreatePreview] = useState(false);
-
-  const [newOverview, setNewOverview] = useState('');
-  const [newReading, setNewReading] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const [imageFile, setImageFile] = useState(null);
   const [imageSrc, setImageSrc] = useState(null); // preview image
@@ -48,11 +44,6 @@ export default function ContentPage() {
   const [knowledgeChecks, setKnowledgeChecks] = useState([]);
   const [showKCForm, setShowKCForm] = useState(false);
 
-  const [kcQuestion, setKcQuestion] = useState("");
-  const [kcChoices, setKcChoices] = useState(["", ""]);
-  const [kcAnswer, setKcAnswer] = useState("");
-  const [kcExplain, setKcExplain] = useState("");
-
   const [editingKCId, setEditingKCId] = useState(null);
   const [editKCQuestion, setEditKCQuestion] = useState("");
   const [editKCChoices, setEditKCChoices] = useState(["", ""]);
@@ -61,70 +52,16 @@ export default function ContentPage() {
   const [editKCTab, setEditKCTab] = useState("multiple-choice");
   const [editKCDescAnswer, setEditKCDescAnswer] = useState("");
 
-  const [kcTab, setKcTab] = useState("multiple-choice");
-  const [kcDescAnswer, setKcDescAnswer] = useState("");
-  const [showKCPreview, setShowKCPreview] = useState(false);
   const [showEditKCPreview, setShowEditKCPreview] = useState(false);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
 
-
-  const currentModule = modules.find(
-    (m) => m.ModuleID.toString() === selectedModule,
-  );
-
-
-  // Only sync from currentModule when the selected module actually changes (not on every render)
-  useEffect(() => {
-    if (!currentModule) return;
-    setHeading(currentModule.Heading);
-    setSubHeading(currentModule.Subheading);
-    setFaviconURL(currentModule.faviconURL || getDefaultFaviconUrl());
-  }, [currentModule?.ModuleID]);
-
-
-  // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
-  useEffect(() => {
-    if (mode === "new") {
-      setHeading("");
-      setSubHeading("");
-      setSelectedModule("");
-      setFaviconURL(getDefaultFaviconUrl());
-      setLoading(false);
-      return;
-    }
-
-    if (modules.length === 0) return;
-
-    const moduleToEdit = modules.find(
-      (m) => m.ModuleID.toString() === moduleId,
-    );
-
-    if (moduleToEdit) {
-      setHeading(moduleToEdit.Heading);
-      setSubHeading(moduleToEdit.Subheading);
-      setFaviconURL(moduleToEdit.faviconURL || getDefaultFaviconUrl());
-    }
-  }, [mode, moduleId, modules]);
-
-
-
-  // Modal state
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     contentId: null,
     contentName: "",
   });
 
-
-  // Listen for sidebar "Add Page" button
-  useEffect(() => {
-    const handleToggleCreate = () => {
-      setShowCreateForm(prev => !prev);
-    };
-    window.addEventListener('toggle-create-form', handleToggleCreate);
-    return () => window.removeEventListener('toggle-create-form', handleToggleCreate);
-  }, []);
 
 
   const fetchModules = async () => {
@@ -139,8 +76,95 @@ export default function ContentPage() {
     }
   };
 
+  // On mount (or when moduleId changes), load modules then select the right one
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchModules().then((data) => {
+      if (!isMounted || data.length === 0) return;
+      // Prefer the module from the URL; fall back to the first in the list
+      const hasRequestedModule = moduleId
+        ? data.some((m) => m.ModuleID.toString() === moduleId)
+        : false;
+      setSelectedModule(hasRequestedModule ? moduleId : data[0].ModuleID.toString());
+
+
+    });
+
+    return () => { isMounted = false; };
+  }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
+
+
+  const currentModule = modules.find(
+    (m) => m.ModuleID.toString() === selectedModule,
+  );
+
+  // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
+  useEffect(() => {
+    if (mode === "new") {
+      setFaviconURL(getDefaultFaviconUrl());
+      setLoading(false);
+      return;
+    }
+
+    if (currentModule) {
+      setHeading(currentModule.Heading);
+      setSubHeading(currentModule.Subheading);
+    }
+  }, [mode, currentModule]);
+
+
+
+  // Listen for sidebar "Add Page" button
+  useEffect(() => {
+    const handleToggleCreate = () => {
+      setShowCreateForm(prev => !prev);
+    };
+    window.addEventListener('toggle-create-form', handleToggleCreate);
+    return () => window.removeEventListener('toggle-create-form', handleToggleCreate);
+  }, []);
+
+
+
+
+// Fetch content and knowledge checks
+  useEffect(() => {
+    if (!selectedModule) return;
+
+    let isMounted = true;
+    setLoading(true);
+
+    Promise.all([
+      fetch(`/api/content?moduleId=${selectedModule}`).then((r) => r.json()),
+      fetch(`/api/knowledge-checks?moduleId=${selectedModule}`).then((r) =>
+        r.json(),
+      ),
+    ])
+      .then(([contentData, checksData]) => {
+        if (isMounted) {
+          setContent(contentData);
+          setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) setError(err.message);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedModule]);
+
+
+
+
   
-  const handleSubmit = async () => {
+  const handleEditModuleSubmit = async () => {
     if (!heading.trim() || !subHeading.trim()) {
       setSubmitStatus("Both fields are required.");
       return;
@@ -201,102 +225,8 @@ export default function ContentPage() {
     }
   };
 
-  const handleSubmitAndAddContent = async () => {
-    if (!heading.trim() || !subHeading.trim()) {
-      setSubmitStatus("Both fields are required.");
-      return;
-    }
 
-    try {
-      setSubmitStatus("Saving...");
-      const urlToSave = faviconURL?.trim() || getDefaultFaviconUrl();
-      const response = await fetch("/api/admin/modules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ heading, subHeading, faviconURL: urlToSave }),
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Submission failed.");
-      }
-
-      const updatedModules = await fetchModules();
-      if (updatedModules.length > 0) {
-        const newModule = updatedModules[updatedModules.length - 1];
-        router.push(`/admin/content?moduleId=${newModule.ModuleID}&showCreate=true`);
-      }
-    } catch (err) {
-      console.error("Submit error:", err);
-      setSubmitStatus(err.message);
-      setTimeout(() => setSubmitStatus(''), 3000);
-    }
-  };
-
-  // Fetch modules
-  useEffect(() => {
-    let isMounted = true;
-
-    fetch("/api/modules")
-      .then((res) => res.json())
-      .then((data) => {
-        if (isMounted) {
-          setModules(data);
-          if (data.length > 0) {
-            // Check if the module from URL exists in the loaded module list.
-            const hasRequestedModule = requestedModuleId
-              ? data.some(
-                  (module) => module.ModuleID.toString() === requestedModuleId,
-                )
-              : false;
-            // Use URL module when valid; otherwise use the first module.
-            setSelectedModule(
-              hasRequestedModule
-                ? requestedModuleId
-                : data[0].ModuleID.toString(),
-            );
-          }
-        }
-      })
-      .catch(() => {
-        if (isMounted) setModules([]);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [requestedModuleId]);
-
-  // Fetch content and knowledge checks for selected module
-  useEffect(() => {
-    if (!selectedModule) return;
-
-    let isMounted = true;
-    setLoading(true);
-
-    Promise.all([
-      fetch(`/api/content?moduleId=${selectedModule}`).then((r) => r.json()),
-      fetch(`/api/knowledge-checks?moduleId=${selectedModule}`).then((r) =>
-        r.json(),
-      ),
-    ])
-      .then(([contentData, checksData]) => {
-        if (isMounted) {
-          setContent(contentData);
-          setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) setError(err.message);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedModule]);
 
   // Start editing
   const startEdit = (item) => {
@@ -355,6 +285,7 @@ export default function ContentPage() {
     }
   };
 
+
   // Open delete modal
   const handleDeleteClick = (contentId) => {
     const item = content.find((c) => c.ContentID === contentId);
@@ -392,126 +323,6 @@ export default function ContentPage() {
     }
   };
 
-  // Create new content
-  const createNewContent = async () => {
-    if (!newOverview.trim()) {
-      setError('Overview (heading) is required');
-      return;
-    }
-    if (!newReading.trim() && !uploadedImageURL) {
-      setError('Either Reading content or an uploaded Image is required');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const res = await fetch("/api/content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          moduleId: selectedModule,
-          overview: newOverview,
-          reading: uploadedImageURL ? '' : newReading,
-          imageURL: uploadedImageURL || null,
-          imageDescription: uploadedImageURL ? imageDescription : null
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to create content");
-
-      // Refresh content list
-      const updatedContent = await fetch(
-        `/api/content?moduleId=${selectedModule}`,
-      );
-      const data = await updatedContent.json();
-      setContent(data);
-      window.dispatchEvent(new Event('content-updated'));
-
-      // Reset form
-      setShowCreateForm(false);
-      setShowCreatePreview(false);
-      setNewOverview("");
-      setNewReading("");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  // Reset Knowledge Check Form
-  const resetKCForm = () => {
-    setShowKCForm(false);
-    setKcQuestion("");
-    setKcChoices(["", ""]);
-    setKcAnswer("");
-    setKcExplain("");
-    setKcTab("multiple-choice");
-    setKcDescAnswer("");
-    setShowKCPreview(false);
-  };
-
-  // Create New Knowledge Check
-  const createNewKnowledgeCheck = async () => {
-    setError(null);
-    if (!kcQuestion.trim()) {
-      setError("Question is required");
-      return;
-    }
-
-    // descriptive questions don't need choices or a correct answer
-    const isDescriptive = kcTab === "descriptive";
-
-    // only validate choices/answer for multiple-choice questions
-    if (!isDescriptive) {
-      const filledChoices = kcChoices.filter((c) => c.trim());
-      if (filledChoices.length < 2) {
-        setError("At least 2 choices are required");
-        return;
-      }
-      if (!kcAnswer) {
-        setError("Please select the correct answer");
-        return;
-      }
-    }
-
-    // for descriptive, send empty choices; for MC, format as "A: ...", "B: ..." etc.
-    const filledChoices = kcChoices.filter((c) => c.trim());
-    const formattedChoices = isDescriptive
-      ? []
-      : filledChoices.map(
-          (text, i) => `${String.fromCharCode(65 + i)}: ${text}`,
-        );
-
-    try {
-      setLoading(true);
-      const res = await fetch("/api/knowledge-checks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // for descriptive: no answer, sample answer goes in explain field
-        body: JSON.stringify({
-          moduleID: selectedModule,
-          contentId: null,
-          question: kcQuestion,
-          choices: formattedChoices,
-          answer: isDescriptive ? "" : kcAnswer,
-          explain: isDescriptive ? kcDescAnswer : kcExplain,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to create knowledge check");
-
-      const checksRes = await fetch(
-        `/api/knowledge-checks?moduleId=${selectedModule}`,
-      );
-      const checksData = await checksRes.json();
-      setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
-      resetKCForm();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Delete Knowledge Check
   const handleDeleteKC = async (knowledgeCheckId) => {
@@ -624,9 +435,6 @@ export default function ContentPage() {
       const checksData = await checksRes.json();
       setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
       cancelEditKC();
-      setImageFile(null);
-      setImageSrc(null);
-      setUploadedImageURL(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -634,8 +442,11 @@ export default function ContentPage() {
     }
   };
 
+
+
+// #region Image Uploading Handlers
   // Set image URL for image upload preview
-  function handleChange(event) {
+  function handleImageFileChange(event) {
     const file = event.target.files[0];
     if (file) {
       setImageFile(file);
@@ -646,8 +457,9 @@ export default function ContentPage() {
     }
   }
 
+
   // Upload the selected image to Cloudinary via the API
-  const uploadImage = async () => {
+  const uploadImage = async (onClearReading) => {
     if (!imageFile) {
       setError('Please select an image file first');
       return;
@@ -668,9 +480,8 @@ export default function ContentPage() {
 
       setUploadedImageURL(data.url);
       setImageSrc(data.url); // show the Cloudinary URL as preview
-      // Auto-clear text content since it's either image or text
-      setNewReading('');
-      setEditReading('');
+      // Let the caller clear its own text field (new form vs edit form differ)
+      onClearReading?.();
       setSubmitStatus('Image uploaded successfully!');
       setTimeout(() => setSubmitStatus(''), 3000);
     } catch (err) {
@@ -727,14 +538,11 @@ export default function ContentPage() {
       setUploadingImage(false);
     }
   };
+  // #endregion
 
 
 
-
-
-
-
-
+  // MARK: HTML
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
@@ -811,14 +619,16 @@ export default function ContentPage() {
           subHeading={subHeading}
           onHeadingChange={(e) => setHeading(e.target.value)}
           onSubHeadingChange={(e) => setSubHeading(e.target.value)}
-          onSubmit={handleSubmit}
+          onSubmit={handleEditModuleSubmit}
           onClose={() => router.push('/admin/module-management')}
           isNew={mode === 'new'}
-          onSubmitAndAdd={handleSubmitAndAddContent}
           initialFaviconUrl={faviconURL}
           onFaviconChange={(url) => setFaviconURL(url)}
         />
       )}
+
+
+
 
       {/* Add Content Page & Knowledge Check Buttons - only shown when editing an existing module */}
       {mode !== 'new' && selectedModule && (
@@ -849,410 +659,53 @@ export default function ContentPage() {
         </div>
       )}
 
+
+
+
       {/* Create New Content Form */}
       {showCreateForm && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-green-500">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">
-              New Content Page for Module {selectedModule}
-            </h3>
-            <button
-              onClick={() => {
-                setShowCreateForm(false);
-                setShowCreatePreview(false);
-                setNewOverview("");
-                setNewReading("");
-              }}
-              className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Page Heading (Overview)
-              </label>
-              <textarea
-                placeholder="Enter the heading for this content page"
-                value={newOverview}
-                onChange={(e) => setNewOverview(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                rows="2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content (Reading Material or Image)
-              </label>
-              {imageSrc ? (
-                <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
-                  <img
-                    src={imageSrc}
-                    alt="Uploaded content"
-                    className="rounded-lg max-w-full"
-                    style={{ maxHeight: "400px", objectFit: "contain" }}
-                  />
-                  {!uploadedImageURL && imageFile && (
-                    <button
-                      onClick={uploadImage}
-                      disabled={uploadingImage}
-                      className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
-                    >
-                      {uploadingImage ? 'Uploading...' : 'Upload Image'}
-                    </button>
-                  )}
-                  {!uploadedImageURL && (
-                    <button
-                      onClick={() => {
-                        setImageFile(null);
-                        setImageSrc(null);
-                        setUploadedImageURL(null);
-                      }}
-                      className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
-                    >
-                      Remove Image
-                    </button>
-                  )}
-                  {uploadedImageURL && (
-                    <button
-                      onClick={deleteImage}
-                      disabled={uploadingImage}
-                      className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm"
-                    >
-                      {uploadingImage ? 'Deleting...' : 'Delete Image'}
-                    </button>
-                  )}
-                  <div className="mt-3">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Description / Presenter's Notes</label>
-                    <textarea
-                      placeholder="Add a description or notes for this image..."
-                      value={imageDescription}
-                      onChange={(e) => setImageDescription(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
-                      rows="3"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <textarea
-                  placeholder="Enter the main content for this page"
-                  value={newReading}
-                  onChange={(e) => setNewReading(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  rows="8"
-                />
-              )}
-            </div>
-
-            {/* Image Upload */}
-            {!imageSrc && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor='file_input'>
-                  Or Upload an Image Instead
-                </label>
-                <input
-                  type="file"
-                  className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
-                  accept="image/png, image/jpeg"
-                  name="imageInput"
-                  id='file_input'
-                  onChange={handleChange}
-                />
-                <button
-                  onClick={uploadImage}
-                  disabled={uploadingImage || !imageFile}
-                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                >
-                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
-                </button>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              {/* Added preview button for new content drafts. */}
-              <button
-                onClick={() => setShowCreatePreview((prev) => !prev)}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
-              >
-                {showCreatePreview ? "Hide Preview" : "Preview"}
-              </button>
-              <button
-                onClick={createNewContent}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
-              >
-                Save Page
-              </button>
-              <button
-                onClick={() => {
-                  setShowCreateForm(false);
-                  setShowCreatePreview(false);
-                  setNewOverview('');
-                  setNewReading('');
-                  setImageSrc('');
-                }}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
-              >
-                Cancel
-              </button>
-            </div>
-            {showCreatePreview && (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">
-                  Preview
-                </h4>
-                <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
-                  {newOverview || "Untitled page"}
-                </h5>
-                <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words">
-                  {newReading || "No content to preview."}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        <NewContentPageForm
+          selectedModule={selectedModule}
+          onClose={() => {
+            setShowCreateForm(false);
+            setImageFile(null);
+            setImageSrc(null);
+            setUploadedImageURL(null);
+            setImageDescription('');
+          }}
+          onCreated={(data) => {
+            setContent(data);
+            window.dispatchEvent(new Event('content-updated'));
+          }}
+          onError={setError}
+          imageFile={imageFile}
+          imageSrc={imageSrc}
+          imageDescription={imageDescription}
+          uploadedImageURL={uploadedImageURL}
+          uploadingImage={uploadingImage}
+          setImageFile={setImageFile}
+          setImageSrc={setImageSrc}
+          setImageDescription={setImageDescription}
+          setUploadedImageURL={setUploadedImageURL}
+          onImageFileChange={handleImageFileChange}
+          onUploadImage={uploadImage}
+          onDeleteImage={deleteImage}
+        />
       )}
 
       {/* Create Knowledge Check Form */}
       {showKCForm && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-blue-500">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">
-              New Knowledge Check for Module {selectedModule}
-            </h3>
-            <button
-              onClick={resetKCForm}
-              className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Tab Switcher */}
-          <div className="flex border-b border-gray-200 mb-5">
-            <button
-              onClick={() => setKcTab("multiple-choice")}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
-                kcTab === "multiple-choice"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              Multiple Choice
-            </button>
-            <button
-              onClick={() => setKcTab("descriptive")}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
-                kcTab === "descriptive"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              Descriptive
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Question
-              </label>
-              <textarea
-                placeholder="Enter the question"
-                value={kcQuestion}
-                onChange={(e) => setKcQuestion(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                rows="3"
-              />
-            </div>
-
-            {kcTab === "multiple-choice" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Choices
-                  </label>
-                  {kcChoices.map((choice, idx) => {
-                    const letter = String.fromCharCode(65 + idx);
-                    return (
-                      <div key={idx} className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-gray-700 w-6">
-                          {letter}:
-                        </span>
-                        <input
-                          type="text"
-                          placeholder={`Choice ${letter}`}
-                          value={choice}
-                          onChange={(e) => {
-                            const updated = [...kcChoices];
-                            updated[idx] = e.target.value;
-                            setKcChoices(updated);
-                          }}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                        {kcChoices.length > 2 && (
-                          <button
-                            onClick={() => {
-                              const updated = kcChoices.filter(
-                                (_, i) => i !== idx,
-                              );
-                              setKcChoices(updated);
-                              setKcAnswer("");
-                            }}
-                            className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
-                          >
-                            X
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <button
-                    onClick={() => setKcChoices([...kcChoices, ""])}
-                    className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
-                  >
-                    + Add Choice
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Correct Answer
-                  </label>
-                  <select
-                    value={kcAnswer}
-                    onChange={(e) => setKcAnswer(e.target.value)}
-                    className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-                  >
-                    <option value="">Select correct answer</option>
-                    {kcChoices.reduce((opts, choice, idx) => {
-                      if (choice.trim()) {
-                        const letter = String.fromCharCode(65 + opts.length);
-                        opts.push(
-                          <option key={letter} value={letter}>
-                            {letter}
-                          </option>,
-                        );
-                      }
-                      return opts;
-                    }, [])}
-                  </select>
-                </div>
-              </>
-            )}
-
-            {kcTab === "descriptive" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sample Answer
-                </label>
-                <textarea
-                  placeholder="Enter a sample or expected answer for grading reference"
-                  value={kcDescAnswer}
-                  onChange={(e) => setKcDescAnswer(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  rows="5"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Explanation (optional)
-              </label>
-              <textarea
-                placeholder={
-                  kcTab === "descriptive"
-                    ? "Add any additional notes or context"
-                    : "Explain why the correct answer is right"
-                }
-                value={kcExplain}
-                onChange={(e) => setKcExplain(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                rows="3"
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => setShowKCPreview((prev) => !prev)}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
-              >
-                {showKCPreview ? "Hide Preview" : "Preview"}
-              </button>
-              <button
-                onClick={createNewKnowledgeCheck}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
-              >
-                Save Knowledge Check
-              </button>
-              <button
-                onClick={resetKCForm}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {/* Live preview of the knowledge check before saving */}
-            {showKCPreview && (
-              <div className="bg-white rounded-lg p-4 border border-gray-200 mt-4">
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
-                <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 break-words">
-                  {kcQuestion || "No question entered"}
-                </h5>
-
-                {kcTab === "multiple-choice" ? (
-                  <div className="space-y-2 mb-3">
-                    {kcChoices.filter((c) => c.trim()).length > 0 ? (
-                      kcChoices
-                        .map((choice, i) => ({ label: String.fromCharCode(65 + i), text: choice }))
-                        .filter((c) => c.text.trim())
-                        .map((choice) => (
-                          <div
-                            key={choice.label}
-                            className={`p-2 rounded-lg border text-sm ${
-                              kcAnswer === choice.label
-                                ? "border-green-500 bg-green-50 text-green-800"
-                                : "border-gray-200 bg-gray-50 text-gray-700"
-                            }`}
-                          >
-                            <span className="font-medium mr-2">{choice.label}:</span>
-                            {choice.text}
-                            {kcAnswer === choice.label && (
-                              <span className="ml-2 text-green-600 text-xs font-semibold">✓ Correct</span>
-                            )}
-                          </div>
-                        ))
-                    ) : (
-                      <p className="text-sm text-gray-400 italic">No choices added yet</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mb-3">
-                    <p className="text-sm font-medium text-gray-600 mb-1">Sample Answer:</p>
-                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
-                      {kcDescAnswer || <span className="italic text-gray-400">No sample answer entered</span>}
-                    </div>
-                  </div>
-                )}
-
-                {kcExplain && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{kcExplain}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <CreateKnowledgeCheckForm
+          selectedModule={selectedModule}
+          onClose={() => setShowKCForm(false)}
+          onCreated={(data) => setKnowledgeChecks(data)}
+          onError={setError}
+        />
       )}
+
+
+
+
 
       {/* Loading Spinner */}
       {mode !== 'new' && loading ? (
@@ -1308,7 +761,7 @@ export default function ContentPage() {
                               />
                               {!uploadedImageURL && imageFile && (
                                 <button
-                                  onClick={uploadImage}
+                                  onClick={() => uploadImage(() => setEditReading(''))}
                                   disabled={uploadingImage}
                                   className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
                                 >
@@ -1367,10 +820,10 @@ export default function ContentPage() {
                               className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
                               accept="image/png, image/jpeg"
                               id='edit_file_input'
-                              onChange={handleChange}
+                              onChange={handleImageFileChange}
                             />
                             <button
-                              onClick={uploadImage}
+                              onClick={() => uploadImage(() => setEditReading(''))}
                               disabled={uploadingImage || !imageFile}
                               className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile
                                 ? 'bg-gray-400 cursor-not-allowed'
