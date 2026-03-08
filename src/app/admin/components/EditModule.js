@@ -86,14 +86,6 @@ export default function EditModule({ heading, subHeading, onHeadingChange, onSub
           >
             Save Module
           </button>
-          {isNew && onSubmitAndAdd && (
-            <button
-              onClick={onSubmitAndAdd}
-              className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-xs sm:text-sm"
-            >
-              Save & Add Content
-            </button>
-          )}
         </div>
       </div>
     </div>
