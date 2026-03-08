@@ -1,12 +1,24 @@
 "use client"
+import { useState, useEffect } from "react"
 import { FAVICON_URLS } from "../../lib/favicons"
 
-export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd, onFaviconChange }) {
+const FIRST_FAVICON_ID = Object.keys(FAVICON_URLS)[0]
+
+export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd, onFaviconChange, initialFaviconId }) {
+  const [selectedFaviconId, setSelectedFaviconId] = useState(
+    () => initialFaviconId ?? FIRST_FAVICON_ID
+  )
+
+  // Sync with parent when they pass a new initial value (e.g. when switching modules)
+  useEffect(() => {
+    if (initialFaviconId != null && FAVICON_URLS[initialFaviconId]) {
+      setSelectedFaviconId(initialFaviconId)
+    }
+  }, [initialFaviconId])
 
   function handleFaviconChange(moduleId) {
-    return () => {
-      if (onFaviconChange) onFaviconChange(MODULE_IMAGE_URLS[moduleId], moduleId);
-    }  
+    setSelectedFaviconId(moduleId)
+    if (onFaviconChange) onFaviconChange(FAVICON_URLS[moduleId], moduleId)
   }
 
 
@@ -16,11 +28,16 @@ export default function EditModule({ heading, subHeading, onHeadingChange, onSub
       <div className="flex justify-between items-center mb-3 sm:mb-4">
         <div className="flex items-center gap-3">
           <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-gray-800">{isNew ? 'Create New Module' : 'Edit Module'}</h3>
-          <div id="FaviconSelector">
+          <div id="FaviconSelector" className="flex items-center gap-3 ml-3">
             {Object.entries(FAVICON_URLS).map(([id, url]) => (
               <button
                 key={id}
-                className="p-2 hover:bg-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
+                type="button"
+                className={`p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200 ${
+                  selectedFaviconId === id
+                    ? "bg-green-100 ring-2 ring-green-500 ring-offset-2"
+                    : "hover:bg-gray-200"
+                }`}
                 onClick={() => handleFaviconChange(id)}
               >
                 <img src={url} alt={`Module ${id}`} className="w-6 h-6" />
