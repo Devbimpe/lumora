@@ -1,7 +1,15 @@
 "use client"
 import { FAVICON_URLS } from "../../lib/favicons"
 
-export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd }) {
+export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd, onFaviconChange }) {
+
+  function handleFaviconChange(moduleId) {
+    return () => {
+      if (onFaviconChange) onFaviconChange(MODULE_IMAGE_URLS[moduleId], moduleId);
+    }  
+  }
+
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 border-l-4 border-green-500">
 
