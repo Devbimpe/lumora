@@ -31,7 +31,9 @@ export default function ContentPage() {
   const [uploadedImageURL, setUploadedImageURL] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageDescription, setImageDescription] = useState('');
-
+  const [inputURL, setInputURL] = useState('');
+  const [inputIsURL, setInputIsURL] = useState(false);
+  const [confirmURLPreview, setConfirmURLPreview] = useState(false);
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [knowledgeChecks, setKnowledgeChecks] = useState([]);
   const [showKCForm, setShowKCForm] = useState(false);
@@ -277,6 +279,7 @@ export default function ContentPage() {
     setUploadedImageURL(null);
     setImageFile(null);
     setImageDescription('');
+    setInputIsURL(false);
   };
 
   // Save edit
@@ -602,6 +605,18 @@ export default function ContentPage() {
     }
   }
 
+  function handleURLChange(event){
+    const url = event.target.value;
+    const isURLValid = !!url.match("^https?:\/\/");
+    if(isURLValid){
+      setInputURL(url);
+      setUploadedImageURL(null); // reset any previously uploaded URL
+      setInputIsURL(isURLValid);
+      setConfirmURLPreview(isURLValid);
+      setImageSrc(url);
+    }
+  }
+
   // Upload the selected image to Cloudinary via the API
   const uploadImage = async () => {
     if (!imageFile) {
@@ -633,6 +648,40 @@ export default function ContentPage() {
       console.error('Image upload error:', err);
       setError(`Image upload failed: ${err.message}`);
     } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  //Upload an url to the API
+  const uploadURLImage = async () =>{
+    if(!inputURL.trim()){
+      setError('Please input an URL first');
+      return;
+    }
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('file', inputURL);
+
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || 'Upload failed');
+
+      setUploadedImageURL(data.url);
+      setImageSrc(data.url);
+      setNewReading('');
+      setEditReading('');
+      setSubmitStatus('Image uploaded successfully!');
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setError(`Image upload failed: ${err.message}`);
+    } finally {
+      setInputIsURL(false);
       setUploadingImage(false);
     }
   };
@@ -851,12 +900,24 @@ export default function ContentPage() {
                       {uploadingImage ? 'Uploading...' : 'Upload Image'}
                     </button>
                   )}
+                  {/*Accept uploaded URL, preview image*/}
+                  {!uploadedImageURL && confirmURLPreview && (
+                    <button
+                      onClick={uploadURLImage}
+                      disabled={uploadingImage || !inputIsURL}
+                      className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                    </button>
+                  )}
                   {!uploadedImageURL && (
                     <button
                       onClick={() => {
                         setImageFile(null);
                         setImageSrc(null);
                         setUploadedImageURL(null);
+                        setInputIsURL(false);
+                        setConfirmURLPreview(false);
                       }}
                       className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
                     >
@@ -917,6 +978,30 @@ export default function ContentPage() {
                     }`}
                 >
                   {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                </button>
+              </div>
+            )}
+
+            {/* Image Upload Using URL */}
+            {!imageSrc && (
+              <div>
+                <input
+                  type="url"
+                  className="cursor-pointer w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                  name="urlInput"
+                  id='url_input'
+                  placeholder="Paste URL here"
+                  onChange={handleURLChange}
+                />
+                <button
+                  onClick={() => {setConfirmURLPreview(true)}}
+                  disabled={uploadingImage || !inputIsURL}
+                  className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputIsURL
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload URL'}
                 </button>
               </div>
             )}
@@ -1262,12 +1347,37 @@ export default function ContentPage() {
                                   {uploadingImage ? 'Uploading...' : 'Upload Image'}
                                 </button>
                               )}
+
+                              {/*Accept uploaded URL, preview image*/}
+                              {!uploadedImageURL && confirmURLPreview && (
+                                <button
+                                  onClick={uploadURLImage}
+                                  disabled={uploadingImage || !inputIsURL}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+
+                              {/* Upload */}
+                              {!uploadedImageURL && imageFile && (
+                                <button
+                                  onClick={uploadImage}
+                                  disabled={uploadingImage}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+
                               {!uploadedImageURL && (
                                 <button
                                   onClick={() => {
                                     setImageFile(null);
                                     setImageSrc(null);
                                     setUploadedImageURL(null);
+                                    setInputIsURL(false);
+                                    setConfirmURLPreview(false);
                                   }}
                                   className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
                                 >
@@ -1328,6 +1438,30 @@ export default function ContentPage() {
                             </button>
                           </div>
                         )}
+
+                        {/* Image Upload Using URL - only shown when no image */}
+                        {!imageSrc && (
+                          <div>
+                            <input
+                              type="url"
+                              className="cursor-pointer w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg text-black placeholder:text-black"
+                              id='edit_url_input'
+                              placeholder="Paste URL here"
+                              onChange={handleURLChange}
+                            />
+                            <button
+                              onClick={() => {setConfirmURLPreview(true)}}
+                              disabled={uploadingImage || !inputIsURL}
+                              className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputIsURL
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-blue-600 hover:bg-blue-700'
+                                }`}
+                            >
+                              {uploadingImage ? 'Uploading...' : 'Upload URL'}
+                            </button>
+                          </div>
+                        )}
+
                         <div className="flex flex-col sm:flex-row gap-2">
                           {/* Added preview button next to save while editing content. */}
                           <button

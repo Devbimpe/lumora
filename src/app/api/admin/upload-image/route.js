@@ -12,8 +12,16 @@ export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    if (!file || typeof file === 'string') {
-      throw new Error('Missing or invalid file');
+    if (!file) {
+      throw new Error('Missing file');
+    }
+    //Check if the value passed is an URL
+    if(typeof file === 'string'){
+      if(file.match("^https?:\/\/")){
+        const filename = file.name;
+        return NextResponse.json(await imageHosting.autoUploadImage(file, filename));
+      }
+      throw new Error('Invalid file');
     }
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.length > MAX_SIZE) {
