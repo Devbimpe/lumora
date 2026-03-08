@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '../components/EditModule';
@@ -17,28 +17,47 @@ export default function ContentPage() {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedModule, setSelectedModule] = useState('');
+  const [selectedModule, setSelectedModule] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [editOverview, setEditOverview] = useState('');
-  const [editReading, setEditReading] = useState('');
+  const [editOverview, setEditOverview] = useState("");
+  const [editReading, setEditReading] = useState("");
   const [showEditPreview, setShowEditPreview] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(showCreateParam === 'true');
   const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
-
-  const [faviconFile, setFaviconFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [imageSrc, setImageSrc] = useState(null); // preview image
   const [uploadedImageURL, setUploadedImageURL] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageDescription, setImageDescription] = useState('');
-
+  
+  const [faviconFile, setFaviconFile] = useState(null);
   const [faviconURL, setFaviconURL] = useState('');
 
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
+  const [knowledgeChecks, setKnowledgeChecks] = useState([]);
+  const [showKCForm, setShowKCForm] = useState(false);
+  const [kcQuestion, setKcQuestion] = useState("");
+  const [kcChoices, setKcChoices] = useState(["", ""]);
+  const [kcAnswer, setKcAnswer] = useState("");
+  const [kcExplain, setKcExplain] = useState("");
+  const [editingKCId, setEditingKCId] = useState(null);
+  const [editKCQuestion, setEditKCQuestion] = useState("");
+  const [editKCChoices, setEditKCChoices] = useState(["", ""]);
+  const [editKCAnswer, setEditKCAnswer] = useState("");
+  const [editKCExplain, setEditKCExplain] = useState("");
+  const [kcTab, setKcTab] = useState("multiple-choice");
+  const [kcDescAnswer, setKcDescAnswer] = useState("");
+  const [showKCPreview, setShowKCPreview] = useState(false);
+  const [editKCTab, setEditKCTab] = useState("multiple-choice");
+  const [editKCDescAnswer, setEditKCDescAnswer] = useState("");
+  const [showEditKCPreview, setShowEditKCPreview] = useState(false);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
-  const currentModule = modules.find((m) => m.ModuleID.toString() === selectedModule);
+  const currentModule = modules.find(
+    (m) => m.ModuleID.toString() === selectedModule,
+  );
   useEffect(() => {
     if (currentModule) {
       setHeading(currentModule.Heading);
@@ -47,7 +66,6 @@ export default function ContentPage() {
   });
   // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
   useEffect(() => {
-
     if (mode === "new") {
       setHeading("");
       setSubHeading("");
@@ -59,25 +77,31 @@ export default function ContentPage() {
     if (modules.length === 0) return;
 
     const moduleToEdit = modules.find(
-      (m) => m.ModuleID.toString() === moduleId
+      (m) => m.ModuleID.toString() === moduleId,
     );
 
     if (moduleToEdit) {
       setHeading(moduleToEdit.Heading);
       setSubHeading(moduleToEdit.Subheading);
       console.log(moduleToEdit);
-
     }
-
   }, [mode, moduleId, modules]);
-
 
   // Modal state
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     contentId: null,
-    contentName: ''
+    contentName: "",
   });
+
+  // Listen for sidebar "Add Page" button
+  useEffect(() => {
+    const handleToggleCreate = () => {
+      setShowCreateForm(prev => !prev);
+    };
+    window.addEventListener('toggle-create-form', handleToggleCreate);
+    return () => window.removeEventListener('toggle-create-form', handleToggleCreate);
+  }, []);
 
   const fetchModules = async () => {
     try {
@@ -114,13 +138,13 @@ export default function ContentPage() {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
-          errorData.error || (isNew ? "Submission failed." : "Update failed.")
+          errorData.error || (isNew ? "Submission failed." : "Update failed."),
         );
       }
 
       const updatedModules = await fetchModules();
       setSubmitStatus(
-        isNew ? "Module added successfully!" : "Module updated successfully!"
+        isNew ? "Module added successfully!" : "Module updated successfully!",
       );
 
       if (isNew && updatedModules.length > 0) {
@@ -172,23 +196,27 @@ export default function ContentPage() {
   useEffect(() => {
     let isMounted = true;
 
-    fetch('/api/modules')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/modules")
+      .then((res) => res.json())
+      .then((data) => {
         if (isMounted) {
           setModules(data);
           if (data.length > 0) {
             // Check if the module from URL exists in the loaded module list.
             const hasRequestedModule = requestedModuleId
-              ? data.some((module) => module.ModuleID.toString() === requestedModuleId)
+              ? data.some(
+                  (module) => module.ModuleID.toString() === requestedModuleId,
+                )
               : false;
             // Use URL module when valid; otherwise use the first module.
             setSelectedModule(
-              hasRequestedModule ? requestedModuleId : data[0].ModuleID.toString()
+              hasRequestedModule
+                ? requestedModuleId
+                : data[0].ModuleID.toString(),
             );
           }
         }
-      },)
+      })
       .catch(() => {
         if (isMounted) setModules([]);
       });
@@ -198,19 +226,26 @@ export default function ContentPage() {
     };
   }, [requestedModuleId]);
 
-  // Fetch content for selected module
+  // Fetch content and knowledge checks for selected module
   useEffect(() => {
     if (!selectedModule) return;
 
     let isMounted = true;
     setLoading(true);
 
-    fetch(`/api/content?moduleId=${selectedModule}`)
-      .then(res => res.json())
-      .then(data => {
-        if (isMounted) setContent(data);
+    Promise.all([
+      fetch(`/api/content?moduleId=${selectedModule}`).then((r) => r.json()),
+      fetch(`/api/knowledge-checks?moduleId=${selectedModule}`).then((r) =>
+        r.json(),
+      ),
+    ])
+      .then(([contentData, checksData]) => {
+        if (isMounted) {
+          setContent(contentData);
+          setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+        }
       })
-      .catch(err => {
+      .catch((err) => {
         if (isMounted) setError(err.message);
       })
       .finally(() => {
@@ -238,8 +273,8 @@ export default function ContentPage() {
   // Cancel editing
   const cancelEdit = () => {
     setEditingId(null);
-    setEditOverview('');
-    setEditReading('');
+    setEditOverview("");
+    setEditReading("");
     setShowEditPreview(false);
     setImageSrc(null);
     setUploadedImageURL(null);
@@ -252,8 +287,8 @@ export default function ContentPage() {
     try {
       setLoading(true);
       const res = await fetch(`/api/content/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           Overview: editOverview,
           Reading: uploadedImageURL ? '' : editReading,
@@ -261,12 +296,13 @@ export default function ContentPage() {
           imageDescription: uploadedImageURL ? imageDescription : null
         }),
       });
-      if (!res.ok) throw new Error('Failed to update content');
+      if (!res.ok) throw new Error("Failed to update content");
 
       // Refresh content
       const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
       const data = await updatedRes.json();
       setContent(data);
+      window.dispatchEvent(new Event('content-updated'));
       cancelEdit();
       setUploadedImageURL(null);
       setImageFile(null);
@@ -280,13 +316,13 @@ export default function ContentPage() {
 
   // Open delete modal
   const handleDeleteClick = (contentId) => {
-    const item = content.find(c => c.ContentID === contentId);
+    const item = content.find((c) => c.ContentID === contentId);
     const contentName = item?.Overview || `Item #${contentId}`;
 
     setDeleteModal({
       isOpen: true,
       contentId,
-      contentName
+      contentName,
     });
   };
 
@@ -297,14 +333,17 @@ export default function ContentPage() {
     try {
       setLoading(true);
       const res = await fetch(`/api/content/${contentId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!res.ok) throw new Error('Failed to delete content');
+      if (!res.ok) throw new Error("Failed to delete content");
 
       // Refresh content list
-      const updatedContent = await fetch(`/api/content?moduleId=${selectedModule}`);
+      const updatedContent = await fetch(
+        `/api/content?moduleId=${selectedModule}`,
+      );
       const data = await updatedContent.json();
       setContent(data);
+      window.dispatchEvent(new Event('content-updated'));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -325,9 +364,9 @@ export default function ContentPage() {
 
     try {
       setLoading(true);
-      const res = await fetch('/api/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           moduleId: selectedModule,
           overview: newOverview,
@@ -337,18 +376,213 @@ export default function ContentPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to create content');
+      if (!res.ok) throw new Error("Failed to create content");
 
       // Refresh content list
-      const updatedContent = await fetch(`/api/content?moduleId=${selectedModule}`);
+      const updatedContent = await fetch(
+        `/api/content?moduleId=${selectedModule}`,
+      );
       const data = await updatedContent.json();
       setContent(data);
+      window.dispatchEvent(new Event('content-updated'));
 
       // Reset form
       setShowCreateForm(false);
       setShowCreatePreview(false);
-      setNewOverview('');
-      setNewReading('');
+      setNewOverview("");
+      setNewReading("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Reset Knowledge Check Form
+  const resetKCForm = () => {
+    setShowKCForm(false);
+    setKcQuestion("");
+    setKcChoices(["", ""]);
+    setKcAnswer("");
+    setKcExplain("");
+    setKcTab("multiple-choice");
+    setKcDescAnswer("");
+    setShowKCPreview(false);
+  };
+
+  // Create New Knowledge Check
+  const createNewKnowledgeCheck = async () => {
+    setError(null);
+    if (!kcQuestion.trim()) {
+      setError("Question is required");
+      return;
+    }
+
+    // descriptive questions don't need choices or a correct answer
+    const isDescriptive = kcTab === "descriptive";
+
+    // only validate choices/answer for multiple-choice questions
+    if (!isDescriptive) {
+      const filledChoices = kcChoices.filter((c) => c.trim());
+      if (filledChoices.length < 2) {
+        setError("At least 2 choices are required");
+        return;
+      }
+      if (!kcAnswer) {
+        setError("Please select the correct answer");
+        return;
+      }
+    }
+
+    // for descriptive, send empty choices; for MC, format as "A: ...", "B: ..." etc.
+    const filledChoices = kcChoices.filter((c) => c.trim());
+    const formattedChoices = isDescriptive
+      ? []
+      : filledChoices.map(
+          (text, i) => `${String.fromCharCode(65 + i)}: ${text}`,
+        );
+
+    try {
+      setLoading(true);
+      const res = await fetch("/api/knowledge-checks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // for descriptive: no answer, sample answer goes in explain field
+        body: JSON.stringify({
+          moduleID: selectedModule,
+          contentId: null,
+          question: kcQuestion,
+          choices: formattedChoices,
+          answer: isDescriptive ? "" : kcAnswer,
+          explain: isDescriptive ? kcDescAnswer : kcExplain,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to create knowledge check");
+
+      const checksRes = await fetch(
+        `/api/knowledge-checks?moduleId=${selectedModule}`,
+      );
+      const checksData = await checksRes.json();
+      setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+      resetKCForm();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Knowledge Check
+  const handleDeleteKC = async (knowledgeCheckId) => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/knowledge-checks", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ knowledgeCheckId, moduleID: selectedModule }),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete knowledge check");
+
+      const checksRes = await fetch(
+        `/api/knowledge-checks?moduleId=${selectedModule}`,
+      );
+      const checksData = await checksRes.json();
+      setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Start Editing Knowledge Check
+  const startEditKC = (kc) => {
+    const plainChoices = (Array.isArray(kc.choices) ? kc.choices : []).map(
+      (c) => {
+        const match = c.match(/^[A-Z]:\s*(.*)/);
+        return match ? match[1] : c;
+      },
+    );
+    const isDescriptive =
+      !kc.choices || kc.choices.filter((c) => c.trim()).length === 0;
+    setEditingKCId(kc.knowledgeCheckId);
+    setEditKCQuestion(kc.question || "");
+    setEditKCChoices(plainChoices.length >= 2 ? plainChoices : ["", ""]);
+    setEditKCAnswer(kc.answer || "");
+    setEditKCExplain(kc.explain || "");
+    setEditKCTab(isDescriptive ? "descriptive" : "multiple-choice");
+    setEditKCDescAnswer(isDescriptive ? kc.explain || "" : "");
+  };
+
+  // Cancel Editing Knowledge Check
+  const cancelEditKC = () => {
+    setEditingKCId(null);
+    setEditKCQuestion("");
+    setEditKCChoices(["", ""]);
+    setEditKCAnswer("");
+    setEditKCExplain("");
+    setEditKCTab("multiple-choice");
+    setEditKCDescAnswer("");
+    setShowEditKCPreview(false);
+  };
+
+  // Save Editing Knowledge Check
+  const saveEditKC = async () => {
+    setError(null);
+    if (!editKCQuestion.trim()) {
+      setError("Question is required");
+      return;
+    }
+
+    // same logic as create — descriptive doesn't use choices/answer
+    const isDescriptive = editKCTab === "descriptive";
+
+    // skip choice/answer validation when editing a descriptive question
+    if (!isDescriptive) {
+      const filledChoices = editKCChoices.filter((c) => c.trim());
+      if (filledChoices.length < 2) {
+        setError("At least 2 choices are required");
+        return;
+      }
+      if (!editKCAnswer) {
+        setError("Please select the correct answer");
+        return;
+      }
+    }
+
+    // descriptive sends empty choices; MC formats them with letter prefixes
+    const filledChoices = editKCChoices.filter((c) => c.trim());
+    const formattedChoices = isDescriptive
+      ? []
+      : filledChoices.map(
+          (text, i) => `${String.fromCharCode(65 + i)}: ${text}`,
+        );
+
+    try {
+      setLoading(true);
+      const res = await fetch("/api/knowledge-checks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        // for descriptive: sample answer stored in explain, no correct answer needed
+        body: JSON.stringify({
+          knowledgeCheckId: editingKCId,
+          moduleID: selectedModule,
+          question: editKCQuestion,
+          choices: formattedChoices,
+          answer: isDescriptive ? "" : editKCAnswer,
+          explain: isDescriptive ? editKCDescAnswer : editKCExplain,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update knowledge check");
+
+      const checksRes = await fetch(
+        `/api/knowledge-checks?moduleId=${selectedModule}`,
+      );
+      const checksData = await checksRes.json();
+      setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+      cancelEditKC();
       setImageFile(null);
       setImageSrc(null);
       setUploadedImageURL(null);
@@ -436,6 +670,7 @@ export default function ContentPage() {
         const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
         const contentData = await updatedRes.json();
         setContent(contentData);
+        window.dispatchEvent(new Event('content-updated'));
       }
 
       setImageFile(null);
@@ -476,8 +711,16 @@ export default function ContentPage() {
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <svg className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg
+                className="h-4 w-4 sm:h-5 sm:w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3 flex-1">
@@ -487,8 +730,16 @@ export default function ContentPage() {
               onClick={() => setError(null)}
               className="ml-3 flex-shrink-0 text-red-400 hover:text-red-600"
             >
-              <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              <svg
+                className="h-4 w-4 sm:h-5 sm:w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
           </div>
@@ -519,9 +770,9 @@ export default function ContentPage() {
         />
       )}
 
-      {/* Add Content Page Button - only shown when editing an existing module */}
+      {/* Add Content Page & Knowledge Check Buttons - only shown when editing an existing module */}
       {mode !== 'new' && selectedModule && (
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
@@ -531,26 +782,36 @@ export default function ContentPage() {
             </svg>
             Add Content Page
           </button>
+          <button
+            onClick={() => setShowKCForm(!showKCForm)}
+            className="w-full sm:w-auto bg-blue-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Knowledge Check
+          </button>
           {modules.length > 0 && (
-            <p className="mt-2 text-xs sm:text-sm text-gray-500">
-              {content.length} {content.length === 1 ? 'page' : 'pages'}
+            <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
+              {content.length} {content.length === 1 ? 'page' : 'pages'} · {knowledgeChecks.length} {knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}
             </p>
           )}
         </div>
       )}
 
-
       {/* Create New Content Form */}
       {showCreateForm && (
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-green-500">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">New Content Page for Module {selectedModule}</h3>
+            <h3 className="text-xl font-semibold text-gray-800">
+              New Content Page for Module {selectedModule}
+            </h3>
             <button
               onClick={() => {
                 setShowCreateForm(false);
                 setShowCreatePreview(false);
-                setNewOverview('');
-                setNewReading('');
+                setNewOverview("");
+                setNewReading("");
               }}
               className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
             >
@@ -669,7 +930,7 @@ export default function ContentPage() {
                 onClick={() => setShowCreatePreview((prev) => !prev)}
                 className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
               >
-                {showCreatePreview ? 'Hide Preview' : 'Preview'}
+                {showCreatePreview ? "Hide Preview" : "Preview"}
               </button>
               <button
                 onClick={createNewContent}
@@ -692,13 +953,251 @@ export default function ContentPage() {
             </div>
             {showCreatePreview && (
               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">
+                  Preview
+                </h4>
                 <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
-                  {newOverview || 'Untitled page'}
+                  {newOverview || "Untitled page"}
                 </h5>
                 <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words">
-                  {newReading || 'No content to preview.'}
+                  {newReading || "No content to preview."}
                 </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Create Knowledge Check Form */}
+      {showKCForm && (
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-blue-500">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-800">
+              New Knowledge Check for Module {selectedModule}
+            </h3>
+            <button
+              onClick={resetKCForm}
+              className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Tab Switcher */}
+          <div className="flex border-b border-gray-200 mb-5">
+            <button
+              onClick={() => setKcTab("multiple-choice")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                kcTab === "multiple-choice"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Multiple Choice
+            </button>
+            <button
+              onClick={() => setKcTab("descriptive")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                kcTab === "descriptive"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Descriptive
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Question
+              </label>
+              <textarea
+                placeholder="Enter the question"
+                value={kcQuestion}
+                onChange={(e) => setKcQuestion(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                rows="3"
+              />
+            </div>
+
+            {kcTab === "multiple-choice" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Choices
+                  </label>
+                  {kcChoices.map((choice, idx) => {
+                    const letter = String.fromCharCode(65 + idx);
+                    return (
+                      <div key={idx} className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-gray-700 w-6">
+                          {letter}:
+                        </span>
+                        <input
+                          type="text"
+                          placeholder={`Choice ${letter}`}
+                          value={choice}
+                          onChange={(e) => {
+                            const updated = [...kcChoices];
+                            updated[idx] = e.target.value;
+                            setKcChoices(updated);
+                          }}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                        {kcChoices.length > 2 && (
+                          <button
+                            onClick={() => {
+                              const updated = kcChoices.filter(
+                                (_, i) => i !== idx,
+                              );
+                              setKcChoices(updated);
+                              setKcAnswer("");
+                            }}
+                            className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
+                          >
+                            X
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <button
+                    onClick={() => setKcChoices([...kcChoices, ""])}
+                    className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
+                  >
+                    + Add Choice
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Correct Answer
+                  </label>
+                  <select
+                    value={kcAnswer}
+                    onChange={(e) => setKcAnswer(e.target.value)}
+                    className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">Select correct answer</option>
+                    {kcChoices.reduce((opts, choice, idx) => {
+                      if (choice.trim()) {
+                        const letter = String.fromCharCode(65 + opts.length);
+                        opts.push(
+                          <option key={letter} value={letter}>
+                            {letter}
+                          </option>,
+                        );
+                      }
+                      return opts;
+                    }, [])}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {kcTab === "descriptive" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sample Answer
+                </label>
+                <textarea
+                  placeholder="Enter a sample or expected answer for grading reference"
+                  value={kcDescAnswer}
+                  onChange={(e) => setKcDescAnswer(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  rows="5"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Explanation (optional)
+              </label>
+              <textarea
+                placeholder={
+                  kcTab === "descriptive"
+                    ? "Add any additional notes or context"
+                    : "Explain why the correct answer is right"
+                }
+                value={kcExplain}
+                onChange={(e) => setKcExplain(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                rows="3"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => setShowKCPreview((prev) => !prev)}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                {showKCPreview ? "Hide Preview" : "Preview"}
+              </button>
+              <button
+                onClick={createNewKnowledgeCheck}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                Save Knowledge Check
+              </button>
+              <button
+                onClick={resetKCForm}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Live preview of the knowledge check before saving */}
+            {showKCPreview && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 mt-4">
+                <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 break-words">
+                  {kcQuestion || "No question entered"}
+                </h5>
+
+                {kcTab === "multiple-choice" ? (
+                  <div className="space-y-2 mb-3">
+                    {kcChoices.filter((c) => c.trim()).length > 0 ? (
+                      kcChoices
+                        .map((choice, i) => ({ label: String.fromCharCode(65 + i), text: choice }))
+                        .filter((c) => c.text.trim())
+                        .map((choice) => (
+                          <div
+                            key={choice.label}
+                            className={`p-2 rounded-lg border text-sm ${
+                              kcAnswer === choice.label
+                                ? "border-green-500 bg-green-50 text-green-800"
+                                : "border-gray-200 bg-gray-50 text-gray-700"
+                            }`}
+                          >
+                            <span className="font-medium mr-2">{choice.label}:</span>
+                            {choice.text}
+                            {kcAnswer === choice.label && (
+                              <span className="ml-2 text-green-600 text-xs font-semibold">✓ Correct</span>
+                            )}
+                          </div>
+                        ))
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">No choices added yet</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Sample Answer:</p>
+                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
+                      {kcDescAnswer || <span className="italic text-gray-400">No sample answer entered</span>}
+                    </div>
+                  </div>
+                )}
+
+                {kcExplain && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{kcExplain}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -709,19 +1208,23 @@ export default function ContentPage() {
       {mode !== 'new' && loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
-          <span className="text-gray-600 text-lg font-medium">Loading content...</span>
+          <span className="text-gray-600 text-lg font-medium">
+            Loading content...
+          </span>
         </div>
       ) : (
         <div>
           {content.length > 0 ? (
             <div className="space-y-4">
               {content.map((item, index) => (
-                <div key={item.ContentID} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div key={item.ContentID} id={`content-page-${item.ContentID}`} className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300">
                   {editingId === item.ContentID ? (
                     // Edit Mode
                     <div className="p-6 bg-green-50 border-l-4 border-green-500">
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Editing Page {index + 1}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Editing Page {index + 1}
+                        </h3>
                         <button
                           onClick={cancelEdit}
                           className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
@@ -737,7 +1240,7 @@ export default function ContentPage() {
                           <textarea
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             value={editOverview}
-                            onChange={e => setEditOverview(e.target.value)}
+                            onChange={(e) => setEditOverview(e.target.value)}
                             rows="2"
                           />
                         </div>
@@ -834,7 +1337,7 @@ export default function ContentPage() {
                             className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
                             onClick={() => setShowEditPreview((prev) => !prev)}
                           >
-                            {showEditPreview ? 'Hide Preview' : 'Preview'}
+                            {showEditPreview ? "Hide Preview" : "Preview"}
                           </button>
                           <button
                             className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
@@ -851,12 +1354,14 @@ export default function ContentPage() {
                         </div>
                         {showEditPreview && (
                           <div className="bg-white rounded-lg p-4 border border-gray-200">
-                            <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                            <h4 className="text-sm font-semibold text-gray-600 mb-2">
+                              Preview
+                            </h4>
                             <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
-                              {editOverview || 'Untitled page'}
+                              {editOverview || "Untitled page"}
                             </h5>
                             <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words">
-                              {editReading || 'No content to preview.'}
+                              {editReading || "No content to preview."}
                             </p>
                           </div>
                         )}
@@ -871,9 +1376,13 @@ export default function ContentPage() {
                             <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
                               Page {index + 1}
                             </span>
-                            <span className="text-xs sm:text-sm text-gray-500">Module {item.ModuleID}</span>
+                            <span className="text-xs sm:text-sm text-gray-500">
+                              Module {item.ModuleID}
+                            </span>
                           </div>
-                          <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 break-words">{item.Overview}</h3>
+                          <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 break-words">
+                            {item.Overview}
+                          </h3>
                         </div>
 
                         {/* Action Buttons - Stack on mobile */}
@@ -933,17 +1442,373 @@ export default function ContentPage() {
                   />
                 </svg>
               </div>
-              <p className="text-gray-600 text-lg mb-2">No content pages found for Module {selectedModule}</p>
-              <p className="text-gray-500 text-sm">Click "Add Content Page" to create your first content page.</p>
+              <p className="text-gray-600 text-lg mb-2">
+                No content pages found for Module {selectedModule}
+              </p>
+              <p className="text-gray-500 text-sm">
+                Click "Add Content Page" to create your first content page.
+              </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Knowledge Checks List */}
+      {!loading && knowledgeChecks.length > 0 && (
+        <div className="mt-6 sm:mt-8">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
+            Knowledge Checks
+          </h2>
+          <div className="space-y-4">
+            {knowledgeChecks.map((kc, index) => (
+              <div
+                key={kc.knowledgeCheckId}
+                className="bg-white rounded-xl shadow-lg overflow-hidden"
+              >
+                {editingKCId === kc.knowledgeCheckId ? (
+                  <div className="p-4 sm:p-6 bg-blue-50 border-l-4 border-blue-500">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Editing Check {index + 1}
+                      </h3>
+                      <button
+                        onClick={cancelEditKC}
+                        className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {/* Edit Tab Switcher */}
+                    <div className="flex border-b border-blue-200 mb-5">
+                      <button
+                        onClick={() => setEditKCTab("multiple-choice")}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                          editKCTab === "multiple-choice"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        Multiple Choice
+                      </button>
+                      <button
+                        onClick={() => setEditKCTab("descriptive")}
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                          editKCTab === "descriptive"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        Descriptive
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Question
+                        </label>
+                        <textarea
+                          value={editKCQuestion}
+                          onChange={(e) => setEditKCQuestion(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          rows="3"
+                        />
+                      </div>
+
+                      {editKCTab === "multiple-choice" && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Choices
+                            </label>
+                            {editKCChoices.map((choice, idx) => {
+                              const letter = String.fromCharCode(65 + idx);
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-2 mb-2"
+                                >
+                                  <span className="font-semibold text-gray-700 w-6">
+                                    {letter}:
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={choice}
+                                    onChange={(e) => {
+                                      const updated = [...editKCChoices];
+                                      updated[idx] = e.target.value;
+                                      setEditKCChoices(updated);
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  />
+                                  {editKCChoices.length > 2 && (
+                                    <button
+                                      onClick={() => {
+                                        const updated = editKCChoices.filter(
+                                          (_, i) => i !== idx,
+                                        );
+                                        setEditKCChoices(updated);
+                                        setEditKCAnswer("");
+                                      }}
+                                      className="text-red-500 hover:text-red-700 font-bold text-lg px-2"
+                                    >
+                                      X
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            <button
+                              onClick={() =>
+                                setEditKCChoices([...editKCChoices, ""])
+                              }
+                              className="mt-1 text-sm text-green-600 hover:text-green-800 font-medium"
+                            >
+                              + Add Choice
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Correct Answer
+                            </label>
+                            <select
+                              value={editKCAnswer}
+                              onChange={(e) => setEditKCAnswer(e.target.value)}
+                              className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                            >
+                              <option value="">Select correct answer</option>
+                              {editKCChoices.reduce((opts, choice, idx) => {
+                                if (choice.trim()) {
+                                  const letter = String.fromCharCode(
+                                    65 + opts.length,
+                                  );
+                                  opts.push(
+                                    <option key={letter} value={letter}>
+                                      {letter}
+                                    </option>,
+                                  );
+                                }
+                                return opts;
+                              }, [])}
+                            </select>
+                          </div>
+                        </>
+                      )}
+
+                      {editKCTab === "descriptive" && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Sample Answer
+                          </label>
+                          <textarea
+                            placeholder="Enter a sample or expected answer for grading reference"
+                            value={editKCDescAnswer}
+                            onChange={(e) =>
+                              setEditKCDescAnswer(e.target.value)
+                            }
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            rows="5"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Explanation (optional)
+                        </label>
+                        <textarea
+                          placeholder={
+                            editKCTab === "descriptive"
+                              ? "Add any additional notes or context"
+                              : "Explain why the correct answer is right"
+                          }
+                          value={editKCExplain}
+                          onChange={(e) => setEditKCExplain(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          rows="3"
+                        />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          onClick={() => setShowEditKCPreview((prev) => !prev)}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                        >
+                          {showEditKCPreview ? "Hide Preview" : "Preview"}
+                        </button>
+                        <button
+                          onClick={saveEditKC}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm sm:text-base"
+                        >
+                          Save changes
+                        </button>
+                        <button
+                          onClick={cancelEditKC}
+                          className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium text-sm sm:text-base"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+
+                      {/* Live preview of the knowledge check while editing */}
+                      {showEditKCPreview && (
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 mt-4">
+                          <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
+                          <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 break-words">
+                            {editKCQuestion || "No question entered"}
+                          </h5>
+
+                          {editKCTab === "multiple-choice" ? (
+                            <div className="space-y-2 mb-3">
+                              {editKCChoices.filter((c) => c.trim()).length > 0 ? (
+                                editKCChoices
+                                  .map((choice, i) => ({ label: String.fromCharCode(65 + i), text: choice }))
+                                  .filter((c) => c.text.trim())
+                                  .map((choice) => (
+                                    <div
+                                      key={choice.label}
+                                      className={`p-2 rounded-lg border text-sm ${
+                                        editKCAnswer === choice.label
+                                          ? "border-green-500 bg-green-50 text-green-800"
+                                          : "border-gray-200 bg-gray-50 text-gray-700"
+                                      }`}
+                                    >
+                                      <span className="font-medium mr-2">{choice.label}:</span>
+                                      {choice.text}
+                                      {editKCAnswer === choice.label && (
+                                        <span className="ml-2 text-green-600 text-xs font-semibold">✓ Correct</span>
+                                      )}
+                                    </div>
+                                  ))
+                              ) : (
+                                <p className="text-sm text-gray-400 italic">No choices added yet</p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-gray-600 mb-1">Sample Answer:</p>
+                              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
+                                {editKCDescAnswer || <span className="italic text-gray-400">No sample answer entered</span>}
+                              </div>
+                            </div>
+                          )}
+
+                          {editKCExplain && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap">{editKCExplain}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 sm:p-6">
+                    <div className="flex flex-col gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                            Check {index + 1}
+                          </span>
+                          {(!kc.choices ||
+                            kc.choices.filter((c) => c.trim()).length ===
+                              0) && (
+                            <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
+                              Descriptive
+                            </span>
+                          )}
+                          {kc.choices &&
+                            kc.choices.filter((c) => c.trim()).length > 0 && (
+                              <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
+                                Multiple Choice
+                              </span>
+                            )}
+                          <span className="text-xs sm:text-sm text-gray-500">
+                            Module {kc.moduleID}
+                          </span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
+                          {kc.question}
+                        </h3>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          onClick={() => startEditKC(kc)}
+                          className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteKC(kc.knowledgeCheckId)}
+                          className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-xs sm:text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    {(!kc.choices ||
+                      kc.choices.filter((c) => c.trim()).length === 0) ? (
+                      <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-purple-400">
+                        <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">
+                          Sample Answer:
+                        </h4>
+                        <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
+                          {kc.explain || (
+                            <span className="italic text-gray-400">
+                              No sample answer provided
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    ) : (
+                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-blue-400">
+                      <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">
+                        Choices:
+                      </h4>
+                      <ul className="space-y-1">
+                        {(Array.isArray(kc.choices) ? kc.choices : []).map(
+                          (choice, i) => (
+                            <li
+                              key={i}
+                              className="text-xs sm:text-sm text-gray-700"
+                            >
+                              {choice}
+                              {kc.answer &&
+                                choice.startsWith(kc.answer + ":") && (
+                                  <span className="ml-2 text-green-600 font-semibold">
+                                    ✓ Correct
+                                  </span>
+                                )}
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                      {kc.explain && (
+                        <p className="mt-2 text-xs sm:text-sm text-gray-600">
+                          <span className="font-medium">Explanation:</span>{" "}
+                          {kc.explain}
+                        </p>
+                      )}
+                    </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, contentId: null, contentName: '' })}
+        onClose={() =>
+          setDeleteModal({ isOpen: false, contentId: null, contentName: "" })
+        }
         onConfirm={performDelete}
         title="Delete Content"
         message={`Are you sure you want to delete "${deleteModal.contentName}"? This action cannot be undone and will permanently remove this content page.`}
