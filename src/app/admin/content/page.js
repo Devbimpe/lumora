@@ -33,6 +33,7 @@ export default function ContentPage() {
   const [imageDescription, setImageDescription] = useState('');
   const [inputURL, setInputURL] = useState('');
   const [inputIsURL, setInputIsURL] = useState(false);
+  const [confirmURLPreview, setConfirmURLPreview] = useState(null);
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
@@ -371,8 +372,11 @@ export default function ContentPage() {
   }
 
   function handleURLChange(event){
-    setInputURL(event.target.value);
-    setInputIsURL(event.target.value.match("^https?:\/\/"));
+    const url = event.target.value;
+    setInputURL(url);
+    setInputIsURL(!!url.match("^https?:\/\/"));
+    setConfirmURLPreview(url.match("^https?:\/\/") ? url : null);
+    setImageSrc(event.target.value);
   }
 
   // Upload the selected image to Cloudinary via the API
@@ -636,6 +640,7 @@ export default function ContentPage() {
                         setImageFile(null);
                         setImageSrc(null);
                         setUploadedImageURL(null);
+                        setInputIsURL(false);
                       }}
                       className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
                     >
@@ -823,6 +828,18 @@ export default function ContentPage() {
                                   {uploadingImage ? 'Uploading...' : 'Upload Image'}
                                 </button>
                               )}
+
+                              {/* Upload */}
+                              {!uploadedImageURL && imageFile && (
+                                <button
+                                  onClick={uploadImage}
+                                  disabled={uploadingImage}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+
                               {!uploadedImageURL && (
                                 <button
                                   onClick={() => {
