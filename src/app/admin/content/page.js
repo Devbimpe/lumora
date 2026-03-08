@@ -101,7 +101,7 @@ export default function ContentPage() {
     (m) => m.ModuleID.toString() === selectedModule,
   );
 
-  // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
+  // When mode or selected module changes: sync heading, subheading, favicon from that module (so Edit Module shows the saved values)
   useEffect(() => {
     if (mode === "new") {
       setFaviconURL(getDefaultFaviconUrl());
@@ -112,8 +112,9 @@ export default function ContentPage() {
     if (currentModule) {
       setHeading(currentModule.Heading);
       setSubHeading(currentModule.Subheading);
+      setFaviconURL(currentModule.faviconURL || getDefaultFaviconUrl());
     }
-  }, [mode, currentModule]);
+  }, [mode, currentModule?.ModuleID]);
 
 
 
