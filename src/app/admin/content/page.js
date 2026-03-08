@@ -7,63 +7,80 @@ import EditModule from '../components/EditModule';
 export default function ContentPage() {
   // Read moduleId from URL so the page can open the right module directly.
   const router = useRouter();
+
   const searchParams = useSearchParams();
   const requestedModuleId = searchParams.get('moduleId');
   const moduleId = searchParams.get('moduleId');
   const mode = searchParams.get('mode');
   const showCreateParam = searchParams.get('showCreate');
+
   const [content, setContent] = useState([]);
-  const [submitStatus, setSubmitStatus] = useState('');
   const [modules, setModules] = useState([]);
+
+  const [submitStatus, setSubmitStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [selectedModule, setSelectedModule] = useState("");
+
   const [editingId, setEditingId] = useState(null);
   const [editOverview, setEditOverview] = useState("");
   const [editReading, setEditReading] = useState("");
+
   const [showEditPreview, setShowEditPreview] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(showCreateParam === 'true');
   const [showCreatePreview, setShowCreatePreview] = useState(false);
+
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
+
   const [imageFile, setImageFile] = useState(null);
   const [imageSrc, setImageSrc] = useState(null); // preview image
+  const [imageDescription, setImageDescription] = useState('');
+
   const [uploadedImageURL, setUploadedImageURL] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [imageDescription, setImageDescription] = useState('');
   
-  const [faviconFile, setFaviconFile] = useState(null);
   const [faviconURL, setFaviconURL] = useState('');
 
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [knowledgeChecks, setKnowledgeChecks] = useState([]);
   const [showKCForm, setShowKCForm] = useState(false);
+
   const [kcQuestion, setKcQuestion] = useState("");
   const [kcChoices, setKcChoices] = useState(["", ""]);
   const [kcAnswer, setKcAnswer] = useState("");
   const [kcExplain, setKcExplain] = useState("");
+
   const [editingKCId, setEditingKCId] = useState(null);
   const [editKCQuestion, setEditKCQuestion] = useState("");
   const [editKCChoices, setEditKCChoices] = useState(["", ""]);
   const [editKCAnswer, setEditKCAnswer] = useState("");
   const [editKCExplain, setEditKCExplain] = useState("");
+  const [editKCTab, setEditKCTab] = useState("multiple-choice");
+  const [editKCDescAnswer, setEditKCDescAnswer] = useState("");
+
   const [kcTab, setKcTab] = useState("multiple-choice");
   const [kcDescAnswer, setKcDescAnswer] = useState("");
   const [showKCPreview, setShowKCPreview] = useState(false);
-  const [editKCTab, setEditKCTab] = useState("multiple-choice");
-  const [editKCDescAnswer, setEditKCDescAnswer] = useState("");
   const [showEditKCPreview, setShowEditKCPreview] = useState(false);
   const [heading, setHeading] = useState("");
   const [subHeading, setSubHeading] = useState("");
+
+
   const currentModule = modules.find(
     (m) => m.ModuleID.toString() === selectedModule,
   );
+
+
   useEffect(() => {
     if (currentModule) {
       setHeading(currentModule.Heading);
       setSubHeading(currentModule.Subheading);
     }
   });
+
+
   // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
   useEffect(() => {
     if (mode === "new") {
@@ -87,12 +104,15 @@ export default function ContentPage() {
     }
   }, [mode, moduleId, modules]);
 
+
+
   // Modal state
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     contentId: null,
     contentName: "",
   });
+
 
   // Listen for sidebar "Add Page" button
   useEffect(() => {
@@ -115,6 +135,7 @@ export default function ContentPage() {
     }
   };
 
+  
   const handleSubmit = async () => {
     if (!heading.trim() || !subHeading.trim()) {
       setSubmitStatus("Both fields are required.");
