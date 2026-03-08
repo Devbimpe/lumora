@@ -33,7 +33,7 @@ export default function ContentPage() {
   const [imageDescription, setImageDescription] = useState('');
   const [inputURL, setInputURL] = useState('');
   const [inputIsURL, setInputIsURL] = useState(false);
-  const [confirmURLPreview, setConfirmURLPreview] = useState(null);
+  const [confirmURLPreview, setConfirmURLPreview] = useState(false);
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [knowledgeChecks, setKnowledgeChecks] = useState([]);
   const [showKCForm, setShowKCForm] = useState(false);
@@ -607,10 +607,14 @@ export default function ContentPage() {
 
   function handleURLChange(event){
     const url = event.target.value;
-    setInputURL(url);
-    setInputIsURL(!!url.match("^https?:\/\/"));
-    setConfirmURLPreview(url.match("^https?:\/\/") ? url : null);
-    setImageSrc(event.target.value);
+    const isURLValid = !!url.match("^https?:\/\/");
+    if(isURLValid){
+      setInputURL(url);
+      setUploadedImageURL(null); // reset any previously uploaded URL
+      setInputIsURL(isURLValid);
+      setConfirmURLPreview(isURLValid);
+      setImageSrc(url);
+    }
   }
 
   // Upload the selected image to Cloudinary via the API
@@ -648,6 +652,7 @@ export default function ContentPage() {
     }
   };
 
+  //Upload an url to the API
   const uploadURLImage = async () =>{
     if(!inputURL.trim()){
       setError('Please input an URL first');
@@ -895,6 +900,16 @@ export default function ContentPage() {
                       {uploadingImage ? 'Uploading...' : 'Upload Image'}
                     </button>
                   )}
+                  {/*Accept uploaded URL, preview image*/}
+                  {!uploadedImageURL && confirmURLPreview && (
+                    <button
+                      onClick={uploadURLImage}
+                      disabled={uploadingImage || !inputIsURL}
+                      className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                    </button>
+                  )}
                   {!uploadedImageURL && (
                     <button
                       onClick={() => {
@@ -902,6 +917,7 @@ export default function ContentPage() {
                         setImageSrc(null);
                         setUploadedImageURL(null);
                         setInputIsURL(false);
+                        setConfirmURLPreview(false);
                       }}
                       className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
                     >
@@ -978,7 +994,7 @@ export default function ContentPage() {
                   onChange={handleURLChange}
                 />
                 <button
-                  onClick={uploadURLImage}
+                  onClick={() => {setConfirmURLPreview(true)}}
                   disabled={uploadingImage || !inputIsURL}
                   className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputIsURL
                     ? 'bg-gray-400 cursor-not-allowed'
@@ -1332,6 +1348,17 @@ export default function ContentPage() {
                                 </button>
                               )}
 
+                              {/*Accept uploaded URL, preview image*/}
+                              {!uploadedImageURL && confirmURLPreview && (
+                                <button
+                                  onClick={uploadURLImage}
+                                  disabled={uploadingImage || !inputIsURL}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+
                               {/* Upload */}
                               {!uploadedImageURL && imageFile && (
                                 <button
@@ -1349,6 +1376,8 @@ export default function ContentPage() {
                                     setImageFile(null);
                                     setImageSrc(null);
                                     setUploadedImageURL(null);
+                                    setInputIsURL(false);
+                                    setConfirmURLPreview(false);
                                   }}
                                   className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
                                 >
@@ -1421,7 +1450,7 @@ export default function ContentPage() {
                               onChange={handleURLChange}
                             />
                             <button
-                              onClick={uploadURLImage}
+                              onClick={() => {setConfirmURLPreview(true)}}
                               disabled={uploadingImage || !inputIsURL}
                               className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputIsURL
                                 ? 'bg-gray-400 cursor-not-allowed'
