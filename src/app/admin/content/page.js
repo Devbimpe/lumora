@@ -76,9 +76,17 @@ export default function ContentPage() {
     }
   };
 
-  // On mount (or when moduleId changes), load modules then select the right one
+  // On mount (or when moduleId/mode changes), load modules then select the right one
   useEffect(() => {
     let isMounted = true;
+
+    if (mode === "new") {
+      setSelectedModule("");
+      setContent([]);
+      setKnowledgeChecks([]);
+      setLoading(false);
+      return;
+    }
 
     fetchModules().then((data) => {
       if (!isMounted || data.length === 0) return;
@@ -87,12 +95,10 @@ export default function ContentPage() {
         ? data.some((m) => m.ModuleID.toString() === moduleId)
         : false;
       setSelectedModule(hasRequestedModule ? moduleId : data[0].ModuleID.toString());
-
-
     });
 
     return () => { isMounted = false; };
-  }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [moduleId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 
@@ -130,9 +136,9 @@ export default function ContentPage() {
 
 
 
-// Fetch content and knowledge checks
+// Fetch content and knowledge checks (skip when creating a new module)
   useEffect(() => {
-    if (!selectedModule) return;
+    if (!selectedModule || mode === "new") return;
 
     let isMounted = true;
     setLoading(true);
@@ -159,7 +165,7 @@ export default function ContentPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedModule]);
+  }, [selectedModule, mode]);
 
 
 
@@ -631,12 +637,17 @@ export default function ContentPage() {
 
 
 
-      {/* Add Content Page & Knowledge Check Buttons - only shown when editing an existing module */}
-      {mode !== 'new' && selectedModule && (
+      {/* Add Content Page & Knowledge Check Buttons - shown for existing modules; disabled with hint when creating new */}
+      {(mode !== 'new' ? selectedModule : true) && (
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3">
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+            onClick={() => mode === 'new' ? null : setShowCreateForm(!showCreateForm)}
+            disabled={mode === 'new'}
+            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base ${
+              mode === 'new'
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-xl'
+            }`}
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -644,19 +655,23 @@ export default function ContentPage() {
             Add Content Page
           </button>
           <button
-            onClick={() => setShowKCForm(!showKCForm)}
-            className="w-full sm:w-auto bg-blue-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+            onClick={() => mode === 'new' ? null : setShowKCForm(!showKCForm)}
+            disabled={mode === 'new'}
+            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base ${
+              mode === 'new'
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl'
+            }`}
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Knowledge Check
           </button>
-          {modules.length > 0 && (
-            <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
-              {content.length} {content.length === 1 ? 'page' : 'pages'} · {knowledgeChecks.length} {knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}
-            </p>
-          )}
+          <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
+            {content.length} {content.length === 1 ? 'page' : 'pages'} · {knowledgeChecks.length} {knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}
+            {mode === 'new' && ' — Save the module to add content'}
+          </p>
         </div>
       )}
 
@@ -716,7 +731,7 @@ export default function ContentPage() {
             Loading content...
           </span>
         </div>
-      ) : (
+      ) : mode !== 'new' ? (
         <div>
           {content.length > 0 ? (
             <div className="space-y-4">
@@ -955,7 +970,7 @@ export default function ContentPage() {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Knowledge Checks List */}
       {!loading && knowledgeChecks.length > 0 && (
