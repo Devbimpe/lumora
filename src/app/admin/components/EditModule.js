@@ -26,8 +26,8 @@ export default function EditModule({ heading, subHeading, onHeadingChange, onSub
 
       <div className="flex justify-between items-center mb-3 sm:mb-4">
         <div className="flex items-center gap-3">
-          <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-gray-800">{isNew ? 'Create New Module' : 'Edit Module'}</h3>
-          <div id="FaviconSelector" className="flex items-center gap-3 ml-3">
+          <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-gray-800 text-center">{isNew ? 'Create New Module' : 'Edit Module'}</h3>
+          <div id="FaviconSelector" className="flex flex-wrap items-center gap-3 ml-3">
             {Object.entries(FAVICON_URLS).map(([id, url]) => (
               <button
                 key={id}
