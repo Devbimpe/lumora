@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditModule from '../components/EditModule';
+import { getFaviconUrl, getDefaultFaviconUrl } from '../../lib/favicons';
 
 export default function ContentPage() {
   // Read moduleId from URL so the page can open the right module directly.
@@ -73,12 +74,13 @@ export default function ContentPage() {
   );
 
 
+  // Only sync from currentModule when the selected module actually changes (not on every render)
   useEffect(() => {
-    if (currentModule) {
-      setHeading(currentModule.Heading);
-      setSubHeading(currentModule.Subheading);
-    }
-  });
+    if (!currentModule) return;
+    setHeading(currentModule.Heading);
+    setSubHeading(currentModule.Subheading);
+    setFaviconURL(currentModule.faviconURL || getDefaultFaviconUrl());
+  }, [currentModule?.ModuleID]);
 
 
   // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
@@ -87,6 +89,7 @@ export default function ContentPage() {
       setHeading("");
       setSubHeading("");
       setSelectedModule("");
+      setFaviconURL(getDefaultFaviconUrl());
       setLoading(false);
       return;
     }
@@ -100,7 +103,7 @@ export default function ContentPage() {
     if (moduleToEdit) {
       setHeading(moduleToEdit.Heading);
       setSubHeading(moduleToEdit.Subheading);
-      console.log(moduleToEdit);
+      setFaviconURL(moduleToEdit.faviconURL || getDefaultFaviconUrl());
     }
   }, [mode, moduleId, modules]);
 
@@ -147,9 +150,10 @@ export default function ContentPage() {
       const isNew = mode === "new";
       setSubmitStatus(isNew ? "Saving..." : "Updating...");
       const method = isNew ? "POST" : "PUT";
+      const urlToSave = faviconURL?.trim() || (isNew ? getDefaultFaviconUrl() : getFaviconUrl('1'));
       const body = isNew
-        ? JSON.stringify({ heading, subHeading, faviconURL })
-        : JSON.stringify({ id: selectedModule, heading, subHeading, faviconURL });
+        ? JSON.stringify({ heading, subHeading, faviconURL: urlToSave })
+        : JSON.stringify({ id: selectedModule, heading, subHeading, faviconURL: urlToSave });
 
       const response = await fetch("/api/admin/modules", {
         method,
@@ -164,17 +168,31 @@ export default function ContentPage() {
         );
       }
 
-      const updatedModules = await fetchModules();
+      if (isNew) {
+        const updatedModules = await fetchModules();
+        if (updatedModules.length > 0) {
+          const newModule = updatedModules[updatedModules.length - 1];
+          router.push(`/admin/content?moduleId=${newModule.ModuleID}`);
+        }
+      } else {
+        // merge saved heading, subheading, favicon into state (avoids extra GET)
+        setModules((prev) =>
+          prev.map((m) =>
+            m.ModuleID.toString() === selectedModule
+              ? {
+                  ...m,
+                  Heading: heading,
+                  Subheading: subHeading,
+                  faviconURL: urlToSave,
+                }
+              : m,
+          ),
+        );
+      }
+
       setSubmitStatus(
         isNew ? "Module added successfully!" : "Module updated successfully!",
       );
-
-      if (isNew && updatedModules.length > 0) {
-        // Navigate to the newly created module
-        const newModule = updatedModules[updatedModules.length - 1];
-        router.push(`/admin/content?moduleId=${newModule.ModuleID}`);
-      }
-
       setTimeout(() => setSubmitStatus(''), 3000);
     } catch (err) {
       console.error("Submit error:", err);
@@ -191,10 +209,11 @@ export default function ContentPage() {
 
     try {
       setSubmitStatus("Saving...");
+      const urlToSave = faviconURL?.trim() || getDefaultFaviconUrl();
       const response = await fetch("/api/admin/modules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ heading, subHeading }),
+        body: JSON.stringify({ heading, subHeading, faviconURL: urlToSave }),
       });
 
       if (!response.ok) {
@@ -796,7 +815,8 @@ export default function ContentPage() {
           onClose={() => router.push('/admin/module-management')}
           isNew={mode === 'new'}
           onSubmitAndAdd={handleSubmitAndAddContent}
-          onFaviconChange={(url) => {setFaviconURL(url); console.log('Favicon URL set to:', url);}}
+          initialFaviconUrl={faviconURL}
+          onFaviconChange={(url) => setFaviconURL(url)}
         />
       )}
 

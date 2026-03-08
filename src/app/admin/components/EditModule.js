@@ -1,23 +1,34 @@
 "use client"
-import { useState, useEffect } from "react"
-import { FAVICON_URLS } from "../../lib/favicons"
+import { useState, useEffect, useRef } from "react"
+import { FAVICON_URLS, getFaviconIdFromUrl } from "../../lib/favicons"
 
 const FIRST_FAVICON_ID = Object.keys(FAVICON_URLS)[0]
 
-export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd, onFaviconChange, initialFaviconId }) {
+function resolveInitialId(initialFaviconUrl, initialFaviconId) {
+  const fromUrl = initialFaviconUrl ? getFaviconIdFromUrl(initialFaviconUrl) : null
+  if (fromUrl) return String(fromUrl)
+  if (initialFaviconId != null && FAVICON_URLS[initialFaviconId]) return String(initialFaviconId)
+  return FIRST_FAVICON_ID
+}
+
+export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd, onFaviconChange, initialFaviconId, initialFaviconUrl }) {
   const [selectedFaviconId, setSelectedFaviconId] = useState(
-    () => initialFaviconId ?? FIRST_FAVICON_ID
+    () => resolveInitialId(initialFaviconUrl, initialFaviconId)
   )
+  const lastSyncedUrl = useRef(initialFaviconUrl)
 
-  // Sync with parent when they pass a new initial value (e.g. when switching modules)
+  // Sync only when parent passes a different initial URL (e.g. switched module), not on every re-render
   useEffect(() => {
-    if (initialFaviconId != null && FAVICON_URLS[initialFaviconId]) {
-      setSelectedFaviconId(initialFaviconId)
-    }
-  }, [initialFaviconId])
+    if (initialFaviconUrl === lastSyncedUrl.current) return
+    lastSyncedUrl.current = initialFaviconUrl
+    const id = resolveInitialId(initialFaviconUrl, initialFaviconId)
+    setSelectedFaviconId(id)
+  }, [initialFaviconUrl, initialFaviconId])
 
-  function handleFaviconChange(faviconID) {
-    if (onFaviconChange) onFaviconChange(FAVICON_URLS[faviconID]);
+  function handleFaviconChange(faviconId, event) {
+    setSelectedFaviconId(String(faviconId))
+    if (onFaviconChange) onFaviconChange(FAVICON_URLS[faviconId], faviconId)
+    if (event?.currentTarget) event.currentTarget.blur()
   }
 
 
@@ -32,12 +43,12 @@ export default function EditModule({ heading, subHeading, onHeadingChange, onSub
               <button
                 key={id}
                 type="button"
-                className={`p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200 ${
-                  selectedFaviconId === id
+                className={`p-2 rounded-full focus:outline-none transition-colors duration-200 ${
+                  selectedFaviconId === String(id)
                     ? "bg-green-100 ring-2 ring-green-500 ring-offset-2"
-                    : "hover:bg-gray-200"
+                    : "hover:bg-gray-200 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                 }`}
-                onClick={() => handleFaviconChange(id)}
+                onClick={(e) => handleFaviconChange(id, e)}
               >
                 <img src={url} alt={`Module ${id}`} className="w-6 h-6" />
               </button>

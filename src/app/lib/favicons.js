@@ -17,3 +17,16 @@ export const FAVICON_URLS = {
 export function getFaviconUrl(moduleId) {
   return FAVICON_URLS[moduleId] ?? `${CLOUDINARY_BASE}/v1772424045/M7.png`;
 }
+
+/** Default favicon URL for new modules when user doesn't pick a different one (first in list). */
+export function getDefaultFaviconUrl() {
+  const firstId = Object.keys(FAVICON_URLS)[0];
+  return FAVICON_URLS[firstId];
+}
+
+/** Get favicon id (string) from a favicon URL, or null if no match */
+export function getFaviconIdFromUrl(url) {
+  if (!url || typeof url !== "string") return null;
+  const entry = Object.entries(FAVICON_URLS).find(([, u]) => u === url);
+  return entry ? entry[0] : null;
+}

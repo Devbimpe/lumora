@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getFaviconUrl } from "../lib/favicons";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref className="h-full block">
@@ -47,13 +46,13 @@ const TrainingModule = () => {
         // We filter BEFORE mapping so the index (used for bgColor) stays consistent (Green, Orange, Green...)
         const publishedModules = data.filter(module => module.published === true);
 
-        // Map filtered data to component format
+        // Map filtered data to component format — icon only from saved faviconURL (no fallback)
         const formattedModules = publishedModules.map((module, index) => ({
           id: module.ModuleID,
           title: `MODULE ${module.ModuleID}: ${module.Heading}`,
           subtitle: module.Subheading || "",
           href: `/modules/module${module.ModuleID}`,
-          icon: getFaviconUrl(module.ModuleID),
+          icon: module.faviconURL || null,
           bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
         }));
         
