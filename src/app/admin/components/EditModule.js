@@ -4,7 +4,7 @@ import { FAVICON_URLS } from "../../lib/favicons"
 
 const FIRST_FAVICON_ID = Object.keys(FAVICON_URLS)[0]
 
-export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd, onFaviconChange, initialFaviconId }) {
+export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onFaviconChange, initialFaviconId }) {
   const [selectedFaviconId, setSelectedFaviconId] = useState(
     () => initialFaviconId ?? FIRST_FAVICON_ID
   )
