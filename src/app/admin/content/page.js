@@ -709,6 +709,13 @@ export default function ContentPage() {
     }
   };
 
+
+
+
+
+
+
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
@@ -789,7 +796,7 @@ export default function ContentPage() {
           onClose={() => router.push('/admin/module-management')}
           isNew={mode === 'new'}
           onSubmitAndAdd={handleSubmitAndAddContent}
-          onFaviconChange={(url) => setFaviconURL(url)}
+          onFaviconChange={(url) => {setFaviconURL(url); console.log('Favicon URL set to:', url);}}
         />
       )}
 

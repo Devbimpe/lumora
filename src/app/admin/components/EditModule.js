@@ -3,10 +3,8 @@ import { FAVICON_URLS } from "../../lib/favicons"
 
 export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd, onFaviconChange }) {
 
-  function handleFaviconChange(moduleId) {
-    return () => {
-      if (onFaviconChange) onFaviconChange(MODULE_IMAGE_URLS[moduleId], moduleId);
-    }  
+  function handleFaviconChange(faviconID) {
+    if (onFaviconChange) onFaviconChange(FAVICON_URLS[faviconID]);
   }
 
 

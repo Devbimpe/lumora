@@ -15,6 +15,7 @@ async function getModules() {
       Heading: module.heading,
       SubHeading: module.subheading,
       published: module.published ?? false,
+      faviconURL: module.faviconURL || null
     }));
 
     console.log(`📊 Found ${modules.length} modules`);
@@ -38,14 +39,14 @@ async function getModules() {
 // Adds a new module to the database
 // Expects an object with 'heading' and 'subHeading' properties
 // Returns the inserted module's ID on success
-async function addModule({ heading, subHeading }) {
+async function addModule({ heading, subHeading, faviconURL }) {
   try {
     console.log('📥 Inserting new module...');
 
     const { createModule } = await import("@db/db.js");
 
     // Create new module in Firestore
-    const result = await createModule({ heading, subheading: subHeading });
+    const result = await createModule({ heading, subheading: subHeading, faviconURL});
 
     console.log(`✅ Inserted with ID: ${result.moduleId}`);
 
@@ -80,13 +81,14 @@ async function deleteModule(id) {
 // Updates an existing module's heading and subheading
 // Expects an object with 'id', 'heading', and 'subHeading' properties
 // Returns success status and module ID on success
-async function updateModule({ id, heading, subHeading }) {
+async function updateModule({ id, heading, subHeading, faviconURL }) {
   try {
     const dbModule = await import("@db/db.js");
 
     await dbModule.updateModule(id, {
       heading,
-      subheading: subHeading
+      subheading: subHeading,
+      faviconURL: faviconURL || null
     });
 
     return { success: true, id };
@@ -130,7 +132,7 @@ export async function GET() {
 // Expects a JSON body with 'heading' and 'subHeading' fields
 export async function POST(req) {
   try {
-    const { heading, subHeading } = await req.json();
+    const { heading, subHeading, faviconURL } = await req.json();
 
     if (!heading || !subHeading) {
       return new Response(JSON.stringify({ error: 'Missing heading or sub-heading' }), {
@@ -138,7 +140,7 @@ export async function POST(req) {
       });
     }
 
-    const result = await addModule({ heading, subHeading });
+    const result = await addModule({ heading, subHeading, faviconURL });
 
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -179,7 +181,7 @@ export async function DELETE(req) {
 // Expects a JSON body with 'id', 'heading', and 'subHeading' fields
 export async function PUT(req) {
   try {
-    const { id, heading, subHeading } = await req.json();
+    const { id, heading, subHeading, faviconURL } = await req.json();
 
     // Validate all required fields
     if (!id || !heading || !subHeading) {
@@ -188,7 +190,7 @@ export async function PUT(req) {
       }), { status: 400 });
     }
 
-    const result = await updateModule({ id, heading, subHeading });
+    const result = await updateModule({ id, heading, subHeading, faviconURL });
     return new Response(JSON.stringify(result), { status: 200 });
   } catch (error) {
     return new Response(JSON.stringify({

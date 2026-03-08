@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { getModuleImageUrl } from "../lib/favicons"
+import { getFaviconUrl } from "../lib/favicons"
 
 export default function TrainingModulesSection() {
   const [modules, setModules] = useState([])
@@ -22,7 +22,7 @@ export default function TrainingModulesSection() {
           id: module.ModuleID,
           title: module.Heading,
           description: module.Subheading || "",
-          image: getModuleImageUrl(module.ModuleID),
+          image: module.faviconURL
         }))
         
         setModules(formattedModules)
