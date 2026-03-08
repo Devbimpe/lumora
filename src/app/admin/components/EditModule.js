@@ -1,14 +1,29 @@
 "use client"
+import { MODULE_IMAGE_URLS } from "../../lib/module-images"
 
 export default function EditModule({ heading, subHeading, onHeadingChange, onSubHeadingChange, onSubmit, onClose, isNew, onSubmitAndAdd }) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 border-l-4 border-green-500">
       <div>
-        
+
       </div>
 
       <div className="flex justify-between items-center mb-3 sm:mb-4">
-        <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-gray-800">{isNew ? 'Create New Module' : 'Edit Module'}</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-gray-800">{isNew ? 'Create New Module' : 'Edit Module'}</h3>
+          <div id="FaviconSelector">
+            {Object.entries(MODULE_IMAGE_URLS).map(([id, url]) => (
+              <button
+                key={id}
+                className="p-2 hover:bg-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
+                onClick={handleFaviconChange(id)}
+              >
+                <img src={url} alt={`Module ${id}`} className="w-6 h-6" />
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button
           onClick={onClose}
           className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
