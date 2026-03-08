@@ -123,6 +123,7 @@ export default function ContentPage() {
     return () => window.removeEventListener('toggle-create-form', handleToggleCreate);
   }, []);
 
+
   const fetchModules = async () => {
     try {
       const res = await fetch('/api/modules');
@@ -147,8 +148,8 @@ export default function ContentPage() {
       setSubmitStatus(isNew ? "Saving..." : "Updating...");
       const method = isNew ? "POST" : "PUT";
       const body = isNew
-        ? JSON.stringify({ heading, subHeading })
-        : JSON.stringify({ id: selectedModule, heading, subHeading });
+        ? JSON.stringify({ heading, subHeading, faviconURL })
+        : JSON.stringify({ id: selectedModule, heading, subHeading, faviconURL });
 
       const response = await fetch("/api/admin/modules", {
         method,
@@ -788,6 +789,7 @@ export default function ContentPage() {
           onClose={() => router.push('/admin/module-management')}
           isNew={mode === 'new'}
           onSubmitAndAdd={handleSubmitAndAddContent}
+          onFaviconChange={(url) => setFaviconURL(url)}
         />
       )}
 
