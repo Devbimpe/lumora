@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
 import { gradeKnowledgeCheck } from '@/ai/groq.js';
 
-// POST /api/grade-knowledge-check — body: { "question": "...", "userAnswer": "..." }
+// POST /api/grade-knowledge-check — body: { "question", "userAnswer", "sampleAnswer?", "explanation?" }
 export async function POST(req) {
   try {
-    const { question, userAnswer } = await req.json();
+    const { question, userAnswer, sampleAnswer, explanation } = await req.json();
     if (!question || !userAnswer) {
       return NextResponse.json(
         { error: 'Missing question or userAnswer' },
         { status: 400 }
       );
     }
-    const completion = await gradeKnowledgeCheck(question, userAnswer);
+    const completion = await gradeKnowledgeCheck(
+      question,
+      userAnswer,
+      sampleAnswer ?? '',
+      explanation ?? ''
+    );
     let text = (completion.choices[0]?.message?.content ?? '').trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) text = jsonMatch[0];
