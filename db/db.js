@@ -492,9 +492,11 @@ export async function getContentByModuleId(moduleId) {
 /**
  * Get content by content ID
  */
-export async function getContentById(contentId) {
+export async function getContentById(moduleId, contentId) {
   const contentRef = collection(db, COLLECTIONS.CONTENT);
-  const q = query(contentRef, where('contentId', '==', parseInt(contentId)));
+  const q = query(contentRef, 
+    where('contentId', '==', parseInt(contentId)), 
+    where('moduleId', '==', parseInt(moduleId)));
   const querySnapshot = await getDocs(q);
 
   if (querySnapshot.empty) {
@@ -508,9 +510,11 @@ export async function getContentById(contentId) {
 /**
  * Update content
  */
-export async function updateContent(contentId, updates) {
+export async function updateContent(moduleId, contentId, updates) {
   const contentRef = collection(db, COLLECTIONS.CONTENT);
-  const q = query(contentRef, where('contentId', '==', parseInt(contentId)));
+  const q = query(contentRef, 
+    where('contentId', '==', parseInt(contentId)), 
+    where('moduleId', '==', parseInt(moduleId)));
   const querySnapshot = await getDocs(q);
 
   if (querySnapshot.empty) {
@@ -550,6 +554,26 @@ export async function createContent(contentData) {
   });
 
   return { id: docRef.id, contentId: maxContentId + 1 };
+}
+
+/**
+ * Delete content by contentId and moduleId
+ */
+export async function deleteContent(contentId, moduleId) {
+  const contentRef = collection(db, COLLECTIONS.CONTENT);
+  const q = query(
+    contentRef,
+    where('contentId', '==', parseInt(contentId)),
+    where('moduleId', '==', parseInt(moduleId))
+  );
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    throw new Error('Content not found');
+  }
+
+  await deleteDoc(querySnapshot.docs[0].ref);
+  return { deleted: true };
 }
 
 // ==================== KNOWLEDGE CHECK OPERATIONS ====================
@@ -1108,6 +1132,7 @@ export default {
   getContentById,
   updateContent,
   createContent,
+  deleteContent,
   getKnowledgeChecksByContentId,
   getKnowledgeChecksByModuleId,
   getModuleWithContent,
