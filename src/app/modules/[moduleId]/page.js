@@ -77,7 +77,8 @@ function ModulePageContent() {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
   const [aiFeedbackByCheck, setAiFeedbackByCheck] = useState({});
-  
+  const [savedKnowledgeCheckSubmissions, setSavedKnowledgeCheckSubmissions] = useState({});
+
   // Refs to prevent duplicate API calls
   const allModulesFetched = useRef(false);
   const trackedViews = useRef(new Set());
@@ -258,6 +259,26 @@ function ModulePageContent() {
     
     loadContent();
   }, [moduleId, currentItemId]);
+
+  // Load module progress so we can show saved knowledge check answers and feedback
+  useEffect(() => {
+    if (!user?.id || !moduleId) return;
+    const moduleNum = moduleId.replace('module', '');
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/progress?userId=${user.id}&moduleId=${moduleNum}`);
+        if (!res.ok || cancelled) return;
+        const progress = await res.json();
+        if (!cancelled && progress?.knowledgeCheckSubmissions) {
+          setSavedKnowledgeCheckSubmissions(progress.knowledgeCheckSubmissions);
+        }
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load module progress:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, moduleId]);
 
   // Update module heading when allModules loads
   useEffect(() => {
@@ -441,6 +462,35 @@ function ModulePageContent() {
           Feedback: data.Feedback ?? ''
         }
       }));
+
+      // Save user answer and AI feedback to module progress (overwrites on reattempt)
+      if (user) {
+        try {
+          await fetch('/api/progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              moduleId: moduleId.replace('module', ''),
+              action: 'saveKnowledgeCheckFeedback',
+              contentId: knowledgeCheckId,
+              userAnswer: answerText,
+              grade: data.Grade ?? null,
+              feedback: data.Feedback ?? ''
+            })
+          });
+          setSavedKnowledgeCheckSubmissions(prev => ({
+            ...prev,
+            [knowledgeCheckId]: {
+              userAnswer: answerText,
+              grade: data.Grade ?? null,
+              feedback: data.Feedback ?? ''
+            }
+          }));
+        } catch (saveErr) {
+          console.error('Failed to save knowledge check feedback to progress:', saveErr);
+        }
+      }
     } catch (err) {
       console.error('Failed to grade knowledge check:', err);
       setAiFeedbackByCheck(prev => ({
@@ -801,8 +851,29 @@ function ModulePageContent() {
                 </ul>
                 ) : isDescriptive ? (
                   <div className="space-y-4">
+                    {/* Show saved answer and feedback from progress when user hasn't submitted this session */}
+                    {selectedAnswers[currentItem.knowledgeCheckId] !== '__submitted__' &&
+                     savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId] && (
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                        <h4 className="font-semibold text-gray-700 text-sm">Saved in your progress</h4>
+                        <p className="text-gray-600 text-sm whitespace-pre-wrap">
+                          {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].userAnswer}
+                        </p>
+                        {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].grade != null && (
+                          <p className="text-sm font-medium text-gray-700">
+                            Grade: {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].grade}%
+                          </p>
+                        )}
+                        {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].feedback && (
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                            {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].feedback}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 pt-1">Submit a new answer below to overwrite.</p>
+                      </div>
+                    )}
                     <textarea
-                      value={descriptiveAnswers[currentItem.knowledgeCheckId] ?? ''}
+                      value={descriptiveAnswers[currentItem.knowledgeCheckId] ?? savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId]?.userAnswer ?? ''}
                       onChange={(e) => setDescriptiveAnswers(prev => ({
                         ...prev,
                         [currentItem.knowledgeCheckId]: e.target.value
@@ -816,9 +887,9 @@ function ModulePageContent() {
                       <button
                         onClick={() => handleDescriptiveSubmit(
                           currentItem.knowledgeCheckId,
-                          descriptiveAnswers[currentItem.knowledgeCheckId] ?? ''
+                          descriptiveAnswers[currentItem.knowledgeCheckId] ?? savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId]?.userAnswer ?? ''
                         )}
-                        disabled={!(descriptiveAnswers[currentItem.knowledgeCheckId]?.trim())}
+                        disabled={!((descriptiveAnswers[currentItem.knowledgeCheckId] ?? savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId]?.userAnswer)?.trim())}
                         className="px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                       >
                         Submit Answer
