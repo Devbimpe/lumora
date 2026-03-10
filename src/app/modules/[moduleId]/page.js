@@ -76,6 +76,7 @@ function ModulePageContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
+  const [aiFeedbackByCheck, setAiFeedbackByCheck] = useState({});
   
   // Refs to prevent duplicate API calls
   const allModulesFetched = useRef(false);
@@ -378,7 +379,7 @@ function ModulePageContent() {
     }
   }, [user, trackKnowledgeCheckCompletion]);
 
-  const handleDescriptiveSubmit = useCallback((knowledgeCheckId, answerText) => {
+  const handleDescriptiveSubmit = useCallback(async (knowledgeCheckId, answerText) => {
     setSelectedAnswers(prev => ({
       ...prev,
       [knowledgeCheckId]: '__submitted__'
@@ -387,10 +388,73 @@ function ModulePageContent() {
       ...prev,
       [knowledgeCheckId]: answerText
     }));
+
+    // Find the knowledge check details so we can send full context to the grader
+    const item = allItems.find(
+      (i) => i.type === 'knowledgeCheck' && i.knowledgeCheckId === knowledgeCheckId
+    );
+
     if (user) {
       trackKnowledgeCheckCompletion(knowledgeCheckId);
     }
-  }, [user, trackKnowledgeCheckCompletion]);
+
+    if (!item) {
+      return;
+    }
+
+    // Call AI grading endpoint with question, user answer, sample answer, and explanation
+    try {
+      setAiFeedbackByCheck(prev => ({
+        ...prev,
+        [knowledgeCheckId]: {
+          ...(prev[knowledgeCheckId] || {}),
+          loading: true,
+          error: null
+        }
+      }));
+
+      const response = await fetch('/api/grade-knowledge-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: item.question,
+          userAnswer: answerText,
+          sampleAnswer: item.answer || '',
+          explanation: item.explain || ''
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to grade knowledge check');
+      }
+
+      const data = await response.json();
+
+      setAiFeedbackByCheck(prev => ({
+        ...prev,
+        [knowledgeCheckId]: {
+          ...(prev[knowledgeCheckId] || {}),
+          loading: false,
+          error: null,
+          Grade: data.Grade ?? null,
+          Feedback: data.Feedback ?? ''
+        }
+      }));
+    } catch (err) {
+      console.error('Failed to grade knowledge check:', err);
+      setAiFeedbackByCheck(prev => ({
+        ...prev,
+        [knowledgeCheckId]: {
+          ...(prev[knowledgeCheckId] || {}),
+          loading: false,
+          error: 'Unable to retrieve AI feedback right now.',
+          Grade: null,
+          Feedback: ''
+        }
+      }));
+    }
+  }, [user, trackKnowledgeCheckCompletion, allItems]);
 
   // Track item view when current item changes
   useEffect(() => {
@@ -760,9 +824,36 @@ function ModulePageContent() {
                         Submit Answer
                       </button>
                     ) : descriptiveAnswers[currentItem.knowledgeCheckId] && (
-                      <div className="p-4 bg-gray-50 border-l-4 border-gray-400 rounded">
-                        <h4 className="font-semibold text-gray-800 mb-2">Your answer:</h4>
-                        <p className="text-gray-700 whitespace-pre-wrap">{descriptiveAnswers[currentItem.knowledgeCheckId]}</p>
+                      <div className="space-y-4">
+                        {aiFeedbackByCheck[currentItem.knowledgeCheckId] && (
+                          <div className="p-4 bg-purple-50 border-l-4 border-purple-500 rounded">
+                            <h4 className="font-semibold text-purple-800 mb-2">
+                              AI feedback
+                            </h4>
+                            {aiFeedbackByCheck[currentItem.knowledgeCheckId].loading ? (
+                              <p className="text-sm text-purple-700">
+                                Getting AI feedback...
+                              </p>
+                            ) : aiFeedbackByCheck[currentItem.knowledgeCheckId].error ? (
+                              <p className="text-sm text-red-600">
+                                {aiFeedbackByCheck[currentItem.knowledgeCheckId].error}
+                              </p>
+                            ) : (
+                              <>
+                                {aiFeedbackByCheck[currentItem.knowledgeCheckId].Grade != null && (
+                                  <p className="text-sm font-semibold text-purple-800 mb-1">
+                                    Grade: {aiFeedbackByCheck[currentItem.knowledgeCheckId].Grade}%
+                                  </p>
+                                )}
+                                {aiFeedbackByCheck[currentItem.knowledgeCheckId].Feedback && (
+                                  <p className="text-sm text-purple-800 whitespace-pre-wrap">
+                                    {aiFeedbackByCheck[currentItem.knowledgeCheckId].Feedback}
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
