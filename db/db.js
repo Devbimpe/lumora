@@ -234,7 +234,8 @@ export async function createModule(moduleData) {
     moduleId: maxModuleId + 1,
     heading: moduleData.heading,
     subheading: moduleData.subheading || moduleData.subHeading,
-    createdAt: Timestamp.now()
+    createdAt: Timestamp.now(),
+    faviconURL: moduleData.faviconURL || null
   });
 
   return { id: docRef.id, moduleId: maxModuleId + 1 };
@@ -256,7 +257,8 @@ export async function updateModule(moduleId, updates) {
   await updateDoc(moduleDoc.ref, {
     heading: updates.heading,
     subheading: updates.subheading || updates.subHeading,
-    updatedAt: Timestamp.now()
+    updatedAt: Timestamp.now(),
+    faviconURL: updates.faviconURL || null
   });
 }
 

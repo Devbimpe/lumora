@@ -12,6 +12,7 @@ export async function GET() {
       Heading: module.heading,
       Subheading: module.subheading,
       published: module.published ?? false,
+      faviconURL: module.faviconURL ?? null,
     }));
     return NextResponse.json(formattedModules);
   } catch (error) {
