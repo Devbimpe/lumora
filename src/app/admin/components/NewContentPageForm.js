@@ -19,6 +19,11 @@ export default function NewContentPageForm({
   onImageFileChange,
   onUploadImage,
   onDeleteImage,
+  // URL upload helpers
+  inputIsURL,
+  onURLChange,
+  onUploadURLImage,
+  onResetURLState,
 }) {
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
@@ -111,12 +116,23 @@ export default function NewContentPageForm({
                   {uploadingImage ? 'Uploading...' : 'Upload Image'}
                 </button>
               )}
+              {/* Accept uploaded URL, preview image */}
+              {!uploadedImageURL && inputIsURL && (
+                <button
+                  onClick={() => onUploadURLImage(() => setNewReading(''))}
+                  disabled={uploadingImage || !inputIsURL}
+                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                </button>
+              )}
               {!uploadedImageURL && (
                 <button
                   onClick={() => {
                     setImageFile(null);
                     setImageSrc(null);
                     setUploadedImageURL(null);
+                    onResetURLState?.();
                   }}
                   className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
                 >
@@ -176,6 +192,31 @@ export default function NewContentPageForm({
               }`}
             >
               {uploadingImage ? 'Uploading...' : 'Upload Image'}
+            </button>
+          </div>
+        )}
+
+        {/* Image Upload Using URL */}
+        {!imageSrc && (
+          <div>
+            <input
+              type="url"
+              className="cursor-edit w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+              name="urlInput"
+              id="url_input"
+              placeholder="Paste URL here"
+              onChange={onURLChange}
+            />
+            <button
+              onClick={() => onUploadURLImage(() => setNewReading(''))}
+              disabled={uploadingImage || !inputIsURL}
+              className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${
+                uploadingImage || !inputIsURL
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {uploadingImage ? 'Uploading...' : 'Upload URL'}
             </button>
           </div>
         )}

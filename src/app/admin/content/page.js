@@ -40,6 +40,9 @@ export default function ContentPage() {
   
   const [faviconURL, setFaviconURL] = useState('');
 
+  const [inputURL, setInputURL] = useState('');
+  const [inputIsURL, setInputIsURL] = useState(false);
+  const [confirmURLPreview, setConfirmURLPreview] = useState(false);
   // const [expandedModuleId, setExpandedModuleId] = useState(null);
   const [knowledgeChecks, setKnowledgeChecks] = useState([]);
   const [showKCForm, setShowKCForm] = useState(false);
@@ -76,9 +79,17 @@ export default function ContentPage() {
     }
   };
 
-  // On mount (or when moduleId changes), load modules then select the right one
+  // On mount (or when moduleId/mode changes), load modules then select the right one
   useEffect(() => {
     let isMounted = true;
+
+    if (mode === "new") {
+      setSelectedModule("");
+      setContent([]);
+      setKnowledgeChecks([]);
+      setLoading(false);
+      return;
+    }
 
     fetchModules().then((data) => {
       if (!isMounted || data.length === 0) return;
@@ -87,12 +98,10 @@ export default function ContentPage() {
         ? data.some((m) => m.ModuleID.toString() === moduleId)
         : false;
       setSelectedModule(hasRequestedModule ? moduleId : data[0].ModuleID.toString());
-
-
     });
 
     return () => { isMounted = false; };
-  }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [moduleId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 
@@ -101,7 +110,7 @@ export default function ContentPage() {
     (m) => m.ModuleID.toString() === selectedModule,
   );
 
-  // when coming from the 'edit' button in mod mgmt, get the mod id to edit the correct one
+  // When mode or selected module changes: sync heading, subheading, favicon from that module (so Edit Module shows the saved values)
   useEffect(() => {
     if (mode === "new") {
       setFaviconURL(getDefaultFaviconUrl());
@@ -112,8 +121,9 @@ export default function ContentPage() {
     if (currentModule) {
       setHeading(currentModule.Heading);
       setSubHeading(currentModule.Subheading);
+      setFaviconURL(currentModule.faviconURL || getDefaultFaviconUrl());
     }
-  }, [mode, currentModule]);
+  }, [mode, currentModule?.ModuleID]);
 
 
 
@@ -129,9 +139,9 @@ export default function ContentPage() {
 
 
 
-// Fetch content and knowledge checks
+// Fetch content and knowledge checks (skip when creating a new module)
   useEffect(() => {
-    if (!selectedModule) return;
+    if (!selectedModule || mode === "new") return;
 
     let isMounted = true;
     setLoading(true);
@@ -158,7 +168,7 @@ export default function ContentPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedModule]);
+  }, [selectedModule, mode]);
 
 
 
@@ -251,6 +261,7 @@ export default function ContentPage() {
     setUploadedImageURL(null);
     setImageFile(null);
     setImageDescription('');
+    setInputIsURL(false);
   };
 
   // Save edit
@@ -457,6 +468,17 @@ export default function ContentPage() {
     }
   }
 
+  function handleURLChange(event){
+    const url = event.target.value;
+    const isURLValid = !!url.match("^https?:\/\/");
+    if(isURLValid){
+      setInputURL(url);
+      setUploadedImageURL(null); // reset any previously uploaded URL
+      setInputIsURL(isURLValid);
+      setConfirmURLPreview(isURLValid);
+      setImageSrc(url);
+    }
+  }
 
   // Upload the selected image to Cloudinary via the API
   const uploadImage = async (onClearReading) => {
@@ -488,6 +510,65 @@ export default function ContentPage() {
       console.error('Image upload error:', err);
       setError(`Image upload failed: ${err.message}`);
     } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Reset image state so the form shows "nothing uploaded" (e.g. after URL upload failure)
+  const resetImageState = () => {
+    setImageFile(null);
+    setImageSrc(null);
+    setUploadedImageURL(null);
+    setImageDescription('');
+    setInputIsURL(false);
+    setConfirmURLPreview(false);
+  };
+
+  // Upload a URL to the API (validates reachability on server before Cloudinary)
+  const uploadURLImage = async (onClearReading) => {
+    if (!inputURL.trim()) {
+      setError('Please input an URL first');
+      return;
+    }
+    setError(null);
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('file', inputURL);
+
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        setError('Image upload failed: Invalid response from server');
+        resetImageState();
+        return;
+      }
+
+      if (!res.ok) {
+        const msg = data.details || data.error || 'Upload failed';
+        setError(`Image upload failed: ${msg}`);
+        resetImageState();
+        return;
+      }
+
+      setUploadedImageURL(data.url);
+      setImageSrc(data.url);
+      onClearReading?.();
+      setSubmitStatus('Image uploaded successfully!');
+      setTimeout(() => setSubmitStatus(''), 3000);
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setError(`Image upload failed: ${err.message || 'Network or server error'}`);
+      resetImageState();
+    } finally {
+      setInputIsURL(false);
+      setConfirmURLPreview(false);
       setUploadingImage(false);
     }
   };
@@ -630,12 +711,17 @@ export default function ContentPage() {
 
 
 
-      {/* Add Content Page & Knowledge Check Buttons - only shown when editing an existing module */}
-      {mode !== 'new' && selectedModule && (
+      {/* Add Content Page & Knowledge Check Buttons - shown for existing modules; disabled with hint when creating new */}
+      {(mode !== 'new' ? selectedModule : true) && (
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3">
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="w-full sm:w-auto bg-green-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-green-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+            onClick={() => mode === 'new' ? null : setShowCreateForm(!showCreateForm)}
+            disabled={mode === 'new'}
+            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base ${
+              mode === 'new'
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-xl'
+            }`}
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -643,19 +729,23 @@ export default function ContentPage() {
             Add Content Page
           </button>
           <button
-            onClick={() => setShowKCForm(!showKCForm)}
-            className="w-full sm:w-auto bg-blue-600 text-white rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
+            onClick={() => mode === 'new' ? null : setShowKCForm(!showKCForm)}
+            disabled={mode === 'new'}
+            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base ${
+              mode === 'new'
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl'
+            }`}
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Knowledge Check
           </button>
-          {modules.length > 0 && (
-            <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
-              {content.length} {content.length === 1 ? 'page' : 'pages'} · {knowledgeChecks.length} {knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}
-            </p>
-          )}
+          <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
+            {content.length} {content.length === 1 ? 'page' : 'pages'} · {knowledgeChecks.length} {knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}
+            {mode === 'new' && ' — Save the module to add content'}
+          </p>
         </div>
       )}
 
@@ -672,6 +762,8 @@ export default function ContentPage() {
             setImageSrc(null);
             setUploadedImageURL(null);
             setImageDescription('');
+            setInputIsURL(false);
+            setConfirmURLPreview(false);
           }}
           onCreated={(data) => {
             setContent(data);
@@ -690,6 +782,14 @@ export default function ContentPage() {
           onImageFileChange={handleImageFileChange}
           onUploadImage={uploadImage}
           onDeleteImage={deleteImage}
+          inputIsURL={inputIsURL}
+          confirmURLPreview={confirmURLPreview}
+          onURLChange={handleURLChange}
+          onUploadURLImage={uploadURLImage}
+          onResetURLState={() => {
+            setInputIsURL(false);
+            setConfirmURLPreview(false);
+          }}
         />
       )}
 
@@ -715,7 +815,7 @@ export default function ContentPage() {
             Loading content...
           </span>
         </div>
-      ) : (
+      ) : mode !== 'new' ? (
         <div>
           {content.length > 0 ? (
             <div className="space-y-4">
@@ -768,12 +868,37 @@ export default function ContentPage() {
                                   {uploadingImage ? 'Uploading...' : 'Upload Image'}
                                 </button>
                               )}
+
+                              {/*Accept uploaded URL, preview image*/}
+                              {!uploadedImageURL && confirmURLPreview && (
+                                <button
+                                  onClick={() => uploadURLImage(() => setEditReading(''))}
+                                  disabled={uploadingImage || !inputIsURL}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+
+                              {/* Upload */}
+                              {!uploadedImageURL && imageFile && (
+                                <button
+                                  onClick={uploadImage}
+                                  disabled={uploadingImage}
+                                  className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
+                                >
+                                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                                </button>
+                              )}
+
                               {!uploadedImageURL && (
                                 <button
                                   onClick={() => {
                                     setImageFile(null);
                                     setImageSrc(null);
                                     setUploadedImageURL(null);
+                                    setInputIsURL(false);
+                                    setConfirmURLPreview(false);
                                   }}
                                   className="mt-3 mr-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium text-sm"
                                 >
@@ -834,6 +959,30 @@ export default function ContentPage() {
                             </button>
                           </div>
                         )}
+
+                        {/* Image Upload Using URL - only shown when no image */}
+                        {!imageSrc && (
+                          <div>
+                            <input
+                              type="url"
+                              className="cursor-pointer w-[328px] px-4 py-3 mr-2 border border-gray-300 rounded-lg text-black placeholder:text-black"
+                              id='edit_url_input'
+                              placeholder="Paste URL here"
+                              onChange={handleURLChange}
+                            />
+                            <button
+                              onClick={() => {setConfirmURLPreview(true)}}
+                              disabled={uploadingImage || !inputIsURL}
+                              className={` sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !inputIsURL
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-blue-600 hover:bg-blue-700'
+                                }`}
+                            >
+                              {uploadingImage ? 'Uploading...' : 'Upload URL'}
+                            </button>
+                          </div>
+                        )}
+
                         <div className="flex flex-col sm:flex-row gap-2">
                           {/* Added preview button next to save while editing content. */}
                           <button
@@ -954,7 +1103,7 @@ export default function ContentPage() {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Knowledge Checks List */}
       {!loading && knowledgeChecks.length > 0 && (

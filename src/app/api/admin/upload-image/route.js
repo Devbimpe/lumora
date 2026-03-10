@@ -7,13 +7,68 @@ import imageHosting from '@/image-hosting/imageHosting.js';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+const URL_FETCH_TIMEOUT_MS = 15000;
+
+/**
+ * Check that a URL is reachable and returns an image (2xx + image content-type).
+ * Returns { reachable: true } or { reachable: false, message: string }.
+ */
+async function validateImageURL(url) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), URL_FETCH_TIMEOUT_MS);
+  try {
+    // Prefer HEAD to avoid downloading the body; some servers don't support HEAD
+    let res = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Lumora-ImageUpload/1.0' },
+    });
+    if (res.status === 405 || res.status === 501) {
+      res = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow',
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Lumora-ImageUpload/1.0' },
+      });
+    }
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      return { reachable: false, message: res.status === 404 ? 'Resource not found' : `URL returned ${res.status}` };
+    }
+    const contentType = (res.headers.get('content-type') || '').toLowerCase();
+    if (contentType && !/^image\//.test(contentType) && !contentType.includes('octet-stream')) {
+      return { reachable: false, message: 'URL does not point to an image' };
+    }
+    return { reachable: true };
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      return { reachable: false, message: 'Request timed out' };
+    }
+    const msg = e.cause?.code === 'ENOTFOUND' ? 'Host not found' : (e.message || 'URL not reachable');
+    return { reachable: false, message: msg };
+  }
+}
 
 export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    if (!file || typeof file === 'string') {
-      throw new Error('Missing or invalid file');
+    if (!file) {
+      throw new Error('Missing file');
+    }
+    // Check if the value passed is a URL
+    if (typeof file === 'string') {
+      if (!file.match("^https?:\/\/")) {
+        throw new Error('Invalid URL format');
+      }
+      // Validate URL is reachable before sending to Cloudinary (avoids opaque errors)
+      const urlOk = await validateImageURL(file);
+      if (!urlOk.reachable) {
+        throw new Error(urlOk.message || 'Resource not found');
+      }
+      return NextResponse.json(await imageHosting.autoUploadImage(file, null));
     }
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.length > MAX_SIZE) {
@@ -28,9 +83,11 @@ export async function POST(request) {
 
   } catch (err) {
     console.error('Upload error:', err);
+    const isBadRequest =
+      /Missing|Invalid|Resource not found|URL (returned|not reachable|does not point)|timed out|Host not found/.test(err.message);
     return NextResponse.json(
       { error: 'Upload failed', details: err.message },
-      { status: err.message?.includes('Missing') || err.message?.includes('Invalid') ? 400 : 500 }
+      { status: isBadRequest ? 400 : 500 }
     );
   }
 }
