@@ -27,6 +27,8 @@ export default function ContentPage() {
   const [error, setError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showKCForm, setShowKCForm] = useState(false);
+  const [newContentError, setNewContentError] = useState(null);
+  const [kcFormError, setKcFormError] = useState(null);
   const newContentFormRef = useRef(null);
   const kcFormRef = useRef(null);
 
@@ -268,30 +270,31 @@ export default function ContentPage() {
         </div>
       )}
 
-      {submitStatus && (
-        <div
-          className={`rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-sm sm:text-base font-medium ${
-            submitStatus.includes('successfully') || submitStatus.includes('Saving') || submitStatus.includes('Updating')
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
-        >
-          {submitStatus}
-        </div>
-      )}
-
       {(mode === 'new' || currentModule) && (
-        <EditModule
-          heading={heading}
-          subHeading={subHeading}
-          onHeadingChange={(event) => setHeading(event.target.value)}
-          onSubHeadingChange={(event) => setSubHeading(event.target.value)}
-          onSubmit={handleEditModuleSubmit}
-          onClose={() => router.push('/admin/module-management')}
-          isNew={mode === 'new'}
-          initialFaviconUrl={faviconURL}
-          onFaviconChange={(url) => setFaviconURL(url)}
-        />
+        <>
+          {submitStatus && (
+            <div
+              className={`rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-sm sm:text-base font-medium ${
+                submitStatus.includes('successfully') || submitStatus.includes('Saving') || submitStatus.includes('Updating')
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}
+            >
+              {submitStatus}
+            </div>
+          )}
+          <EditModule
+            heading={heading}
+            subHeading={subHeading}
+            onHeadingChange={(event) => setHeading(event.target.value)}
+            onSubHeadingChange={(event) => setSubHeading(event.target.value)}
+            onSubmit={handleEditModuleSubmit}
+            onClose={() => router.push('/admin/module-management')}
+            isNew={mode === 'new'}
+            initialFaviconUrl={faviconURL}
+            onFaviconChange={(url) => setFaviconURL(url)}
+          />
+        </>
       )}
 
       {(mode !== 'new' ? selectedModule : true) && (
@@ -359,7 +362,6 @@ export default function ContentPage() {
                     index={index}
                     selectedModule={selectedModule}
                     onContentChange={setContent}
-                    onError={setError}
                   />
                 ))}
               </div>
@@ -380,14 +382,26 @@ export default function ContentPage() {
 
             {showCreateForm && (
               <div ref={newContentFormRef} className="mt-6 sm:mt-8">
+                {newContentError && (
+                  <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-3 sm:p-4 mb-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs sm:text-sm text-red-700">{newContentError}</p>
+                      <button onClick={() => setNewContentError(null)} className="shrink-0 text-red-400 hover:text-red-600">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <NewContentPageForm
                   selectedModule={selectedModule}
-                  onClose={() => setShowCreateForm(false)}
+                  onClose={() => { setShowCreateForm(false); setNewContentError(null); }}
                   onCreated={(data) => {
                     setContent(data);
                     window.dispatchEvent(new Event('content-updated'));
                   }}
-                  onError={setError}
+                  onError={setNewContentError}
                 />
               </div>
             )}
@@ -406,7 +420,6 @@ export default function ContentPage() {
                         setKnowledgeChecks(data);
                         window.dispatchEvent(new Event('kc-updated'));
                       }}
-                      onError={setError}
                     />
                   ))}
                 </div>
@@ -415,14 +428,26 @@ export default function ContentPage() {
 
             {showKCForm && (
               <div ref={kcFormRef} className="mt-6 sm:mt-8">
+                {kcFormError && (
+                  <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-3 sm:p-4 mb-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs sm:text-sm text-red-700">{kcFormError}</p>
+                      <button onClick={() => setKcFormError(null)} className="shrink-0 text-red-400 hover:text-red-600">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <CreateKnowledgeCheckForm
                   selectedModule={selectedModule}
-                  onClose={() => setShowKCForm(false)}
+                  onClose={() => { setShowKCForm(false); setKcFormError(null); }}
                   onCreated={(data) => {
                     setKnowledgeChecks(data);
                     window.dispatchEvent(new Event('kc-updated'));
                   }}
-                  onError={setError}
+                  onError={setKcFormError}
                 />
               </div>
             )}

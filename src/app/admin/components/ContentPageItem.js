@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import ConfirmationModal from './ConfirmationModal';
 
-export default function ContentPageItem({ item, index, selectedModule, onContentChange, onError }) {
+export default function ContentPageItem({ item, index, selectedModule, onContentChange }) {
   // MARK: Edit State
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState(null);
   const [editOverview, setEditOverview] = useState("");
   const [editReading, setEditReading] = useState("");
   const [editImageDescription, setEditImageDescription] = useState('');
@@ -69,7 +70,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
       window.dispatchEvent(new Event('content-updated'));
       cancelEdit();
     } catch (err) {
-      onError(err.message);
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -86,7 +87,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
       onContentChange(data);
       window.dispatchEvent(new Event('content-updated'));
     } catch (err) {
-      onError(err.message);
+      setError(err.message);
     } finally {
       setDeleteModalOpen(false);
     }
@@ -104,7 +105,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
 
   const uploadImage = async (onClearReading) => {
     if (!imageFile) {
-      onError('Please select an image file first');
+      setError('Please select an image file first');
       return;
     }
     try {
@@ -118,7 +119,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
       setImageSrc(data.url);
       onClearReading?.();
     } catch (err) {
-      onError(`Image upload failed: ${err.message}`);
+      setError(`Image upload failed: ${err.message}`);
     } finally {
       setUploadingImage(false);
     }
@@ -150,7 +151,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
       setUploadedImageURL(null);
       setImageDescription('');
     } catch (err) {
-      onError(`Image delete failed: ${err.message}`);
+      setError(`Image delete failed: ${err.message}`);
     } finally {
       setUploadingImage(false);
     }
@@ -160,6 +161,16 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
   return (
     <>
     <div id={`content-page-${item.ContentID}`} className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 sm:p-4 flex items-start justify-between gap-3">
+          <p className="text-xs sm:text-sm text-red-700">{error}</p>
+          <button onClick={() => setError(null)} className="shrink-0 text-red-400 hover:text-red-600">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
       {editing ? (
         // Edit Mode
                 <div className="p-6 bg-green-50 border-l-4 border-green-500">
