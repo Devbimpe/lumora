@@ -2,9 +2,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 
-export default function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -401,9 +401,13 @@ export default function Sidebar() {
     );
   }
 
-  // ─── DEFAULT ADMIN SIDEBAR ───
+export default function Sidebar() {
   return (
-    <>
+    <Suspense fallback={null}>
+      <SidebarContent />
+    </Suspense>
+  );
+}
       {/* Mobile Header with Hamburger */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
         <div className="flex items-center justify-between p-4">
