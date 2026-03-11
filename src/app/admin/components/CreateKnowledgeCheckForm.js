@@ -31,9 +31,10 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
     // descriptive questions don't need choices or a correct answer
     const isDescriptive = kcTab === "descriptive";
 
+    const filledChoices = kcChoices.filter((c) => c.trim());
+
     // only validate choices/answer for multiple-choice questions
     if (!isDescriptive) {
-      const filledChoices = kcChoices.filter((c) => c.trim());
       if (filledChoices.length < 2) {
         onError("At least 2 choices are required");
         return;
@@ -45,7 +46,6 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
     }
 
     // for descriptive, send empty choices; for MC, format as "A: ...", "B: ..." etc.
-    const filledChoices = kcChoices.filter((c) => c.trim());
     const formattedChoices = isDescriptive
       ? []
       : filledChoices.map((text, i) => `${String.fromCharCode(65 + i)}: ${text}`);
@@ -268,8 +268,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
               <div className="space-y-2 mb-3">
                 {kcChoices.filter((c) => c.trim()).length > 0 ? (
                   kcChoices
-                    .map((choice, i) => ({ label: String.fromCharCode(65 + i), text: choice }))
-                    .filter((c) => c.text.trim())
+                    .filter((c) => c.trim())
+                    .map((text, i) => ({ label: String.fromCharCode(65 + i), text }))
                     .map((choice) => (
                       <div
                         key={choice.label}
