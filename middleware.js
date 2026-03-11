@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-
-export function middleware(request) {
+export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith('/admin')) {
@@ -13,20 +11,31 @@ export function middleware(request) {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Check if user has Admin role
-      if (decoded.role !== 'Admin') {
-        console.log('User is not an admin:', decoded.username);
-        // Redirect non-admin users to the home page
+      const authResponse = await fetch(new URL('/api/check-auth', request.url), {
+        method: 'GET',
+        headers: {
+          cookie: `auth-token=${token}`,
+        },
+        cache: 'no-store',
+      });
+
+      if (!authResponse.ok) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+
+      const authData = await authResponse.json();
+
+      if (!authData?.authenticated) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+
+      if (authData?.user?.role !== 'Admin') {
         return NextResponse.redirect(new URL('/', request.url));
       }
 
-      // User is authenticated and is an admin, allow access
-      console.log('Admin access granted:', decoded.username);
       return NextResponse.next();
     } catch (error) {
-      console.error('Token verification failed:', error.message);
+      console.error('Middleware delegated auth check failed:', error.message);
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
