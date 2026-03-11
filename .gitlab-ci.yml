@@ -12,7 +12,7 @@ stages:
 deploy_preview:
   stage: deploy
   rules:
-    - if: '$CI_COMMIT_BRANCH == "Development"'
+    # - if: '$CI_COMMIT_BRANCH == "Development"'
   script:
     - npm install --global vercel
     - npm install
@@ -29,7 +29,7 @@ print_ci_cd_variables:
 deploy_production:
   stage: deploy
   rules:
-    - if: '$CI_COMMIT_BRANCH == "Development"'
+    # - if: '$CI_COMMIT_BRANCH == "Development"'
   script:
     - npm install --global vercel
     - npm install
