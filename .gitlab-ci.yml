@@ -13,16 +13,18 @@ stages:
 # Deployment for all branches (Preview)
 deploy_preview:
   stage: deploy
+  rules:
+  - if: '$CI_COMMIT_MESSAGE =~ /DEPLOY/'
   script:
     - npm install --global vercel
     - npx vercel --token=$token
 
-# Prints all CI/CD environment variables (keys and values)
-print_ci_cd_variables:
-  stage: deploy
-  script:
-    - echo "Printing all environment variables available in this job:"
-    - printenv | sort
+# # Prints all CI/CD environment variables (keys and values)
+# print_ci_cd_variables:
+#   stage: deploy
+#   script:
+#     - echo "Printing all environment variables available in this job:"
+#     - printenv | sort
 
 # Deployment for the 'main' branch (Production)
 deploy_production:
