@@ -25,7 +25,9 @@ export async function POST(req) {
     let grade, feedback;
     try {
       const parsed = JSON.parse(text);
-      grade = parsed.Grade;
+      const raw = parsed.Grade;
+      const num = raw != null ? Math.round(Number(raw)) : NaN;
+      grade = Number.isNaN(num) || num < 0 || num > 100 ? null : num;
       feedback = parsed.Feedback;
     } catch {
       grade = null;
@@ -34,9 +36,15 @@ export async function POST(req) {
     return NextResponse.json({ Grade: grade, Feedback: feedback });
   } catch (error) {
     console.error('grade-knowledge-check error:', error);
+    const status = error?.status === 429 || error?.statusCode === 429 || /rate limit/i.test(error?.message ?? '')
+      ? 429
+      : 500;
+    const message = status === 429
+      ? 'Groq API rate limit exceeded. Wait a minute or check your plan at console.groq.com.'
+      : (error.message || 'Groq request failed');
     return NextResponse.json(
-      { error: error.message || 'Groq request failed' },
-      { status: 500 }
+      { error: message },
+      { status }
     );
   }
 }
