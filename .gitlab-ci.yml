@@ -8,11 +8,9 @@ variables:
 stages:
   - deploy
 
-# Deployment for all branches except 'main' (Preview)
+# Deployment for all branches (Preview)
 deploy_preview:
   stage: deploy
-  rules:
-    # - if: '$CI_COMMIT_BRANCH == "Development"'
   script:
     - npm install --global vercel
     - npm install
@@ -29,7 +27,8 @@ print_ci_cd_variables:
 deploy_production:
   stage: deploy
   rules:
-    # - if: '$CI_COMMIT_BRANCH == "Development"'
+    - if: '$CI_COMMIT_BRANCH == "Development"'
+    - if: '$CI_COMMIT_MESSAGE =~ /PROD/'
   script:
     - npm install --global vercel
     - npm install
