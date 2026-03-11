@@ -401,13 +401,8 @@ function SidebarContent() {
     );
   }
 
-export default function Sidebar() {
   return (
-    <Suspense fallback={null}>
-      <SidebarContent />
-    </Suspense>
-  );
-}
+    <>
       {/* Mobile Header with Hamburger */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
         <div className="flex items-center justify-between p-4">
@@ -522,5 +517,13 @@ export default function Sidebar() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function Sidebar() {
+  return (
+    <Suspense fallback={null}>
+      <SidebarContent />
+    </Suspense>
   );
 }
