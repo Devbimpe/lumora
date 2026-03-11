@@ -24,14 +24,19 @@ export async function POST(req) {
     // Parse LLM response as JSON (expected: {"Grade": ..., "Feedback": "..."})
     let grade, feedback;
     try {
-      const parsed = JSON.parse(text);
+      // Try to fix common LLM JSON issues (trailing comma, etc.)
+      const normalized = text.replace(/,(\s*[}\]])/g, '$1');
+      const parsed = JSON.parse(normalized);
       const raw = parsed.Grade;
       const num = raw != null ? Math.round(Number(raw)) : NaN;
       grade = Number.isNaN(num) || num < 0 || num > 100 ? null : num;
-      feedback = parsed.Feedback;
+      feedback = parsed.Feedback != null ? String(parsed.Feedback) : '';
     } catch {
-      grade = null;
-      feedback = text;
+      // If parse fails, try to extract Grade and Feedback from the raw text so we never surface raw JSON to the UI
+      const gradeMatch = text.match(/"Grade"\s*:\s*(\d+)/);
+      const feedbackMatch = text.match(/"Feedback"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      grade = gradeMatch ? Math.min(100, Math.max(0, parseInt(gradeMatch[1], 10))) : null;
+      feedback = feedbackMatch ? feedbackMatch[1].replace(/\\(.)/g, '$1') : text;
     }
     return NextResponse.json({ Grade: grade, Feedback: feedback });
   } catch (error) {

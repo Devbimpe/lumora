@@ -61,6 +61,18 @@ function parseChoices(choices) {
   return options.sort((a, b) => a.letter.localeCompare(b.letter));
 }
 
+function normalizeGradeFeedback(grade, feedback) {
+  if (feedback && typeof feedback === 'string' && feedback.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(feedback);
+      return { grade: parsed.Grade ?? grade, feedback: parsed.Feedback ?? feedback };
+    } catch {
+      return { grade, feedback };
+    }
+  }
+  return { grade, feedback };
+}
+
 function ModulePageContent() {
   const { moduleId } = useParams();
   const searchParams = useSearchParams();
@@ -859,16 +871,24 @@ function ModulePageContent() {
                         <p className="text-gray-600 text-sm whitespace-pre-wrap">
                           {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].userAnswer}
                         </p>
-                        {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].grade != null && (
-                          <p className="text-sm font-medium text-gray-700">
-                            Grade: {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].grade}%
-                          </p>
-                        )}
-                        {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].feedback && (
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                            {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].feedback}
-                          </p>
-                        )}
+                        {(() => {
+                          const entry = savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId];
+                          const { grade: g, feedback: f } = normalizeGradeFeedback(entry.grade, entry.feedback);
+                          return (
+                            <>
+                              {g != null && (
+                                <p className="text-sm font-medium text-gray-700">
+                                  Grade: {g}%
+                                </p>
+                              )}
+                              {f && (
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                  {f}
+                                </p>
+                              )}
+                            </>
+                          );
+                        })()}
                         <p className="text-xs text-gray-500 pt-1">Submit a new answer below to overwrite.</p>
                       </div>
                     )}
@@ -909,20 +929,26 @@ function ModulePageContent() {
                               <p className="text-sm text-red-600">
                                 {aiFeedbackByCheck[currentItem.knowledgeCheckId].error}
                               </p>
-                            ) : (
-                              <>
-                                {aiFeedbackByCheck[currentItem.knowledgeCheckId].Grade != null && (
-                                  <p className="text-sm font-semibold text-purple-800 mb-1">
-                                    Grade: {aiFeedbackByCheck[currentItem.knowledgeCheckId].Grade}%
-                                  </p>
-                                )}
-                                {aiFeedbackByCheck[currentItem.knowledgeCheckId].Feedback && (
-                                  <p className="text-sm text-purple-800 whitespace-pre-wrap">
-                                    {aiFeedbackByCheck[currentItem.knowledgeCheckId].Feedback}
-                                  </p>
-                                )}
-                              </>
-                            )}
+                            ) : (() => {
+                              const { grade: g, feedback: f } = normalizeGradeFeedback(
+                                aiFeedbackByCheck[currentItem.knowledgeCheckId].Grade,
+                                aiFeedbackByCheck[currentItem.knowledgeCheckId].Feedback
+                              );
+                              return (
+                                <>
+                                  {g != null && (
+                                    <p className="text-sm font-semibold text-purple-800 mb-1">
+                                      Grade: {g}%
+                                    </p>
+                                  )}
+                                  {f && (
+                                    <p className="text-sm text-purple-800 whitespace-pre-wrap">
+                                      {f}
+                                    </p>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
