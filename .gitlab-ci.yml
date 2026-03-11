@@ -4,7 +4,7 @@ image: node:20
 # Define variables globally (these will be pulled from your GitLab CI/CD settings)
 variables:
   VERCEL_ORG_ID: $VERCEL_ORG_ID
-  VERCEL_PROJECT_ID: $VERCEL_PROJECT_ID
+  VERCEL_PROJECT_ID: $VERCEL_PROJECTID
 
 stages:
   - deploy
