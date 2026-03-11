@@ -18,9 +18,13 @@ export default function Sidebar() {
 
   // Content sidebar state
   const [contentPages, setContentPages] = useState([]);
+  const [knowledgeChecks, setKnowledgeChecks] = useState([]);
   const [moduleName, setModuleName] = useState('');
   const [contentLoading, setContentLoading] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(null);
+  const [selectedKCId, setSelectedKCId] = useState(null);
+  const [createFormOpen, setCreateFormOpen] = useState(false);
+  const [kcFormOpen, setKcFormOpen] = useState(false);
 
   // Fetch content pages when on the content page
   useEffect(() => {
@@ -29,9 +33,10 @@ export default function Sidebar() {
     async function fetchContentPages() {
       setContentLoading(true);
       try {
-        const [contentRes, modulesRes] = await Promise.all([
+        const [contentRes, modulesRes, kcRes] = await Promise.all([
           fetch(`/api/content?moduleId=${moduleId}`),
-          fetch('/api/modules')
+          fetch('/api/modules'),
+          fetch(`/api/knowledge-checks?moduleId=${moduleId}`)
         ]);
 
         if (contentRes.ok) {
@@ -46,6 +51,11 @@ export default function Sidebar() {
             setModuleName(currentModule.Heading || `Module ${moduleId}`);
           }
         }
+
+        if (kcRes.ok) {
+          const kcData = await kcRes.json();
+          setKnowledgeChecks(Array.isArray(kcData) ? kcData : []);
+        }
       } catch (err) {
         console.error('Failed to fetch content for sidebar:', err);
       } finally {
@@ -55,18 +65,45 @@ export default function Sidebar() {
 
     fetchContentPages();
 
-    // Listen for content changes (custom event from page.js)
+    // Listen for content and KC changes (custom events from page.js)
     const handleContentUpdate = () => fetchContentPages();
     window.addEventListener('content-updated', handleContentUpdate);
-    return () => window.removeEventListener('content-updated', handleContentUpdate);
+    window.addEventListener('kc-updated', handleContentUpdate);
+    return () => {
+      window.removeEventListener('content-updated', handleContentUpdate);
+      window.removeEventListener('kc-updated', handleContentUpdate);
+    };
   }, [showContentSidebar, moduleId]);
 
   const scrollToPage = (contentId) => {
     setSelectedPageId(contentId);
+    setSelectedKCId(null);
     const element = document.getElementById(`content-page-${contentId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+    setIsMobileMenuOpen(false);
+  };
+
+  const scrollToKC = (kcId) => {
+    setSelectedKCId(kcId);
+    setSelectedPageId(null);
+    const element = document.getElementById(`knowledge-check-${kcId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsMobileMenuOpen(false);
+  };
+
+  const toggleCreateForm = () => {
+    setCreateFormOpen((prev) => !prev);
+    window.dispatchEvent(new CustomEvent('toggle-create-form'));
+    setIsMobileMenuOpen(false);
+  };
+
+  const toggleKCForm = () => {
+    setKcFormOpen((prev) => !prev);
+    window.dispatchEvent(new CustomEvent('toggle-kc-form'));
     setIsMobileMenuOpen(false);
   };
 
@@ -144,8 +181,6 @@ export default function Sidebar() {
 
                 {contentLoading ? (
                   <p className="text-sm text-gray-500 px-2 py-3">Loading pages...</p>
-                ) : contentPages.length === 0 ? (
-                  <p className="text-sm text-gray-500 px-2 py-3">No pages yet</p>
                 ) : (
                   <div className="space-y-1">
                     {contentPages.map((page, index) => (
@@ -168,6 +203,69 @@ export default function Sidebar() {
                         </div>
                       </button>
                     ))}
+
+                    {/* Add Page button */}
+                    <button
+                      onClick={toggleCreateForm}
+                      className={`w-full flex items-center justify-start gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors mt-1 ${createFormOpen
+                        ? 'bg-red-500 hover:bg-red-600 text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                    >
+                      <svg
+                        className={`w-6 h-6 transition-transform duration-200 ${createFormOpen ? 'rotate-45' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <p className="w-full text-center">{createFormOpen ? 'Close New Content Form' : 'Add Page'}</p>
+                    </button>
+
+                    {knowledgeChecks.length > 0 && (
+                      <>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pt-3 pb-1">Knowledge Checks</p>
+                        {knowledgeChecks.map((kc, index) => {
+                          const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
+                          return (
+                            <button
+                              key={kc.knowledgeCheckId}
+                              onClick={() => scrollToKC(kc.knowledgeCheckId)}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${selectedKCId === kc.knowledgeCheckId
+                                ? 'bg-green-50 text-green-700 font-semibold border-l-3 border-green-600 shadow-sm'
+                                : 'text-gray-700 hover:bg-green-50 hover:text-green-700'
+                                }`}
+                            >
+                              <div className="flex items-center">
+                                <span className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium mr-3 bg-gray-200 text-gray-600">
+                                  {index + 1}
+                                </span>
+                                <span className="text-sm truncate flex-1">{kc.question || `Knowledge Check ${index + 1}`}</span>
+                                <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${isMultipleChoice ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                                  {isMultipleChoice ? 'MC' : 'DESC'}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    {/* Add Knowledge Check button */}
+                    <button
+                      onClick={toggleKCForm}
+                      className={`w-full flex items-center justify-start gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors mt-1 ${kcFormOpen
+                        ? 'bg-red-500 hover:bg-red-600 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                    >
+                      <svg
+                        className={`w-6 h-6 transition-transform duration-200 ${kcFormOpen ? 'rotate-45' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <p className="w-full text-center">{kcFormOpen ? 'Close New KC Form' : 'Add Knowledge Check'}</p>
+                    </button>
                   </div>
                 )}
               </div>
@@ -189,7 +287,10 @@ export default function Sidebar() {
               Back to Modules
             </Link>
             <h2 className="text-lg font-bold text-green-700 leading-tight">{moduleName || `Module ${moduleId}`}</h2>
-            <p className="text-xs text-gray-500 mt-1">{contentPages.length} {contentPages.length === 1 ? 'page' : 'pages'}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {contentPages.length} {contentPages.length === 1 ? 'page' : 'pages'}
+              {knowledgeChecks.length > 0 && ` · ${knowledgeChecks.length} ${knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}`}
+            </p>
           </div>
 
           {/* Page List */}
@@ -198,8 +299,6 @@ export default function Sidebar() {
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
               </div>
-            ) : contentPages.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No pages yet</p>
             ) : (
               <div className="space-y-1.5">
                 {contentPages.map((page, index) => (
@@ -222,20 +321,74 @@ export default function Sidebar() {
                     </div>
                   </button>
                 ))}
+
+                {/* Add Page button */}
+                <button
+                  onClick={toggleCreateForm}
+                  className={`w-full flex items-center justify-start gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors mt-1 ${createFormOpen
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                >
+                  <svg
+                    className={`w-6 h-6 transition-transform duration-200 ${createFormOpen ? 'rotate-45' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <p className="w-full text-center">{createFormOpen ? 'Close New Content Form' : 'Add Page'}</p>
+                </button>
+
+                {knowledgeChecks.length > 0 && (
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pt-3 pb-1">Knowledge Checks</p>
+                )}
+
+                {knowledgeChecks.map((kc, index) => {
+                  const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
+                  return (
+                    <button
+                      key={kc.knowledgeCheckId}
+                      onClick={() => scrollToKC(kc.knowledgeCheckId)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${selectedKCId === kc.knowledgeCheckId
+                        ? 'bg-green-50 text-green-700 font-semibold border-l-3 border-green-600 shadow-sm'
+                        : 'text-gray-700 hover:bg-green-50 hover:text-green-700'
+                        }`}
+                    >
+                      <div className="flex items-center">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium mr-3 bg-gray-200 text-gray-600">
+                          {index + 1}
+                        </span>
+                        <span className="text-sm truncate flex-1">{kc.question || `Knowledge Check ${index + 1}`}</span>
+                        <span className={`ml-2 text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${isMultipleChoice ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                          {isMultipleChoice ? 'MC' : 'DESC'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {/* Add Knowledge Check button */}
+                <button
+                  onClick={toggleKCForm}
+                  className={`w-full flex items-center justify-start gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors mt-1 ${kcFormOpen
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                >
+                  <svg
+                    className={`w-6 h-6 transition-transform duration-200 ${kcFormOpen ? 'rotate-45' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <p className="w-full text-center">{kcFormOpen ? 'Close New KC Form' : 'Add Knowledge Check'}</p>
+                </button>
               </div>
             )}
           </nav>
 
-          {/* Bottom: Add Page + Logout */}
-          <div className="p-4 space-y-2 border-t border-gray-200">
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('toggle-create-form'));
-              }}
-              className="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors text-sm"
-            >
-              + Add Page
-            </button>
+          {/* Bottom: Logout only */}
+          <div className="p-4 border-t border-gray-200">
             <button
               onClick={handleLogout}
               className="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-2.5 px-4 rounded-lg transition-all duration-200 text-sm"

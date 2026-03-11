@@ -22,8 +22,18 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isUploadedAsset, setIsUploadedAsset] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const inputIsURL = isValidHttpUrl(imageUrlInput.trim());
+
+  const setFileFromInput = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setImageFile(file);
+    setUploadedImageURL(null);
+    setImageUrlInput('');
+    setIsUploadedAsset(false);
+    setImageSrc(URL.createObjectURL(file));
+  };
 
   const resetImageState = () => {
     setImageFile(null);
@@ -41,13 +51,26 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
 
   function handleImageFileChange(event) {
     const file = event.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setUploadedImageURL(null);
-      setImageUrlInput('');
-      setIsUploadedAsset(false);
-      setImageSrc(URL.createObjectURL(file));
-    }
+    setFileFromInput(file);
+  }
+
+  function handleDrop(event) {
+    event.preventDefault();
+    setIsDragging(false);
+    const file = event.dataTransfer?.files?.[0];
+    setFileFromInput(file);
+  }
+
+  function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
   }
 
   const useImageUrl = (onClearReading) => {
@@ -244,59 +267,90 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
         </div>
 
         {!imageSrc && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="file_input">
-              Or Upload an Image Instead
-            </label>
+          <div className="mt-6">
+            <div className="flex items-center gap-4 mb-4">
+              <span className="flex-1 border-t border-gray-200" aria-hidden="true" />
+              <span className="text-sm text-gray-600">Or upload an image</span>
+              <span className="flex-1 border-t border-gray-200" aria-hidden="true" />
+            </div>
             <input
               type="file"
-              className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
-              accept="image/png, image/jpeg"
+              className="sr-only"
+              accept="image/jpeg, image/png, image/gif, image/webp, image/bmp"
               name="imageInput"
               id="file_input"
               onChange={handleImageFileChange}
             />
-            <button
-              onClick={() => uploadImage(() => setNewReading(''))}
-              disabled={uploadingImage || !imageFile}
-              className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${
-                uploadingImage || !imageFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+            <label
+              htmlFor="file_input"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              className={`flex flex-col items-center justify-center w-full min-h-[140px] py-10 px-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors duration-200 text-center ${
+                isDragging
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
               }`}
             >
-              {uploadingImage ? 'Uploading...' : 'Upload Image'}
-            </button>
-          </div>
-        )}
-
-        {!imageSrc && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="url_input">
-              Or Use an Existing Image URL
+              {imageFile ? (
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-sm font-medium text-gray-700 truncate max-w-[280px]" title={imageFile.name}>
+                    {imageFile.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      uploadImage(() => setNewReading(''));
+                    }}
+                    disabled={uploadingImage}
+                    className={`px-5 py-2 rounded-lg text-white font-medium text-sm transition-colors ${
+                      uploadingImage ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {uploadingImage ? 'Uploading...' : 'Upload image'}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-0 text-center">
+                  <svg className="w-9 h-9 text-gray-400 mb-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm font-medium text-gray-600">Drag and drop your image here</p>
+                  <p className="text-xs text-gray-500 mt-1">or click to browse · JPEG, PNG, GIF, WebP, BMP (max 5 MB)</p>
+                </div>
+              )}
             </label>
-            <div className="flex flex-col sm:flex-row gap-2">
+
+            <div className="mt-4">
+              <div className="flex gap-2">
               <input
                 type="url"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-gray-300 rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 name="urlInput"
                 id="url_input"
-                placeholder="Paste image URL here"
+                placeholder="Paste image URL (e.g. https://…)"
                 value={imageUrlInput}
-                onChange={(event) => setImageUrlInput(event.target.value)}
+                onChange={(e) => setImageUrlInput(e.target.value)}
               />
               <button
+                type="button"
                 onClick={() => useImageUrl(() => setNewReading(''))}
                 disabled={uploadingImage || !inputIsURL}
-                className={`w-full sm:w-auto px-6 sm:px-8 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${
-                  uploadingImage || !inputIsURL ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                className={`shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  uploadingImage || !inputIsURL
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-800 text-white hover:bg-gray-900'
                 }`}
               >
-                Use URL
+                Upload
               </button>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 mt-6">
           <button
             onClick={() => setShowCreatePreview((prev) => !prev)}
             className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base"

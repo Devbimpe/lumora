@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import ConfirmationModal from './ConfirmationModal';
 
-export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChange, onError }) {
+export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChange }) {
   // MARK: KC Edit State
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState(null);
   const [editKCQuestion, setEditKCQuestion] = useState("");
   const [editKCChoices, setEditKCChoices] = useState(["", ""]);
   const [editKCAnswer, setEditKCAnswer] = useState("");
@@ -43,9 +44,9 @@ export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChan
   };
 
   const saveEdit = async () => {
-    onError(null);
+    setError(null);
     if (!editKCQuestion.trim()) {
-      onError("Question is required");
+      setError("Question is required");
       return;
     }
 
@@ -54,11 +55,11 @@ export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChan
 
     if (!isDescriptive) {
       if (filledChoices.length < 2) {
-        onError("At least 2 choices are required");
+        setError("At least 2 choices are required");
         return;
       }
       if (!editKCAnswer) {
-        onError("Please select the correct answer");
+        setError("Please select the correct answer");
         return;
       }
     }
@@ -89,7 +90,7 @@ export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChan
       onKCChange(Array.isArray(checksData) ? checksData : []);
       cancelEdit();
     } catch (err) {
-      onError(err.message);
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +111,7 @@ export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChan
       const checksData = await checksRes.json();
       onKCChange(Array.isArray(checksData) ? checksData : []);
     } catch (err) {
-      onError(err.message);
+      setError(err.message);
     }
   };
 
@@ -119,7 +120,17 @@ export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChan
   // MARK: Render
   return (
     <>
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div id={`knowledge-check-${kc.knowledgeCheckId}`} className="bg-white rounded-xl shadow-lg overflow-hidden">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 sm:p-4 flex items-start justify-between gap-3">
+          <p className="text-xs sm:text-sm text-red-700">{error}</p>
+          <button onClick={() => setError(null)} className="shrink-0 text-red-400 hover:text-red-600">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
       {editing ? (
         <div className="p-4 sm:p-6 bg-blue-50 border-l-4 border-blue-500">
           <div className="flex justify-between items-center mb-4">
