@@ -12,19 +12,30 @@ stages:
 # Deployment for all branches except 'main' (Preview)
 deploy_preview:
   stage: deploy
-  except:
-    - main
+  rules:
+    - if: '$RUN_VARIABLES_ONLY == "true"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH != "main"'
   script:
     - npm install --global vercel
     - vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
     - vercel build --token=$VERCEL_TOKEN
     - vercel deploy --prebuilt --token=$VERCEL_TOKEN
 
+# Prints all CI/CD environment variables (keys and values)
+print_ci_cd_variables:
+  stage: deploy
+  script:
+    - echo "Printing all environment variables available in this job:"
+    - printenv | sort
+
 # Deployment for the 'main' branch (Production)
 deploy_production:
   stage: deploy
-  only:
-    - main
+  rules:
+    - if: '$RUN_VARIABLES_ONLY == "true"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - npm install --global vercel
     - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
