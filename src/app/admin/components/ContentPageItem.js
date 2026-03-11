@@ -224,7 +224,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
                         <input
                           type="file"
                           className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
-                          accept="image/png, image/jpeg"
+                          accept="image/jpeg, image/png, image/gif, image/webp, image/bmp"
                           id={`edit_file_input_${item.ContentID}`}
                           onChange={handleImageFileChange}
                         />
