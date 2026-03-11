@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getFaviconUrl, getDefaultFaviconUrl } from '../../lib/favicons';
 
@@ -27,6 +27,8 @@ export default function ContentPage() {
   const [error, setError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showKCForm, setShowKCForm] = useState(false);
+  const newContentFormRef = useRef(null);
+  const kcFormRef = useRef(null);
 
   const currentModule = modules.find((module) => module.ModuleID.toString() === selectedModule);
 
@@ -100,6 +102,27 @@ export default function ContentPage() {
     window.addEventListener('toggle-create-form', handleToggleCreate);
     return () => window.removeEventListener('toggle-create-form', handleToggleCreate);
   }, []);
+
+  useEffect(() => {
+    const handleToggleKC = () => {
+      setShowKCForm((prev) => !prev);
+    };
+
+    window.addEventListener('toggle-kc-form', handleToggleKC);
+    return () => window.removeEventListener('toggle-kc-form', handleToggleKC);
+  }, []);
+
+  useEffect(() => {
+    if (showCreateForm) {
+      setTimeout(() => newContentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+  }, [showCreateForm]);
+
+  useEffect(() => {
+    if (showKCForm) {
+      setTimeout(() => kcFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+  }, [showKCForm]);
 
   useEffect(() => {
     if (!selectedModule || mode === 'new') {
@@ -276,30 +299,40 @@ export default function ContentPage() {
           <button
             onClick={() => (mode === 'new' ? null : setShowCreateForm((prev) => !prev))}
             disabled={mode === 'new'}
-            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base ${
+            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-start gap-2 shadow-lg text-sm sm:text-base ${
               mode === 'new'
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : showCreateForm
+                ? 'bg-red-500 text-white hover:bg-red-600 hover:shadow-xl'
                 : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-xl'
             }`}
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className={`w-6 h-6 transition-transform duration-200 ${showCreateForm ? 'rotate-45' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Content Page
+            <p className="w-full text-center">{showCreateForm ? 'Close New Content Form' : 'Add Content Page'}</p>
           </button>
           <button
             onClick={() => (mode === 'new' ? null : setShowKCForm((prev) => !prev))}
             disabled={mode === 'new'}
-            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base ${
+            className={`w-full sm:w-auto rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 transition-colors duration-200 font-medium flex items-center justify-start gap-2 shadow-lg text-sm sm:text-base ${
               mode === 'new'
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : showKCForm
+                ? 'bg-red-500 text-white hover:bg-red-600 hover:shadow-xl'
                 : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl'
             }`}
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className={`w-6 h-6 transition-transform duration-200 ${showKCForm ? 'rotate-45' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Knowledge Check
+            <p className="w-full text-center">{showKCForm ? 'Close New KC Form' : 'Add Knowledge Check'}</p>
           </button>
           <p className="mt-2 sm:mt-0 sm:self-center text-xs sm:text-sm text-gray-500">
             {content.length} {content.length === 1 ? 'page' : 'pages'} · {knowledgeChecks.length}{' '}
@@ -307,27 +340,6 @@ export default function ContentPage() {
             {mode === 'new' && ' - Save the module to add content'}
           </p>
         </div>
-      )}
-
-      {showCreateForm && (
-        <NewContentPageForm
-          selectedModule={selectedModule}
-          onClose={() => setShowCreateForm(false)}
-          onCreated={(data) => {
-            setContent(data);
-            window.dispatchEvent(new Event('content-updated'));
-          }}
-          onError={setError}
-        />
-      )}
-
-      {showKCForm && (
-        <CreateKnowledgeCheckForm
-          selectedModule={selectedModule}
-          onClose={() => setShowKCForm(false)}
-          onCreated={(data) => setKnowledgeChecks(data)}
-          onError={setError}
-        />
       )}
 
       {mode !== 'new' &&
@@ -362,7 +374,21 @@ export default function ContentPage() {
                   />
                 </svg>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No content pages yet</h3>
-                <p className="text-gray-500">Add a content page using the form above to get started.</p>
+                <p className="text-gray-500">Add a content page using the button above to get started.</p>
+              </div>
+            )}
+
+            {showCreateForm && (
+              <div ref={newContentFormRef} className="mt-6 sm:mt-8">
+                <NewContentPageForm
+                  selectedModule={selectedModule}
+                  onClose={() => setShowCreateForm(false)}
+                  onCreated={(data) => {
+                    setContent(data);
+                    window.dispatchEvent(new Event('content-updated'));
+                  }}
+                  onError={setError}
+                />
               </div>
             )}
 
@@ -376,11 +402,28 @@ export default function ContentPage() {
                       kc={kc}
                       index={index}
                       selectedModule={selectedModule}
-                      onKCChange={setKnowledgeChecks}
+                      onKCChange={(data) => {
+                        setKnowledgeChecks(data);
+                        window.dispatchEvent(new Event('kc-updated'));
+                      }}
                       onError={setError}
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {showKCForm && (
+              <div ref={kcFormRef} className="mt-6 sm:mt-8">
+                <CreateKnowledgeCheckForm
+                  selectedModule={selectedModule}
+                  onClose={() => setShowKCForm(false)}
+                  onCreated={(data) => {
+                    setKnowledgeChecks(data);
+                    window.dispatchEvent(new Event('kc-updated'));
+                  }}
+                  onError={setError}
+                />
               </div>
             )}
           </>

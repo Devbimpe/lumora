@@ -119,7 +119,7 @@ export default function KnowledgeCheckItem({ kc, index, selectedModule, onKCChan
   // MARK: Render
   return (
     <>
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div id={`knowledge-check-${kc.knowledgeCheckId}`} className="bg-white rounded-xl shadow-lg overflow-hidden">
       {editing ? (
         <div className="p-4 sm:p-6 bg-blue-50 border-l-4 border-blue-500">
           <div className="flex justify-between items-center mb-4">
