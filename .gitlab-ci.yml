@@ -33,4 +33,4 @@ deploy_production:
   script:
     - npm install --global vercel
     - npm install
-    - npx vercel --token=$token
+    - npx vercel --token=$token --prod
