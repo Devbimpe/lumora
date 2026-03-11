@@ -1,0 +1,32 @@
+# Use a Node image that matches your local development environment
+image: node:20
+
+# Define variables globally (these will be pulled from your GitLab CI/CD settings)
+variables:
+  VERCEL_ORG_ID: $VERCEL_ORG_ID
+  VERCEL_PROJECT_ID: $VERCEL_PROJECT_ID
+
+stages:
+  - deploy
+
+# Deployment for all branches except 'main' (Preview)
+deploy_preview:
+  stage: deploy
+  except:
+    - main
+  script:
+    - npm install --global vercel
+    - vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+    - vercel build --token=$VERCEL_TOKEN
+    - vercel deploy --prebuilt --token=$VERCEL_TOKEN
+
+# Deployment for the 'main' branch (Production)
+deploy_production:
+  stage: deploy
+  only:
+    - main
+  script:
+    - npm install --global vercel
+    - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+    - vercel build --prod --token=$VERCEL_TOKEN
+    - vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
