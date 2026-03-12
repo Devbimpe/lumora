@@ -160,7 +160,17 @@ export default function Sidebar() {
                   )}
                 </svg>
               </button>
-              <h2 className="text-lg font-bold text-gray-800 truncate">{moduleName || `Module ${moduleId}`}</h2>
+              <h2
+                className="text-lg font-bold text-gray-800 max-w-full"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {moduleName || `Module ${moduleId}`}
+              </h2>
             </div>
           </div>
 
@@ -286,7 +296,17 @@ export default function Sidebar() {
               </svg>
               Back to Modules
             </Link>
-            <h2 className="text-lg font-bold text-green-700 leading-tight">{moduleName || `Module ${moduleId}`}</h2>
+            <h2
+              className="text-lg font-bold text-green-700 leading-tight max-w-full"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {moduleName || `Module ${moduleId}`}
+            </h2>
             <p className="text-xs text-gray-500 mt-1">
               {contentPages.length} {contentPages.length === 1 ? 'page' : 'pages'}
               {knowledgeChecks.length > 0 && ` · ${knowledgeChecks.length} ${knowledgeChecks.length === 1 ? 'knowledge check' : 'knowledge checks'}`}
