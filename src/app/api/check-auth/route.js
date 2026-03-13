@@ -1,11 +1,23 @@
 import { getUserByFirebaseUid } from "@db/db.js"
 import jwt from "jsonwebtoken"
 
-export const runtime = 'nodejs'
 
 export async function GET(request) {
   try {
-    const token = request.cookies.get("auth-token")?.value
+    // Get the auth token from cookies
+    const cookieHeader = request.headers.get("cookie")
+    if (!cookieHeader) {
+      return Response.json({ authenticated: false })
+    }
+
+    // Extract the auth-token from cookies
+    const cookies = cookieHeader.split(";").reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split("=")
+      acc[key] = value
+      return acc
+    }, {})
+
+    const token = cookies["auth-token"]
     if (!token) {
       return Response.json({ authenticated: false })
     }

@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../Module.css';
@@ -61,7 +61,7 @@ function parseChoices(choices) {
   return options.sort((a, b) => a.letter.localeCompare(b.letter));
 }
 
-function ModulePageContent() {
+export default function ModulePage() {
   const { moduleId } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -832,17 +832,5 @@ function ModulePageContent() {
         </div>
       </main>
     </div>
-  );
-}
-
-export default function ModulePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading module content...</p>
-      </div>
-    }>
-      <ModulePageContent />
-    </Suspense>
   );
 }

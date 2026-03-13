@@ -32,8 +32,7 @@
     "@tailwindcss/postcss": "^4.1.7",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.7",
-    "vercel": "^50.31.2"
+    "tailwindcss": "^4.1.7"
   },
   "name": "lumora",
   "version": "1.0.0",

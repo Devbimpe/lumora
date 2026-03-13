@@ -950,7 +950,35 @@ async function calculateModuleProgress(userId, moduleId, viewedItems = [], compl
 
     // Get pages count by scanning public/img directory
     let totalPages = 0;
-    
+    try {
+      // Use require for Node.js built-in modules in this context
+      const fs = require('fs');
+      const path = require('path');
+      const imgDir = path.join(process.cwd(), 'public', 'img');
+
+      if (fs.existsSync(imgDir)) {
+        const files = fs.readdirSync(imgDir);
+        const moduleNum = String(moduleId).replace('module', '');
+        const pattern = new RegExp(`^mod${moduleNum}p(\\d+)\\.(jpg|jpeg|png)$`, 'i');
+        const pageNumbers = new Set();
+
+        files.forEach(file => {
+          const match = file.match(pattern);
+          if (match) {
+            pageNumbers.add(parseInt(match[1]));
+          }
+        });
+
+        totalPages = pageNumbers.size;
+      }
+    } catch (fsError) {
+      console.warn('Could not read pages directory, using fallback:', fsError);
+      // Fallback: estimate based on module
+      const moduleNum = parseInt(moduleId);
+      const pageConfig = { 1: 1, 2: 1, 3: 9 };
+      totalPages = pageConfig[moduleNum] || 0;
+    }
+
     const totalItems = totalPages + totalKnowledgeChecks;
 
     if (totalItems === 0) return 0;
