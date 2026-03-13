@@ -76,6 +76,7 @@ export default function ModulePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
+  const [completedFromLastContent, setCompletedFromLastContent] = useState(false);
   
   // Refs to prevent duplicate API calls
   const allModulesFetched = useRef(false);
@@ -256,6 +257,11 @@ export default function ModulePage() {
       }
     }
   }, [allModules, moduleId]);
+
+  // Reset completedFromLastContent when switching modules
+  useEffect(() => {
+    setCompletedFromLastContent(false);
+  }, [moduleId]);
 
   // Track item view (with deduplication)
   const trackItemView = useCallback(async (itemId) => {
@@ -471,8 +477,9 @@ export default function ModulePage() {
       ? selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__'
       : selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer
   );
-  const showNextModuleButton = isLastItem && isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && nextModule;
-  const showCompletionMessage = isLastItem && isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && !nextModule;
+  const completedFromContentOnLast = isLastItem && currentItem.type === 'content' && completedFromLastContent;
+  const showNextModuleButton = isLastItem && ((isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && nextModule) || (completedFromContentOnLast && nextModule));
+  const showCompletionMessage = isLastItem && ((isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && !nextModule) || (completedFromContentOnLast && !nextModule));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
@@ -765,18 +772,28 @@ export default function ModulePage() {
               </span>
               
               {!showNextModuleButton && !showCompletionMessage && (
-                <button
-                  onClick={handleNext}
-                  disabled={currentIndex === allItems.length - 1}
-                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                    currentIndex === allItems.length - 1
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  <span className="hidden sm:inline">Next →</span>
-                  <span className="sm:hidden">→</span>
-                </button>
+                isLastItem ? (
+                  <button
+                    onClick={() => {
+                      if (currentItem.type === 'content') {
+                        trackModuleCompletion();
+                        setCompletedFromLastContent(true);
+                      }
+                    }}
+                    className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
+                  >
+                    <span className="hidden sm:inline">View results</span>
+                    <span className="sm:hidden">View results</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNext}
+                    className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
+                  >
+                    <span className="hidden sm:inline">Next →</span>
+                    <span className="sm:hidden">→</span>
+                  </button>
+                )
               )}
             </div>
 
