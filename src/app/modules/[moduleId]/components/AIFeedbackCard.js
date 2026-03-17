@@ -1,10 +1,42 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { normalizeGradeFeedback } from '../utils';
+
+const CIRCLE_R = 42;
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_R;
+const GRADE_DURATION_MS = 950;
+
+// First 45% of time: 0 → 70%. Last 55% of time: 70% → 100% with strong ease-out so the count visibly slows (95→100).
+function easeCountWithSlowEnd(t) {
+  if (t <= 0.45) {
+    return (t / 0.45) * 0.7;
+  }
+  const u = (t - 0.45) / 0.55; // 0..1 over the last 55% of duration
+  return 0.7 + 0.3 * (1 - (1 - u) ** 5); // strong ease-out for the last 30% of value
+}
 
 export default function AIFeedbackCard({ loading, error, grade, feedback, variant = 'current' }) {
   const { grade: g, feedback: f } = normalizeGradeFeedback(grade, feedback);
   const pillLabel = variant === 'previous' ? 'Previous attempt' : 'Auto-graded';
+  const [displayGrade, setDisplayGrade] = useState(0);
+
+  useEffect(() => {
+    if (g == null) {
+      setDisplayGrade(0);
+      return;
+    }
+    const start = performance.now();
+    let rafId;
+    const tick = (now) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / GRADE_DURATION_MS, 1);
+      setDisplayGrade(easeCountWithSlowEnd(t) * g);
+      if (t < 1) rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [g]);
 
   return (
     <div className="rounded-2xl bg-gradient-to-r from-purple-50 to-white border border-purple-200 shadow-sm p-4 sm:p-5 mt-0">
@@ -33,18 +65,18 @@ export default function AIFeedbackCard({ loading, error, grade, feedback, varian
                 <circle
                   cx="50"
                   cy="50"
-                  r="42"
+                  r={CIRCLE_R}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="8"
                   strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 42}
-                  strokeDashoffset={2 * Math.PI * 42 * (1 - g / 100)}
-                  className="text-purple-500 transition-[stroke-dashoffset] duration-500"
+                  strokeDasharray={CIRCLE_CIRCUMFERENCE}
+                  strokeDashoffset={CIRCLE_CIRCUMFERENCE * (1 - displayGrade / 100)}
+                  className="text-purple-500"
                 />
               </svg>
               <span className={`relative font-extrabold text-purple-700 leading-none ${g === 100 ? 'text-xl sm:text-3xl' : 'text-2xl sm:text-4xl'}`}>
-                {g}
+                {Math.round(displayGrade)}
               </span>
             </>
           ) : (
