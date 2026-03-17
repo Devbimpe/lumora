@@ -2,12 +2,6 @@ import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-export async function main(question, userAnswer, sampleAnswer = '', explanation = '') {
-  const chatCompletion = await gradeKnowledgeCheck(question, userAnswer, sampleAnswer, explanation);
-  // Print the completion returned by the LLM.
-  console.log(chatCompletion.choices[0]?.message?.content || "");
-}
-
 export async function gradeKnowledgeCheck(question, userAnswer, sampleAnswer = '', explanation = '') {
   const parts = [
     `Question: "${question}"`,

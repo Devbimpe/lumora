@@ -3,75 +3,12 @@ import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../Module.css';
-
-// Helper function to parse choices into array of options
-// Handles both array of strings and single string format
-function parseChoices(choices) {
-  if (!choices) return [];
-  
-  // If choices is already an array of strings
-  if (Array.isArray(choices)) {
-    return choices.map((choice, index) => {
-      // Try to extract letter and text from string like "A: text" or "A. text"
-      const match = choice.match(/^([A-D])[\.:]\s*(.+)/);
-      if (match) {
-        return {
-          letter: match[1],
-          text: match[2].trim()
-        };
-      }
-      // Fallback: use index as letter (A=0, B=1, etc.)
-      return {
-        letter: String.fromCharCode(65 + index), // 65 is 'A'
-        text: choice.trim()
-      };
-    }).sort((a, b) => a.letter.localeCompare(b.letter));
-  }
-  
-  // If choices is a string, parse it (backward compatibility)
-  const choicesString = choices;
-  const regex = /([A-D]):\s*"([^"]+)"/g;
-  const options = [];
-  let match;
-  
-  while ((match = regex.exec(choicesString)) !== null) {
-    options.push({
-      letter: match[1],
-      text: match[2]
-    });
-  }
-  
-  // If regex didn't work, try simpler split
-  if (options.length === 0) {
-    const parts = choicesString.split(/(?=[A-D]\.\s)/g);
-    parts.forEach(part => {
-      const trimmed = part.trim();
-      if (trimmed) {
-        const letterMatch = trimmed.match(/^([A-D])[\.:]\s*(.+)/);
-        if (letterMatch) {
-          options.push({
-            letter: letterMatch[1],
-            text: letterMatch[2].trim()
-          });
-        }
-      }
-    });
-  }
-  
-  return options.sort((a, b) => a.letter.localeCompare(b.letter));
-}
-
-function normalizeGradeFeedback(grade, feedback) {
-  if (feedback && typeof feedback === 'string' && feedback.trim().startsWith('{')) {
-    try {
-      const parsed = JSON.parse(feedback);
-      return { grade: parsed.Grade ?? grade, feedback: parsed.Feedback ?? feedback };
-    } catch {
-      return { grade, feedback };
-    }
-  }
-  return { grade, feedback };
-}
+import { parseChoices } from './utils';
+import ModuleMobileHeader from './components/ModuleMobileHeader';
+import ModuleSidebar from './components/ModuleSidebar';
+import ContentItemView from './components/ContentItemView';
+import KnowledgeCheckView from './components/KnowledgeCheckView';
+import ModuleNavigation from './components/ModuleNavigation';
 
 function ModulePageContent() {
   const { moduleId } = useParams();
@@ -90,6 +27,19 @@ function ModulePageContent() {
   const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
   const [aiFeedbackByCheck, setAiFeedbackByCheck] = useState({});
   const [savedKnowledgeCheckSubmissions, setSavedKnowledgeCheckSubmissions] = useState({});
+  const [submittedViewAnimate, setSubmittedViewAnimate] = useState(false);
+
+  const isSubmittedView = currentItem?.type === 'knowledgeCheck' && selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__';
+  useEffect(() => {
+    if (isSubmittedView) {
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setSubmittedViewAnimate(true));
+      });
+      return () => cancelAnimationFrame(id);
+    } else {
+      setSubmittedViewAnimate(false);
+    }
+  }, [isSubmittedView]);
 
   // Refs to prevent duplicate API calls
   const allModulesFetched = useRef(false);
@@ -149,10 +99,9 @@ function ModulePageContent() {
         const moduleNum = moduleId.replace('module', '');
         
         // Fetch content from Firestore and knowledge checks in parallel
-        const [contentRes, knowledgeChecksRes, moduleDetailsRes] = await Promise.all([
+        const [contentRes, knowledgeChecksRes] = await Promise.all([
           fetch(`/api/content?moduleId=${moduleNum}`),
-          fetch(`/api/knowledge-checks?moduleId=${moduleNum}`),
-          fetch(`/api/Module?moduleId=${moduleNum}`)
+          fetch(`/api/knowledge-checks?moduleId=${moduleNum}`)
         ]);
         
         let contentItems = [];
@@ -170,21 +119,6 @@ function ModulePageContent() {
             knowledgeChecks = await knowledgeChecksRes.json();
           } catch (parseError) {
             console.error('Failed to parse knowledge checks response:', parseError);
-          }
-        }
-
-        let moduleDetails = null;
-        if (moduleDetailsRes.ok) {
-          try {
-            const moduleRows = await moduleDetailsRes.json();
-            if (Array.isArray(moduleRows) && moduleRows.length > 0) {
-              moduleDetails = {
-                heading: moduleRows[0]?.Heading,
-                subheading: moduleRows[0]?.Subheading
-              };
-            }
-          } catch (parseError) {
-            console.error('Failed to parse module details response:', parseError);
           }
         }
         
@@ -252,10 +186,13 @@ function ModulePageContent() {
         setAllItems(items);
         
         const currentModule = allModules.length > 0 ? allModules.find(m => m.ModuleID === parseInt(moduleNum)) : null;
-        const resolvedHeading = currentModule?.Heading || moduleDetails?.heading || `Module ${moduleNum}`;
-        const resolvedSubheading = currentModule?.Subheading || moduleDetails?.subheading || '';
-        setModuleHeading(resolvedHeading);
-        setModuleSubheading(resolvedSubheading);
+        if (currentModule) {
+          setModuleHeading(currentModule.Heading || `Module ${moduleNum}`);
+          setModuleSubheading(currentModule.Subheading || '');
+        } else {
+          setModuleHeading(`Module ${moduleNum}`);
+          setModuleSubheading('');
+        }
         
         // Set current item based on URL or first item
         const itemToShow = currentItemId
@@ -308,10 +245,6 @@ function ModulePageContent() {
   const trackItemView = useCallback(async (itemId) => {
     if (!user || !itemId) return;
     
-    const item = allItems.find(i => i.id === itemId);
-    // KCs only count toward progress when answered correctly (via trackKnowledgeCheckCompletion)
-    if (item?.type === 'knowledgeCheck') return;
-    
     const trackingKey = `${moduleId}-${itemId}`;
     if (trackedViews.current.has(trackingKey) || trackingInProgress.current) {
       return;
@@ -321,6 +254,10 @@ function ModulePageContent() {
     trackedViews.current.add(trackingKey);
     
     try {
+      const item = allItems.find(i => i.id === itemId);
+      if (item?.type !== 'content' || item.contentId == null) return;
+      const contentId = item.contentId;
+      
       await fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -328,7 +265,7 @@ function ModulePageContent() {
           userId: user.id,
           moduleId: moduleId.replace('module', ''),
           action: 'view',
-          contentId: item.contentId
+          contentId: contentId
         })
       });
     } catch (error) {
@@ -452,7 +389,8 @@ function ModulePageContent() {
         body: JSON.stringify({
           question: item.question,
           userAnswer: answerText,
-          sampleAnswer: item.answer || '',
+          // Backward-compatible: older descriptive checks stored sample answer in `explain`.
+          sampleAnswer: item.answer || item.explain || '',
           explanation: item.explain || ''
         })
       });
@@ -546,10 +484,9 @@ function ModulePageContent() {
       trackModuleCompletion();
     }
     
-    const currentModuleIdNum = parseInt(moduleId.replace('module', ''));
-    const next = allModules
-      .filter(m => m.published)
-      .find(m => m.ModuleID > currentModuleIdNum);
+    const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
+    const published = allModules.filter(m => m.published);
+    const next = published.find(m => m.ModuleID > currentModuleIdNum);
     if (next) {
       router.push(`/modules/module${next.ModuleID}`);
     }
@@ -599,11 +536,10 @@ function ModulePageContent() {
 
   const currentIndex = allItems.findIndex(item => item.id === currentItem.id);
   const isLastItem = currentIndex === allItems.length - 1;
-  const currentModuleIdNum = parseInt(moduleId.replace('module', ''));
+  const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
   const publishedModules = allModules.filter(m => m.published);
   const nextModule = publishedModules.find(m => m.ModuleID > currentModuleIdNum);
-  
-  // Check if we should show "Go to Next Module" button or completion message
+
   const isKnowledgeCheck = currentItem.type === 'knowledgeCheck';
   const isDescriptive = isKnowledgeCheck && (!currentItem.choices || currentItem.choices.length === 0);
   const isKnowledgeCheckAnswered = isKnowledgeCheck && selectedAnswers[currentItem.knowledgeCheckId] !== undefined;
@@ -613,33 +549,21 @@ function ModulePageContent() {
       : selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer
   );
   const isLastItemDone = !isKnowledgeCheck || (isKnowledgeCheckAnswered && isKnowledgeCheckCorrect);
-  const allKCsCompleted = allItems
-    .filter(item => item.type === 'knowledgeCheck')
-    .every(item => {
-      const isDesc = !item.choices || item.choices.length === 0;
-      return isDesc
-        ? selectedAnswers[item.knowledgeCheckId] === '__submitted__'
-        : selectedAnswers[item.knowledgeCheckId] === item.answer;
-    });
+  const allKCsCompleted = allItems.every(item => {
+    if (item.type !== 'knowledgeCheck') return true;
+    const ans = selectedAnswers[item.knowledgeCheckId];
+    if (ans === undefined) return false;
+    const isDesc = !item.choices || item.choices.length === 0;
+    return isDesc ? ans === '__submitted__' : ans === item.answer;
+  });
   const showModuleComplete = isLastItem && isLastItemDone && allKCsCompleted;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
-      {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-40 px-4 py-3">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-black hover:text-green-700 transition-colors flex-shrink-0"
-            aria-label="Toggle menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <h2 className="text-lg font-bold text-black truncate">{moduleSubheading || moduleHeading}</h2>
-        </div>
-      </div>
+      <ModuleMobileHeader
+        title={moduleSubheading || moduleHeading}
+        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+      />
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
@@ -649,393 +573,52 @@ function ModulePageContent() {
         />
       )}
 
-      {/* Sidebar Navigation */}
-      <aside className={`w-72 max-w-[85vw] bg-white border-r border-gray-200 shadow-xl fixed left-0 top-0 h-screen flex flex-col overflow-hidden z-50 transition-transform duration-300 ease-out ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      } lg:w-64 lg:shadow-sm`}>
-        {/* Sidebar Header */}
-        <div className="p-4 bg-gradient-to-r from-green-50 to-white border-b border-gray-200">
-          {/* Mobile Close Button */}
-          <div className="lg:hidden flex items-center justify-between mb-3">
-            <Link 
-              href="/training-module" 
-              className="flex items-center gap-1.5 text-green-700 hover:text-green-800 text-sm font-medium"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              All Modules
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 -mr-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Close sidebar"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Desktop Back Link */}
-          <Link href="/training-module" className="hidden lg:inline-flex items-center text-green-700 hover:text-green-800 mb-4 text-sm">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Modules
-          </Link>
-          
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Contents</p>
-          <h2 className="mt-3 text-lg font-bold text-green-700">{moduleHeading}</h2>
-        </div>
-        
-        <nav className="flex-1 flex flex-col overflow-y-auto p-3">
-          <div className="space-y-1.5 flex-1">
-            {allItems.map((item, index) => {
-              const isActive = currentItem.id === item.id;
-              const isCompleted = item.type === 'knowledgeCheck'
-                ? selectedAnswers[item.knowledgeCheckId] !== undefined && (
-                    (!item.choices || item.choices.length === 0)
-                      ? selectedAnswers[item.knowledgeCheckId] === '__submitted__'
-                      : selectedAnswers[item.knowledgeCheckId] === item.answer
-                  )
-                : index < currentIndex;
-              const displayNumber = index + 1;
-              
-              let title = `Item ${displayNumber}`;
-              if (item.type === 'content') {
-                title = item.overview || `Section ${displayNumber}`;
-              } else if (item.type === 'knowledgeCheck') {
-                title = `Knowledge Check`;
-              }
-              
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleSidebarClick(item.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-green-100 text-green-700 font-semibold border-l-4 border-green-600 shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-green-700'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <span className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${
-                      isActive
-                        ? 'bg-green-600 text-white'
-                        : isCompleted
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {isCompleted && !isActive ? '✓' : displayNumber}
-                    </span>
-                    <span className="text-sm truncate flex-1">{title}</span>
-                    {item.type === 'knowledgeCheck' && (
-                      <span className="ml-2 text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">Quiz</span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          
-          {/* Track Progress Button */}
-          <div className="pt-4 border-t border-gray-200 pb-2 px-1">
-            <button
-              onClick={() => {
-                setSidebarOpen(false);
-                router.push('/#course-modules');
-              }}
-              className="w-full px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg text-sm"
-            >
-              Track Progress
-            </button>
-          </div>
-        </nav>
-      </aside>
+      <ModuleSidebar
+        allItems={allItems}
+        currentItem={currentItem}
+        currentIndex={currentIndex}
+        moduleHeading={moduleHeading}
+        moduleSubheading={moduleSubheading}
+        selectedAnswers={selectedAnswers}
+        sidebarOpen={sidebarOpen}
+        onCloseSidebar={() => setSidebarOpen(false)}
+        onItemClick={handleSidebarClick}
+        onTrackProgress={() => {
+          setSidebarOpen(false);
+          router.push('/#course-modules');
+        }}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 lg:ml-64 pt-14 lg:pt-0">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 lg:py-12">
-          {/* Module Heading (static above content) */}
-          <div className="mb-4 sm:mb-6 sticky top-14 lg:top-0 z-10 bg-gradient-to-b from-green-50/95 to-white/95 backdrop-blur-sm py-2 sm:py-3">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center">
-              {moduleHeading}
-            </h1>
-            {moduleSubheading && (
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 text-center">
-                {moduleSubheading}
-              </p>
-            )}
-          </div>
-
           {/* Content Display */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8">
-            {currentItem.type === 'content' && (
-              <div className="space-y-6">
-                {currentItem.overview && (
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800">
-                    {currentItem.overview}
-                  </h3>
-                )}
-                {currentItem.image && (
-                  <div className="flex justify-center items-center">
-                    <img
-                      src={currentItem.image}
-                      alt={currentItem.imageDescription || currentItem.overview || 'Module content'}
-                      className="max-w-full h-auto rounded-lg"
-                    />
-                  </div>
-                )}
-                {currentItem.reading && (
-                  <div className="prose prose-green max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {currentItem.reading}
-                  </div>
-                )}
-                {!currentItem.overview && !currentItem.reading && !currentItem.image && (
-                  <div className="text-center text-gray-500 p-8">
-                    <p>No content available for this section.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
+            {currentItem.type === 'content' && <ContentItemView item={currentItem} />}
             {currentItem.type === 'knowledgeCheck' && (
-              <div className="space-y-6">
-                {/* Question */}
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                    {currentItem.question || 'Question not available'}
-                  </h3>
-                  
-                  {/* Allowance (discussion prompt) */}
-                  {currentItem.allowance && (
-                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
-                      <p className="text-sm text-blue-800 font-medium">
-                        💬 {currentItem.allowance}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Choices */}
-                {(currentItem.choices && currentItem.choices.length > 0) ? (
-                <ul className="space-y-2 sm:space-y-3">
-                  {currentItem.choices.map((option, idx) => {
-                    const isSelected = selectedAnswers[currentItem.knowledgeCheckId] === option.letter;
-                    const isCorrect = currentItem.answer === option.letter;
-                    const showFeedback = selectedAnswers[currentItem.knowledgeCheckId] !== undefined;
-                    
-                    return (
-                      <li
-                        key={idx}
-                        className={`p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          !showFeedback
-                            ? 'border-gray-300 hover:border-green-400 bg-white hover:bg-green-50'
-                            : isCorrect
-                            ? 'border-green-500 bg-green-50'
-                            : isSelected
-                            ? 'border-red-500 bg-red-50'
-                            : 'border-gray-300 bg-white opacity-60'
-                        }`}
-                        onClick={() => handleOptionClick(
-                          currentItem.knowledgeCheckId, 
-                          option.letter, 
-                          currentItem.answer
-                        )}
-                      >
-                        <div className="flex items-start">
-                          {showFeedback && isCorrect && (
-                            <span className="text-green-600 mr-2 sm:mr-3 text-lg sm:text-xl flex-shrink-0">✓</span>
-                          )}
-                          {showFeedback && isSelected && !isCorrect && (
-                            <span className="text-red-600 mr-2 sm:mr-3 text-lg sm:text-xl flex-shrink-0">✗</span>
-                          )}
-                          <span className="font-semibold text-gray-800 mr-2">
-                            {option.letter}:
-                          </span>
-                          <span className="text-sm sm:text-base text-gray-800">{option.text}</span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-                ) : isDescriptive ? (
-                  <div className="space-y-4">
-                    {/* Show saved answer and feedback from progress when user hasn't submitted this session */}
-                    {selectedAnswers[currentItem.knowledgeCheckId] !== '__submitted__' &&
-                     savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId] && (
-                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
-                        <h4 className="font-semibold text-gray-700 text-sm">Saved in your progress</h4>
-                        <p className="text-gray-600 text-sm whitespace-pre-wrap">
-                          {savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId].userAnswer}
-                        </p>
-                        {(() => {
-                          const entry = savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId];
-                          const { grade: g, feedback: f } = normalizeGradeFeedback(entry.grade, entry.feedback);
-                          return (
-                            <>
-                              {g != null && (
-                                <p className="text-sm font-medium text-gray-700">
-                                  Grade: {g}%
-                                </p>
-                              )}
-                              {f && (
-                                <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                                  {f}
-                                </p>
-                              )}
-                            </>
-                          );
-                        })()}
-                        <p className="text-xs text-gray-500 pt-1">Submit a new answer below to overwrite.</p>
-                      </div>
-                    )}
-                    <textarea
-                      value={descriptiveAnswers[currentItem.knowledgeCheckId] ?? savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId]?.userAnswer ?? ''}
-                      onChange={(e) => setDescriptiveAnswers(prev => ({
-                        ...prev,
-                        [currentItem.knowledgeCheckId]: e.target.value
-                      }))}
-                      placeholder="Type your answer here..."
-                      rows={5}
-                      disabled={selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__'}
-                      className="w-full min-h-[120px] p-3 sm:p-4 border-2 border-gray-300 rounded-lg bg-white hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none transition-all resize-y text-gray-800 disabled:bg-gray-50 disabled:opacity-60"
-                    />
-                    {selectedAnswers[currentItem.knowledgeCheckId] !== '__submitted__' ? (
-                      <button
-                        onClick={() => handleDescriptiveSubmit(
-                          currentItem.knowledgeCheckId,
-                          descriptiveAnswers[currentItem.knowledgeCheckId] ?? savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId]?.userAnswer ?? ''
-                        )}
-                        disabled={!((descriptiveAnswers[currentItem.knowledgeCheckId] ?? savedKnowledgeCheckSubmissions[currentItem.knowledgeCheckId]?.userAnswer)?.trim())}
-                        className="px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
-                      >
-                        Submit Answer
-                      </button>
-                    ) : descriptiveAnswers[currentItem.knowledgeCheckId] && (
-                      <div className="space-y-4">
-                        {aiFeedbackByCheck[currentItem.knowledgeCheckId] && (
-                          <div className="p-4 bg-purple-50 border-l-4 border-purple-500 rounded">
-                            <h4 className="font-semibold text-purple-800 mb-2">
-                              AI feedback
-                            </h4>
-                            {aiFeedbackByCheck[currentItem.knowledgeCheckId].loading ? (
-                              <p className="text-sm text-purple-700">
-                                Getting AI feedback...
-                              </p>
-                            ) : aiFeedbackByCheck[currentItem.knowledgeCheckId].error ? (
-                              <p className="text-sm text-red-600">
-                                {aiFeedbackByCheck[currentItem.knowledgeCheckId].error}
-                              </p>
-                            ) : (() => {
-                              const { grade: g, feedback: f } = normalizeGradeFeedback(
-                                aiFeedbackByCheck[currentItem.knowledgeCheckId].Grade,
-                                aiFeedbackByCheck[currentItem.knowledgeCheckId].Feedback
-                              );
-                              return (
-                                <>
-                                  {g != null && (
-                                    <p className="text-sm font-semibold text-purple-800 mb-1">
-                                      Grade: {g}%
-                                    </p>
-                                  )}
-                                  {f && (
-                                    <p className="text-sm text-purple-800 whitespace-pre-wrap">
-                                      {f}
-                                    </p>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-gray-500 text-center p-4">
-                    <p>No choices available for this question.</p>
-                  </div>
-                )}
-
-                {/* Explanation (shown after answer) */}
-                {selectedAnswers[currentItem.knowledgeCheckId] !== undefined && currentItem.explain && (
-                  <div className="mt-6 p-6 bg-green-50 border-l-4 border-green-500 rounded">
-                    <h4 className="font-semibold text-green-800 mb-2">Explanation:</h4>
-                    <p className="text-green-700">{currentItem.explain}</p>
-                  </div>
-                )}
-              </div>
+              <KnowledgeCheckView
+                item={currentItem}
+                selectedAnswers={selectedAnswers}
+                descriptiveAnswers={descriptiveAnswers}
+                savedKnowledgeCheckSubmissions={savedKnowledgeCheckSubmissions}
+                aiFeedbackByCheck={aiFeedbackByCheck}
+                submittedViewAnimate={submittedViewAnimate}
+                onOptionClick={handleOptionClick}
+                onDescriptiveAnswerChange={(id, value) => setDescriptiveAnswers(prev => ({ ...prev, [id]: value }))}
+                onDescriptiveSubmit={handleDescriptiveSubmit}
+              />
             )}
           </div>
 
-          {/* Navigation Buttons */}
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center gap-2 sm:gap-4">
-              <button
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                  currentIndex === 0
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                <span className="hidden sm:inline">← Previous</span>
-                <span className="sm:hidden">←</span>
-              </button>
-              
-              <span className="text-xs sm:text-sm text-gray-600 font-medium">
-                {currentIndex + 1} of {allItems.length}
-              </span>
-              
-              {!showModuleComplete && (
-                <button
-                  onClick={handleNext}
-                  disabled={currentIndex === allItems.length - 1}
-                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                    currentIndex === allItems.length - 1
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  <span className="hidden sm:inline">Next →</span>
-                  <span className="sm:hidden">→</span>
-                </button>
-              )}
-            </div>
-
-            {/* Module Completion */}
-            {showModuleComplete && (
-              <div className="mt-4 p-4 sm:p-6 bg-green-50 border-2 border-green-500 rounded-lg">
-                <div className="text-center">
-                  <p className="text-base sm:text-lg font-semibold text-green-700 mb-2">
-                    🎉 Congratulations! You've completed this module!
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                    {nextModule ? 'Ready to continue your learning journey?' : 'Great work finishing this module!'}
-                  </p>
-                  {nextModule ? (
-                    <button
-                      onClick={handleGoToNextModule}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
-                    >
-                      Go to Next Module →
-                    </button>
-                  ) : (
-                    <Link
-                      href="/training-module"
-                      className="inline-block w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
-                    >
-                      Exit
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <ModuleNavigation
+            currentIndex={currentIndex}
+            totalItems={allItems.length}
+            showModuleComplete={showModuleComplete}
+            hasNextPublishedModule={!!nextModule}
+            onPrev={handlePrev}
+            onNext={handleNext}
+            onGoToNextModule={handleGoToNextModule}
+          />
         </div>
       </main>
     </div>
