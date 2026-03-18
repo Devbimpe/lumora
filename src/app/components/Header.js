@@ -131,7 +131,7 @@ export function Header() {
                   href="/user-profile" 
                   className="text-gray-700 font-medium text-sm lg:text-base hover:text-green-600 transition-colors"
                 >
-                  Hi, {user.username}
+                  My Account
                 </Link>
                 <button 
                   onClick={handleLogout} 
