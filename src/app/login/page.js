@@ -12,6 +12,7 @@ export default function Login() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [errorCode, setErrorCode] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -73,6 +74,7 @@ export default function Login() {
 
     // Clear error when user starts typing
     if (error) setError("")
+    if (errorCode) setErrorCode("")
   }
 
   const handleSubmit = async (e) => {
@@ -84,6 +86,7 @@ export default function Login() {
     const passwordError = validatePassword(formData.password)
     if (passwordError) {
       setError(passwordError)
+      setErrorCode("")
       setLoading(false)
       return
     }
@@ -112,10 +115,12 @@ export default function Login() {
         window.location.href = data.redirectUrl || "/"
       } else {
         setError(data.message)
+        setErrorCode(data.errorCode || "")
       }
     } catch (error) {
       console.error("Network error:", error)
       setError("Network error. Please check your connection.")
+      setErrorCode("")
     } finally {
       setLoading(false)
     }
@@ -153,7 +158,9 @@ export default function Login() {
               {/* Error Message */}
               {error && (
                 <div className="error-message">
+                  {/* Display login error message */}
                   {error}
+                  {errorCode === "user-not-found" && <div className="mt-2"></div>}
                 </div>
               )}
 
