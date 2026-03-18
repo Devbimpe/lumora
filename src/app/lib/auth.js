@@ -82,4 +82,26 @@ export class AuthService {
   }
 }
 
+// App session logout (clears server cookie + notifies UI)
+export async function logoutAndBroadcast() {
+  // Clear Firebase session if used (best-effort).
+  try {
+    await signOut(auth);
+  } catch {
+    // Ignore: app session may be cookie-based only.
+  }
+
+  const res = await fetch("/api/logout", { method: "POST" });
+  if (!res.ok) {
+    throw new Error(`Logout failed with status ${res.status}`);
+  }
+
+  // Notify any listeners (e.g. Header) to re-check auth.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("auth-changed"));
+  }
+
+  return true;
+}
+
 export default AuthService;

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { logoutAndBroadcast } from '../../lib/auth';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -129,7 +130,7 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
+      await logoutAndBroadcast();
       router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);
