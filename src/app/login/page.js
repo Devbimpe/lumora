@@ -1,11 +1,30 @@
 "use client"
 
-import { useState, useEffect} from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import "../globals.css"
 import "./login.css"
 
 export default function Login() {
+  return (
+    <Suspense fallback={
+      <div className="page">
+        <main className="w-full">
+          <div className="LoginPage">
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+              <span className="text-gray-600 text-lg font-medium">Loading...</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    }>
+      <LoginInner />
+    </Suspense>
+  )
+}
+
+function LoginInner() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -16,6 +35,8 @@ export default function Login() {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl")
 
   // Check if user is already authenticated and redirect if so
   useEffect(() => {
@@ -25,7 +46,9 @@ export default function Login() {
         const data = await response.json();
         if (data.authenticated) {
           console.log("User is already authenticated, redirecting...");
-          if(data.user.role === "Admin") {
+          if (callbackUrl && callbackUrl.startsWith("/")) {
+            router.push(callbackUrl);
+          } else if(data.user.role === "Admin") {
             router.push("/admin");
           } else {
             router.push("/");
@@ -107,9 +130,11 @@ export default function Login() {
       if (data.success) {
         console.log("Login successful!")
         console.log("User role:", data.user.role)
-        console.log("Redirecting to:", data.redirectUrl)
-        // Redirect to home page immediately
-        window.location.href = data.redirectUrl || "/"
+        const destination = (callbackUrl && callbackUrl.startsWith("/"))
+          ? callbackUrl
+          : (data.redirectUrl || "/")
+        console.log("Redirecting to:", destination)
+        window.location.href = destination
       } else {
         setError(data.message)
       }
