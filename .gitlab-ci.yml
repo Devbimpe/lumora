@@ -1,34 +1,37 @@
+# Use a Node image that matches your local development environment
+image: node:20
+
+# Define variables globally (these will be pulled from your GitLab CI/CD settings)
+variables:
+  token: $token
+  VERCEL_ORG_ID: $VERCEL_ORG_ID
+  VERCEL_PROJECT_ID: $VERCEL_PROJECTID
+
 stages:
   - deploy
 
-variables:
-  # Adding this saves Vercel CLI telemetry
-  VERCEL_TELEMETRY_DISABLED: 1
-
-deploy_staging:
+# Deployment for all branches (Preview)
+deploy_preview:
   stage: deploy
-  image: node:20
+  rules:
+  - if: '$CI_COMMIT_MESSAGE =~ /DEPLOY/'
   script:
-    - npm install -g vercel
-    # Pull the Vercel Preview environment configuration and secrets
-    - vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
-    # Build the project for the Preview environment
-    - vercel build --token=$VERCEL_TOKEN
-    # Deploy to Vercel (Staging/Preview)
-    - vercel deploy --prebuilt --token=$VERCEL_TOKEN
-  only:
-    - Development
+    - npm install --global vercel
+    - npx vercel --token=$token
 
+# # Prints all CI/CD environment variables (keys and values)
+# print_ci_cd_variables:
+#   stage: deploy
+#   script:
+#     - echo "Printing all environment variables available in this job:"
+#     - printenv | sort
+
+# Deployment for the 'main' branch (Production)
 deploy_production:
   stage: deploy
-  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "Development"'
+    - if: '$CI_COMMIT_MESSAGE =~ /PROD/'
   script:
-    - npm install -g vercel
-    # Pull the Vercel Production environment configuration and secrets
-    - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-    # Build the project for the Production environment
-    - vercel build --prod --token=$VERCEL_TOKEN
-    # Deploy to Vercel (Production)
-    - vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
-  only:
-    - main
+    - npm install --global vercel
+    - npx vercel --token=$token --prod
