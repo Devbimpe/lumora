@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import { logoutAndBroadcast } from "../lib/auth"
 
 export function Header() {
   const [user, setUser] = useState(null)
@@ -26,6 +27,12 @@ export function Header() {
     return () => window.removeEventListener("auth-changed", refreshAuth)
   }, [])
 
+  // Extra safety: refresh auth when route changes (prevents stale UI if an event is missed)
+  useEffect(() => {
+    checkAuthStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
   const checkAuthStatus = async () => {
     try {
       const response = await fetch("/api/check-auth")
@@ -46,7 +53,7 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" })
+      await logoutAndBroadcast()
       setUser(null)
       window.location.href = "/" 
     } catch (error) {
@@ -133,7 +140,7 @@ export function Header() {
                   href="/user-profile" 
                   className="text-gray-700 font-medium text-sm lg:text-base hover:text-green-600 transition-colors"
                 >
-                  Hi, {user.username}
+                  My Account
                 </Link>
                 <button 
                   onClick={handleLogout} 

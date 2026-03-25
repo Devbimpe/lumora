@@ -1,13 +1,18 @@
 import { getUserByFirebaseUid, updateUser } from "@db/db.js"
 import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth } from "@db/firebase.js"
+import { adminAuth } from "../../../../firebaseAdmin.js"
 import jwt from "jsonwebtoken"
 
 
 export async function POST(request) {
+  let email = ""
+  let password = ""
   try {
     // Get email and password from the request
-    const { email, password} = await request.json()
+    const body = await request.json()
+    email = body.email
+    password = body.password
     console.log("Login attempt for:", email)
 
     // Check if email and password were provided
@@ -84,8 +89,45 @@ export async function POST(request) {
   } catch (error) {
     console.error("Login error:", error)
     // Handle specific Firebase Auth errors
-    if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-      return Response.json({ success: false, message: "Invalid email or password" }, { status: 401 })
+    if (error.code === 'auth/wrong-password') {
+      return Response.json(
+        { success: false, message: "Wrong password. Please try again.", errorCode: "wrong-password" },
+        { status: 401 }
+      )
+    }
+
+    if (error.code === 'auth/user-not-found') {
+      return Response.json(
+        {
+          success: false,
+          message: "Account not found. Please sign up to create one.",
+          errorCode: "user-not-found",
+        },
+        { status: 404 }
+      )
+    }
+
+    if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
+      try {
+        const userRecord = await adminAuth.getUserByEmail(email)
+        if (userRecord) {
+          return Response.json(
+            { success: false, message: "Wrong password. Please try again.", errorCode: "wrong-password" },
+            { status: 401 }
+          )
+        }
+      } catch (lookupError) {
+        if (lookupError.code === 'auth/user-not-found') {
+          return Response.json(
+            {
+              success: false,
+              message: "Account not found. Please sign up to create one.",
+              errorCode: "user-not-found",
+            },
+            { status: 404 }
+          )
+        }
+      }
     }
     
     if (error.code === 'auth/too-many-requests') {

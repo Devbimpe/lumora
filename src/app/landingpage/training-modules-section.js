@@ -37,9 +37,6 @@ export default function TrainingModulesSection() {
     fetchModules()
   }, [])
 
-  const firstRow = modules.slice(0, 3) 
-  const secondRow = modules.slice(3, 5) 
-
   return (
     <section id="training-modules" className="py-20 relative overflow-hidden" style={{ 
       backgroundColor: "#dbfbe9"
@@ -65,47 +62,33 @@ export default function TrainingModulesSection() {
             No modules available
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-6">
-              {firstRow.map((module) => (
-                <Link key={module.id} href={`/modules/module${module.id}`} className="block">
-                  <div className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 transform border border-green-100">
-                    <div className="w-20 h-20 border-2 border-green-700 rounded-full flex items-center justify-center mx-auto mb-6 overflow-hidden bg-white">
-                      <img 
-                        src={module.image || "/placeholder.svg"} 
-                        alt={module.title} 
-                        className="w-full h-full object-cover rounded-full" 
-                      />
-                    </div>
-                    <h3 className="text-xl font-bold text-green-700 mb-3">{module.title}</h3>
-                    <p className="text-gray-700 leading-relaxed">{module.description}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
+            {modules.slice(0, 5).map((module) => (
+              <Link key={module.id} href={`/modules/module${module.id}`} className="block h-full">
+                <div className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-102 transform border border-green-100 h-full min-h-[360px] flex flex-col">
+                  <div className="w-20 h-20 border-2 border-green-700 rounded-full flex items-center justify-center mx-auto mb-6 overflow-hidden bg-white">
+                    <img 
+                      src={module.image || "/placeholder.svg"} 
+                      alt={module.title} 
+                      className="w-full h-full object-cover rounded-full" 
+                    />
                   </div>
-                </Link>
-              ))}
-            </div>
-
-            {secondRow.length > 0 && (
-              <div className="flex justify-center">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl">
-                  {secondRow.map((module) => (
-                    <Link key={module.id} href={`/modules/module${module.id}`} className="block">
-                      <div className="bg-white rounded-xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 transform border border-green-100">
-                        <div className="w-20 h-20 border-2 border-green-700 rounded-full flex items-center justify-center mx-auto mb-6 overflow-hidden bg-white">
-                          <img 
-                            src={module.image || "/placeholder.svg"} 
-                            alt={module.title} 
-                            className="w-full h-full object-cover rounded-full" 
-                          />
-                        </div>
-                        <h3 className="text-xl font-bold text-green-700 mb-3">{module.title}</h3>
-                        <p className="text-gray-700 leading-relaxed">{module.description}</p>
-                      </div>
-                    </Link>
-                  ))}
+                  <h3 className="text-xl font-bold text-green-700 mb-3">{module.title}</h3>
+                  <p
+                    className="text-gray-700 leading-relaxed flex-1"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    }}
+                  >
+                    {module.description}
+                  </p>
                 </div>
-              </div>
-            )}
-          </>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
     </section>

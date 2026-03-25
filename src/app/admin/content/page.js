@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getFaviconUrl, getDefaultFaviconUrl } from '../../lib/favicons';
 
@@ -9,7 +9,7 @@ import CreateKnowledgeCheckForm from '../components/CreateKnowledgeCheckForm';
 import ContentPageItem from '../components/ContentPageItem';
 import KnowledgeCheckItem from '../components/KnowledgeCheckItem';
 
-export default function ContentPage() {
+function ContentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const moduleId = searchParams.get('moduleId');
@@ -454,5 +454,18 @@ export default function ContentPage() {
           </>
         ))}
     </div>
+  );
+}
+
+export default function ContentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+        <span className="text-gray-600 text-lg font-medium">Loading content...</span>
+      </div>
+    }>
+      <ContentPageContent />
+    </Suspense>
   );
 }
