@@ -3,24 +3,13 @@
 import { useState, useEffect } from "react";
 
 export default function UserProgressPage() {
-  const [modules, setModules] = useState([]);
+  const [modules, setModules] = useState([]); // All modules
+  const [moduleProgress, setModuleProgress] = useState([]); //Modules with progress made
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState(null); // "in_progress" | "complete" | "not_started" | null
+  const [activeFilter, setActiveFilter] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null); // module that opens the popup
-
-  const fetchModules = async () => {
-    try {
-      const res = await fetch("/api/modules");
-      const data = await res.json();
-      setModules(data);
-      return data;
-    } catch (err) {
-      console.error("Failed to fetch modules:", err);
-      return [];
-    }
-  };
 
   const checkAuthStatus = async () => {
     try {
@@ -36,15 +25,29 @@ export default function UserProgressPage() {
     }
   };
 
+  const fetchModules = async () => {
+    try {
+      const res = await fetch("/api/modules");
+      const data = await res.json();
+      setModules(data);
+      console.log("Modules", data)
+      return data;
+    } catch (err) {
+      console.error("Failed to fetch modules:", err);
+      return [];
+    }
+  };
+
   const fetchUserProgress = async () => {
     try {
       const response = await fetch(`/api/progress?userId=${user?.id}`);
       const data = await response.json();
-      if (data.authenticated) {
-        setUser(data.user);
+      if(Array.isArray(data)) {
+        setModuleProgress(data);
+        console.log("User-Progress", data);
       }
     } catch (error) {
-      console.error("Auth check failed:", error);
+      console.error("Progress fetch failed:", error);
     } finally {
       setLoading(false);
     }
@@ -52,20 +55,38 @@ export default function UserProgressPage() {
 
   useEffect(() => {
     checkAuthStatus();
-    fetchModules();
-    fetchUserProgress();
   }, []);
 
-  const filteredModules = modules.filter((mod) => {
-    const matchesSearch = mod.title
-      ?.toLowerCase()
-      .includes(searchQuery.toLowerCase());
+  useEffect(() => {
+  if (user?.id) {
+    fetchModules()
+    fetchUserProgress();
+  }
+}, [user?.id]);
 
-    const matchesFilter =
-      activeFilter === null || mod.status === activeFilter;
+const modulesMap = modules.reduce((acc, mod) => {
+  acc[mod.ModuleID] = mod;
+  return acc;
+}, {});
 
-    return matchesSearch && matchesFilter;
-  });
+// Add heading to module progress
+const enrichedProgress = moduleProgress.map((p) => ({
+  ...p,
+  Heading: modulesMap[p.moduleId]?.Heading ?? "Untitled Module",
+}));
+
+  const filteredModules = (activeFilter ? enrichedProgress : modules).filter((mod) => {
+  const matchesSearch = (mod.Heading?.toLowerCase() ?? "")
+  .includes(searchQuery.toLowerCase());
+
+  const matchesFilter =
+    activeFilter === null ||
+    (activeFilter === "complete" && mod.isCompleted) ||
+    (activeFilter === "in_progress" && !mod.isCompleted && mod.percentage > 0) ||
+    (activeFilter === "not_started" && mod.percentage === 0);
+
+  return matchesSearch && matchesFilter;
+});
 
   // Status badge helper
   const statusConfig = {
@@ -86,20 +107,21 @@ export default function UserProgressPage() {
     },
   };
 
-  const getStatus = (mod) =>
-    statusConfig[mod.status] ?? statusConfig.not_started;
+  const getStatus = (mod) => {
+  if (mod.isCompleted) return statusConfig.complete;
+  if (mod.percentage > 0) return statusConfig.in_progress;
+  return statusConfig.not_started;
+};
 
   // Filter component
   const filters = [
-    { key: "in_progress", label: "In Progress" },
     { key: "complete", label: "Complete" },
+    { key: "in_progress", label: "In Progress" },
     { key: "not_started", label: "Not Started" },
   ];
 
-  const filterActive =
-    "bg-green-600 text-white border-green-600 shadow-sm";
-  const filterInactive =
-    "bg-white text-slate-600 border-slate-200 hover:border-green-400 hover:text-green-600";
+  const filterActive = "bg-green-600 text-white border-green-600 shadow-sm";
+  const filterInactive = "bg-white text-slate-600 border-slate-200 hover:border-green-400 hover:text-green-600";
 
   if (loading) {
     return (
@@ -107,7 +129,7 @@ export default function UserProgressPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-slate-500 text-sm font-medium">
-            Loading your progress…
+            Loading…
           </p>
         </div>
       </div>
@@ -214,7 +236,7 @@ export default function UserProgressPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <h2 className="text-base font-semibold text-slate-800 group-hover:text-green-600 transition truncate">
-                        {mod.title ?? "Untitled Module"}
+                        {mod.Heading ?? "Untitled Module"}
                       </h2>
                       {mod.description && (
                         <p className="text-sm text-slate-500 mt-1 line-clamp-2">
@@ -231,16 +253,16 @@ export default function UserProgressPage() {
                   </div>
 
                   {/* Optional progress bar — rendered only if mod.progress exists */}
-                  {typeof mod.progress === "number" && (
+                  {typeof mod.percentage === "number" && (
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-slate-400 mb-1">
                         <span>Progress</span>
-                        <span>{mod.progress}%</span>
+                        <span>{mod.percentage}%</span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-green-500 rounded-full transition-all"
-                          style={{ width: `${mod.progress}%` }}
+                          style={{ width: `${mod.percentage}%` }}
                         />
                       </div>
                     </div>
@@ -272,7 +294,7 @@ export default function UserProgressPage() {
 
             {/* Module info */}
             <h2 className="text-xl font-bold text-slate-800 pr-6 mb-1">
-              {selectedModule.title ?? "Untitled Module"}
+              {selectedModule.Heading ?? "Untitled Module"}
             </h2>
             {selectedModule.description && (
               <p className="text-sm text-slate-500 mb-6">
@@ -295,7 +317,6 @@ export default function UserProgressPage() {
                 }}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-medium text-sm hover:bg-amber-100 transition cursor-pointer"
               >
-                <span className="text-lg">🔄</span>
                 Re-attempt this module
               </button>
 
@@ -308,7 +329,6 @@ export default function UserProgressPage() {
                 }}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-medium text-sm hover:bg-green-100 transition cursor-pointer"
               >
-                <span className="text-lg">▶️</span>
                 Continue to next module
               </button>
 
@@ -316,7 +336,6 @@ export default function UserProgressPage() {
                 onClick={() => setSelectedModule(null)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-100 transition cursor-pointer"
               >
-                <span className="text-lg">📋</span>
                 Return to module list
               </button>
             </div>
