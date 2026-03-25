@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import "../globals.css"
 import "../login/login.css"
 
-export default function ResetPassword() {
+function ResetPasswordContent() {
     const searchParams = useSearchParams()
     const token = searchParams.get("token")
     const [password, setPassword] = useState("")
@@ -119,3 +119,23 @@ export default function ResetPassword() {
         </div>
     )
 }
+
+export default function ResetPassword() {
+    return (
+        <Suspense fallback={
+            <div className="page">
+                <main className="w-full">
+                    <div className="LoginPage">
+                        <div className="login-header">
+                            <h1>Reset Password</h1>
+                            <p className="login-subtitle">Loading...</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        }>
+            <ResetPasswordContent />
+        </Suspense>
+    )
+}
+
