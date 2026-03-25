@@ -14,7 +14,7 @@ stages:
 deploy_preview:
   stage: deploy
   rules:
-  - if: '$CI_COMMIT_MESSAGE =~ /DEPLOY/'
+  - if: '$CI_COMMIT_MESSAGE =~ /#DEPLOY_TEST#/'
   script:
     - npm install --global vercel
     - npx vercel --token=$token
@@ -30,8 +30,7 @@ deploy_preview:
 deploy_production:
   stage: deploy
   rules:
-    - if: '$CI_COMMIT_BRANCH == "Development"'
-    - if: '$CI_COMMIT_MESSAGE =~ /PROD/'
+    - if: '$CI_COMMIT_BRANCH == "Development" && $CI_COMMIT_MESSAGE =~ /#DEPLOY_PROD#/'
   script:
     - npm install --global vercel
     - npx vercel --token=$token --prod
