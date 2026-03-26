@@ -68,17 +68,30 @@ async function migrateProgressPercentages() {
       : 0;
 
     const oldPercentage = data.percentage ?? null;
+    const oldIsCompleted = data.isCompleted ?? false;
+    const newIsCompleted = newPercentage >= 100;
 
-    if (oldPercentage === newPercentage) {
-      console.log(`✓ ${docSnap.id} already correct (${newPercentage}%)`);
+    const percentageChanged = oldPercentage !== newPercentage;
+    const completionChanged = newIsCompleted && !oldIsCompleted;
+
+    if (!percentageChanged && !completionChanged) {
+      console.log(`✓ ${docSnap.id} already correct (${newPercentage}%${oldIsCompleted ? ', completed' : ''})`);
       skippedCount++;
       continue;
     }
 
-    console.log(`${docSnap.id}: ${oldPercentage}% → ${newPercentage}%  (${uniqueViewed.size}/${totalItems} items viewed)`);
+    const changes = [];
+    if (percentageChanged) changes.push(`${oldPercentage}% → ${newPercentage}%`);
+    if (completionChanged) changes.push(`isCompleted: false → true`);
+    console.log(`${docSnap.id}: ${changes.join(', ')}  (${uniqueViewed.size}/${totalItems} items viewed)`);
 
     if (!DRY_RUN) {
-      await updateDoc(docSnap.ref, { percentage: newPercentage });
+      const update = { percentage: newPercentage };
+      if (completionChanged) {
+        update.isCompleted = true;
+        update.completedAt = new Date();
+      }
+      await updateDoc(docSnap.ref, update);
       updatedCount++;
     } else {
       updatedCount++;

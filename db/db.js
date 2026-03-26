@@ -915,6 +915,16 @@ export async function getUserModuleProgress(userId, moduleId) {
     data.completedContent || []
   );
 
+  // Auto-complete modules that have reached 100%
+  if (data.percentage >= 100 && !data.isCompleted) {
+    data.isCompleted = true;
+    data.completedAt = Timestamp.now();
+    await updateUserModuleProgress(userId, moduleId, {
+      isCompleted: true,
+      completedAt: Timestamp.now()
+    });
+  }
+
   return {
     id: querySnapshot.docs[0].id,
     ...data
@@ -982,17 +992,17 @@ export async function markContentViewed(userId, moduleId, contentId) {
   }
 
   const completedContent = progress?.completedContent || [];
-  const isCompleted = completedContent.includes(contentIdStr);
 
   // Calculate percentage
   const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
 
   return await updateUserModuleProgress(userId, moduleId, {
     viewedContent,
-    completedContent: isCompleted ? completedContent : [...completedContent],
+    completedContent,
     lastViewedContentId: contentIdStr,
     lastViewedAt: Timestamp.now(),
-    percentage: percentage
+    percentage: percentage,
+    isCompleted: percentage >= 100
   });
 }
 
