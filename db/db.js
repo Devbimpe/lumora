@@ -354,11 +354,20 @@ async function reindexModules() {
       await updateDoc(contentDoc.ref, { moduleId: correctNumber });
     }
 
-    // Update user progress that references this module
+    // Update user progress that references this module (rename doc IDs too)
     const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
     const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', currentNumber)));
     for (const progressDoc of progressDocs.docs) {
-      await updateDoc(progressDoc.ref, { moduleId: correctNumber });
+      const data = progressDoc.data();
+      const newDocId = `${data.userId}_${correctNumber}`;
+
+      if (progressDoc.id !== newDocId) {
+        const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, newDocId);
+        await setDoc(newDocRef, { ...data, moduleId: correctNumber }, { merge: true });
+        await deleteDoc(progressDoc.ref);
+      } else {
+        await updateDoc(progressDoc.ref, { moduleId: correctNumber });
+      }
     }
 
     // Update knowledge checks (note: uses moduleID with capital ID)
