@@ -17,6 +17,9 @@ build/
 .env.production.local
 .env.local_example
 
+# Firebase Service Account Key
+serviceAccountKey.json
+
 # Database
 *.db
 *.sqlite
