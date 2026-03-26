@@ -378,11 +378,20 @@ async function reindexModules() {
       await updateDoc(contentDoc.ref, { moduleId: correctNumber });
     }
 
-    // Update user progress that references this module
+    // Update user progress that references this module (rename doc IDs too)
     const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
     const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', currentNumber)));
     for (const progressDoc of progressDocs.docs) {
-      await updateDoc(progressDoc.ref, { moduleId: correctNumber });
+      const data = progressDoc.data();
+      const newDocId = `${data.userId}_${correctNumber}`;
+
+      if (progressDoc.id !== newDocId) {
+        const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, newDocId);
+        await setDoc(newDocRef, { ...data, moduleId: correctNumber }, { merge: true });
+        await deleteDoc(progressDoc.ref);
+      } else {
+        await updateDoc(progressDoc.ref, { moduleId: correctNumber });
+      }
     }
 
     // Update knowledge checks (note: uses moduleID with capital ID)
@@ -922,15 +931,22 @@ export async function getUserModuleProgress(userId, moduleId) {
 
   const data = querySnapshot.docs[0].data();
 
-  // Ensure percentage field exists, calculate if missing
-  if (data.percentage === undefined || data.percentage === null) {
-    const percentage = await calculateModuleProgress(
-      userId,
-      moduleId,
-      data.viewedContent || [],
-      data.completedContent || []
-    );
-    data.percentage = percentage;
+  // Always recalculate from current content/KC counts
+  data.percentage = await calculateModuleProgress(
+    userId,
+    moduleId,
+    data.viewedContent || [],
+    data.completedContent || []
+  );
+
+  // Auto-complete modules that have reached 100%
+  if (data.percentage >= 100 && !data.isCompleted) {
+    data.isCompleted = true;
+    data.completedAt = Timestamp.now();
+    await updateUserModuleProgress(userId, moduleId, {
+      isCompleted: true,
+      completedAt: Timestamp.now()
+    });
   }
 
   return {
@@ -964,37 +980,26 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
 
 /**
  * Calculate progress percentage for a module
- * Based on total items (pages + knowledge checks) viewed/completed
+ * Based on total items (content pages + knowledge checks) viewed
  */
 async function calculateModuleProgress(userId, moduleId, viewedItems = [], completedItems = []) {
   try {
-    // Get total items count: content pages + knowledge checks
-    const knowledgeChecks = await getKnowledgeChecksByModuleId(moduleId);
-    const totalKnowledgeChecks = knowledgeChecks?.length || 0;
+    const [contentPages, knowledgeChecks] = await Promise.all([
+      getContentByModuleId(moduleId),
+      getKnowledgeChecksByModuleId(moduleId)
+    ]);
 
-    // Get pages count from Firestore content collection
-    const contentPages = await getContentByModuleId(moduleId);
-    const totalPages = contentPages?.length || 0;
-
-    const totalItems = totalPages + totalKnowledgeChecks;
+    const totalItems = (contentPages?.length || 0) + (knowledgeChecks?.length || 0);
 
     if (totalItems === 0) return 0;
 
-    // Count unique viewed items
     const uniqueViewed = new Set(viewedItems.map(id => String(id)));
+    const percentage = Math.round((uniqueViewed.size / totalItems) * 100);
 
-    // Calculate percentage based on viewed items
-    const viewedCount = uniqueViewed.size;
-    const percentage = Math.round((viewedCount / totalItems) * 100);
-
-    return Math.min(percentage, 100); // Cap at 100%
+    return Math.min(percentage, 100);
   } catch (error) {
     console.error('Error calculating module progress:', error);
-    // Fallback calculation
-    const viewedCount = new Set(viewedItems.map(id => String(id))).size;
-    const completedCount = new Set(completedItems.map(id => String(id))).size;
-    const totalCount = Math.max(viewedCount, completedCount);
-    return totalCount > 0 ? Math.min(Math.round((viewedCount / (totalCount * 2)) * 100), 100) : 0;
+    return 0;
   }
 }
 
@@ -1011,17 +1016,17 @@ export async function markContentViewed(userId, moduleId, contentId) {
   }
 
   const completedContent = progress?.completedContent || [];
-  const isCompleted = completedContent.includes(contentIdStr);
 
   // Calculate percentage
   const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
 
   return await updateUserModuleProgress(userId, moduleId, {
     viewedContent,
-    completedContent: isCompleted ? completedContent : [...completedContent],
+    completedContent,
     lastViewedContentId: contentIdStr,
     lastViewedAt: Timestamp.now(),
-    percentage: percentage
+    percentage: percentage,
+    isCompleted: percentage >= 100
   });
 }
 
