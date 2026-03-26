@@ -898,16 +898,13 @@ export async function getUserModuleProgress(userId, moduleId) {
 
   const data = querySnapshot.docs[0].data();
 
-  // Ensure percentage field exists, calculate if missing
-  if (data.percentage === undefined || data.percentage === null) {
-    const percentage = await calculateModuleProgress(
-      userId,
-      moduleId,
-      data.viewedContent || [],
-      data.completedContent || []
-    );
-    data.percentage = percentage;
-  }
+  // Always recalculate from current content/KC counts
+  data.percentage = await calculateModuleProgress(
+    userId,
+    moduleId,
+    data.viewedContent || [],
+    data.completedContent || []
+  );
 
   return {
     id: querySnapshot.docs[0].id,
@@ -940,64 +937,26 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
 
 /**
  * Calculate progress percentage for a module
- * Based on total items (pages + knowledge checks) viewed/completed
+ * Based on total items (content pages + knowledge checks) viewed
  */
 async function calculateModuleProgress(userId, moduleId, viewedItems = [], completedItems = []) {
   try {
-    // Get total items count: pages + knowledge checks
-    const knowledgeChecks = await getKnowledgeChecksByModuleId(moduleId);
-    const totalKnowledgeChecks = knowledgeChecks?.length || 0;
+    const [contentPages, knowledgeChecks] = await Promise.all([
+      getContentByModuleId(moduleId),
+      getKnowledgeChecksByModuleId(moduleId)
+    ]);
 
-    // Get pages count by scanning public/img directory
-    let totalPages = 0;
-    try {
-      // Use require for Node.js built-in modules in this context
-      const fs = require('fs');
-      const path = require('path');
-      const imgDir = path.join(process.cwd(), 'public', 'img');
-
-      if (fs.existsSync(imgDir)) {
-        const files = fs.readdirSync(imgDir);
-        const moduleNum = String(moduleId).replace('module', '');
-        const pattern = new RegExp(`^mod${moduleNum}p(\\d+)\\.(jpg|jpeg|png)$`, 'i');
-        const pageNumbers = new Set();
-
-        files.forEach(file => {
-          const match = file.match(pattern);
-          if (match) {
-            pageNumbers.add(parseInt(match[1]));
-          }
-        });
-
-        totalPages = pageNumbers.size;
-      }
-    } catch (fsError) {
-      console.warn('Could not read pages directory, using fallback:', fsError);
-      // Fallback: estimate based on module
-      const moduleNum = parseInt(moduleId);
-      const pageConfig = { 1: 1, 2: 1, 3: 9 };
-      totalPages = pageConfig[moduleNum] || 0;
-    }
-
-    const totalItems = totalPages + totalKnowledgeChecks;
+    const totalItems = (contentPages?.length || 0) + (knowledgeChecks?.length || 0);
 
     if (totalItems === 0) return 0;
 
-    // Count unique viewed items
     const uniqueViewed = new Set(viewedItems.map(id => String(id)));
+    const percentage = Math.round((uniqueViewed.size / totalItems) * 100);
 
-    // Calculate percentage based on viewed items
-    const viewedCount = uniqueViewed.size;
-    const percentage = Math.round((viewedCount / totalItems) * 100);
-
-    return Math.min(percentage, 100); // Cap at 100%
+    return Math.min(percentage, 100);
   } catch (error) {
     console.error('Error calculating module progress:', error);
-    // Fallback calculation
-    const viewedCount = new Set(viewedItems.map(id => String(id))).size;
-    const completedCount = new Set(completedItems.map(id => String(id))).size;
-    const totalCount = Math.max(viewedCount, completedCount);
-    return totalCount > 0 ? Math.min(Math.round((viewedCount / (totalCount * 2)) * 100), 100) : 0;
+    return 0;
   }
 }
 
