@@ -6,7 +6,6 @@ import { getAllPublishedModules } from '@db/db.js';
 export async function GET() {
   try {
     const modules = await getAllPublishedModules();
-    console.log("Fetched modules:", modules);
     // Transform to match expected format
     const formattedModules = modules.map(module => ({
       ModuleID: module.moduleId,
