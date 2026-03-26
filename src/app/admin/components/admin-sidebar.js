@@ -36,7 +36,7 @@ export default function Sidebar() {
       try {
         const [contentRes, modulesRes, kcRes] = await Promise.all([
           fetch(`/api/content?moduleId=${moduleId}`),
-          fetch('/api/modules'),
+          fetch('/api/admin/modules'),
           fetch(`/api/knowledge-checks?moduleId=${moduleId}`)
         ]);
 

@@ -202,6 +202,30 @@ export async function getAllModules() {
   }));
 }
 
+export async function getAllPublishedModules() {
+  const modulesRef = collection(db, COLLECTIONS.MODULES);
+
+  try {
+    const q = query(modulesRef, where('published', '==', true), orderBy('moduleId', 'asc'));
+    const querySnapshot = await getDocs(q);
+
+    let results = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // results.sort((a, b) => {
+    //   const aId = Number(a?.moduleId ?? 0);
+    //   const bId = Number(b?.moduleId ?? 0);
+    //   return aId - bId;
+    // });
+
+    return results;
+  } catch (error) {
+    throw new Error(`Error fetching published modules: ${error.message}`);
+  }
+}
+
 /**
  * Get module by ID
  */
@@ -1124,6 +1148,7 @@ export default {
   deleteUser,
   getAllUsers,
   getAllModules,
+  getAllPublishedModules,
   getModuleById,
   createModule,
   updateModule,
