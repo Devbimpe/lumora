@@ -32,11 +32,11 @@ function ContentPageContent() {
   const newContentFormRef = useRef(null);
   const kcFormRef = useRef(null);
 
-  const currentModule = modules.find((module) => module.ModuleID.toString() === selectedModule);
+  const currentModule = modules.find((module) => module.id.toString() === selectedModule);
 
   const fetchModules = async () => {
     try {
-      const res = await fetch('/api/modules');
+      const res = await fetch('/api/admin/modules');
       const data = await res.json();
       setModules(data);
       return data;
@@ -66,12 +66,12 @@ function ContentPageContent() {
       }
 
       const hasRequestedModule = moduleId
-        ? data.some((module) => module.ModuleID.toString() === moduleId)
+        ? data.some((module) => module.id.toString() === moduleId)
         : false;
-      const targetId = hasRequestedModule ? moduleId : data[0].ModuleID.toString();
+      const targetId = hasRequestedModule ? moduleId : data[0].id.toString();
       setSelectedModule(targetId);
 
-      const module = data.find((item) => item.ModuleID.toString() === targetId);
+      const module = data.find((item) => item.id.toString() === targetId);
       if (module) {
         setHeading(module.Heading);
         setSubHeading(module.Subheading);
