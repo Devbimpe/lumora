@@ -2,6 +2,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, X } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import StatusMessage from "../components/StatusMessage";
@@ -27,6 +28,8 @@ export default function ModuleManagementPage() {
     moduleId: null,
     moduleName: "",
   });
+
+  const [publishError, setPublishError] = useState(null);
 
   const fetchModules = async () => {
     try {
@@ -93,14 +96,19 @@ export default function ModuleManagementPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update publish status");
+        if (response.status === 400) {
+          setPublishError(errorData.error || "Failed to update publish status");
+        } else {
+          setSubmitStatus("Failed to update publish status");
+          setTimeout(() => setSubmitStatus(""), 3000);
+        }
+        return;
       }
 
       await fetchModules();
       setSubmitStatus(!currentPublished ? "Module published!" : "Module unpublished!");
       setTimeout(() => setSubmitStatus(""), 3000);
     } catch (err) {
-      console.error("Publish toggle error:", err);
       setSubmitStatus("Failed to update publish status");
       setTimeout(() => setSubmitStatus(""), 3000);
     }
@@ -368,6 +376,41 @@ export default function ModuleManagementPage() {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Publish Error Popup */}
+      {publishError && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          onClick={() => setPublishError(null)}
+        >
+          <div
+            className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setPublishError(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Cannot Publish Module
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">{publishError}</p>
+            </div>
+            <button
+              onClick={() => setPublishError(null)}
+              className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Got It
+            </button>
           </div>
         </div>
       )}

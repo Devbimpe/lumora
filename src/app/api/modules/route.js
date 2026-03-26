@@ -1,6 +1,6 @@
 // This is the code to display the content in the admin/module-management
 import { NextResponse } from 'next/server';
-import { getAllModules } from '@db/db.js';
+import { getAllPublishedModules } from '@db/db.js';
 
 // Get the module ID, Heading and Subheading from the Modules table
 export async function GET() {
