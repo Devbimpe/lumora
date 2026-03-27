@@ -227,9 +227,13 @@ const enrichedProgress = moduleProgress.map((p) => ({
           <div className="flex flex-col gap-4">
             {filteredModules.map((mod) => {
               const { label, badge, dot } = getStatus(mod);
+              //TOREMOVE ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+              console.log(mod)
+              //TOREMOVE ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
               return (
                 <button
-                  key={mod.id}
+                  key={mod.ModuleID}
                   onClick={() => setSelectedModule(mod)}
                   className="w-full text-left bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm hover:shadow-md hover:border-green-300 transition-all duration-150 group cursor-pointer"
                 >
