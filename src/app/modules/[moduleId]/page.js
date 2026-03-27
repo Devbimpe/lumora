@@ -550,7 +550,13 @@ function ModulePageContent() {
           <div className="space-y-1.5 flex-1">
             {allItems.map((item, index) => {
               const isActive = currentItem.id === item.id;
-              const isCompleted = index < currentIndex;
+              const isCompleted = item.type === 'knowledgeCheck'
+                ? selectedAnswers[item.knowledgeCheckId] !== undefined && (
+                    (!item.choices || item.choices.length === 0)
+                      ? selectedAnswers[item.knowledgeCheckId] === '__submitted__'
+                      : selectedAnswers[item.knowledgeCheckId] === item.answer
+                  )
+                : index < currentIndex;
               const displayNumber = index + 1;
               
               let title = `Item ${displayNumber}`;
