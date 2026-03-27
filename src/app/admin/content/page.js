@@ -74,7 +74,7 @@ function ContentPageContent() {
       const module = data.find((item) => item.id.toString() === targetId);
       if (module) {
         setHeading(module.Heading);
-        setSubHeading(module.Subheading);
+        setSubHeading(module.SubHeading);
         setFaviconURL(module.faviconURL || '');
       }
     });
@@ -91,7 +91,7 @@ function ContentPageContent() {
 
     if (currentModule) {
       setHeading(currentModule.Heading);
-      setSubHeading(currentModule.Subheading);
+      setSubHeading(currentModule.SubHeading);
       setFaviconURL(currentModule.faviconURL || '');
     }
   }, [mode, currentModule]);
@@ -197,11 +197,11 @@ function ContentPageContent() {
       } else {
         setModules((prev) =>
           prev.map((module) =>
-            module.ModuleID.toString() === selectedModule
+            (module.ModuleID ?? module.id)?.toString() === selectedModule
               ? {
                   ...module,
                   Heading: heading,
-                  Subheading: subHeading,
+                  SubHeading: subHeading,
                   faviconURL: urlToSave,
                 }
               : module,
