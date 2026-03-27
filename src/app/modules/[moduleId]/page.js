@@ -475,7 +475,15 @@ function ModulePageContent() {
       : selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer
   );
   const isLastItemDone = !isKnowledgeCheck || (isKnowledgeCheckAnswered && isKnowledgeCheckCorrect);
-  const showModuleComplete = isLastItem && isLastItemDone;
+  const allKCsCompleted = allItems
+    .filter(item => item.type === 'knowledgeCheck')
+    .every(item => {
+      const isDesc = !item.choices || item.choices.length === 0;
+      return isDesc
+        ? selectedAnswers[item.knowledgeCheckId] === '__submitted__'
+        : selectedAnswers[item.knowledgeCheckId] === item.answer;
+    });
+  const showModuleComplete = isLastItem && isLastItemDone && allKCsCompleted;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
