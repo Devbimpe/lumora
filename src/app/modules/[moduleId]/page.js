@@ -98,10 +98,11 @@ function ModulePageContent() {
       try {
         const moduleNum = moduleId.replace('module', '');
         
-        // Fetch content from Firestore and knowledge checks in parallel
-        const [contentRes, knowledgeChecksRes] = await Promise.all([
+        // Fetch content, knowledge checks, and module details in parallel
+        const [contentRes, knowledgeChecksRes, moduleDetailsRes] = await Promise.all([
           fetch(`/api/content?moduleId=${moduleNum}`),
-          fetch(`/api/knowledge-checks?moduleId=${moduleNum}`)
+          fetch(`/api/knowledge-checks?moduleId=${moduleNum}`),
+          fetch(`/api/Module?moduleId=${moduleNum}`)
         ]);
         
         let contentItems = [];
@@ -119,6 +120,21 @@ function ModulePageContent() {
             knowledgeChecks = await knowledgeChecksRes.json();
           } catch (parseError) {
             console.error('Failed to parse knowledge checks response:', parseError);
+          }
+        }
+
+        let moduleDetails = null;
+        if (moduleDetailsRes.ok) {
+          try {
+            const moduleRows = await moduleDetailsRes.json();
+            if (Array.isArray(moduleRows) && moduleRows.length > 0) {
+              moduleDetails = {
+                heading: moduleRows[0]?.Heading,
+                subheading: moduleRows[0]?.Subheading
+              };
+            }
+          } catch (parseError) {
+            console.error('Failed to parse module details response:', parseError);
           }
         }
         
@@ -186,13 +202,10 @@ function ModulePageContent() {
         setAllItems(items);
         
         const currentModule = allModules.length > 0 ? allModules.find(m => m.ModuleID === parseInt(moduleNum)) : null;
-        if (currentModule) {
-          setModuleHeading(currentModule.Heading || `Module ${moduleNum}`);
-          setModuleSubheading(currentModule.Subheading || '');
-        } else {
-          setModuleHeading(`Module ${moduleNum}`);
-          setModuleSubheading('');
-        }
+        const resolvedHeading = currentModule?.Heading || moduleDetails?.heading || `Module ${moduleNum}`;
+        const resolvedSubheading = currentModule?.Subheading || moduleDetails?.subheading || '';
+        setModuleHeading(resolvedHeading);
+        setModuleSubheading(resolvedSubheading);
         
         // Set current item based on URL or first item
         const itemToShow = currentItemId
@@ -592,6 +605,18 @@ function ModulePageContent() {
       {/* Main Content Area */}
       <main className="flex-1 lg:ml-64 pt-14 lg:pt-0">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 lg:py-12">
+          {/* Module Heading (static above content) */}
+          <div className="mb-4 sm:mb-6 sticky top-14 lg:top-0 z-10 bg-gradient-to-b from-green-50/95 to-white/95 backdrop-blur-sm py-2 sm:py-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center">
+              {moduleHeading}
+            </h1>
+            {moduleSubheading && (
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 text-center">
+                {moduleSubheading}
+              </p>
+            )}
+          </div>
+
           {/* Content Display */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8">
             {currentItem.type === 'content' && <ContentItemView item={currentItem} />}

@@ -46,10 +46,8 @@ export default function ModuleSidebar({
           </svg>
           Back to Modules
         </Link>
-        <h2 className="text-lg font-bold text-green-700">{moduleHeading}</h2>
-        {moduleSubheading && (
-          <p className="text-xs text-gray-600 mt-1 line-clamp-2">{moduleSubheading}</p>
-        )}
+        <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Contents</p>
+        <h2 className="mt-3 text-lg font-bold text-green-700">{moduleHeading}</h2>
       </div>
       <nav className="flex-1 flex flex-col overflow-y-auto p-3">
         <div className="space-y-1.5 flex-1">
