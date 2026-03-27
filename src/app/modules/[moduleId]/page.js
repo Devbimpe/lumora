@@ -273,7 +273,7 @@ function ModulePageContent() {
       const item = allItems.find(i => i.id === itemId);
       const contentId = item?.type === 'content' 
         ? item.contentId 
-        : item?.knowledgeCheckId || itemId;
+        : `kc-${item?.knowledgeCheckId || itemId}`;
       
       await fetch('/api/progress', {
         method: 'POST',
@@ -312,7 +312,7 @@ function ModulePageContent() {
           userId: user.id,
           moduleId: moduleId.replace('module', ''),
           action: 'complete',
-          contentId: knowledgeCheckId
+          contentId: `kc-${knowledgeCheckId}`
         })
       });
     } catch (error) {
@@ -409,9 +409,11 @@ function ModulePageContent() {
     }
     
     const currentModuleIdNum = parseInt(moduleId.replace('module', ''));
-    const nextModule = allModules.find(m => m.ModuleID === currentModuleIdNum + 1);
-    if (nextModule) {
-      router.push(`/modules/module${nextModule.ModuleID}`);
+    const next = allModules
+      .filter(m => m.published)
+      .find(m => m.ModuleID > currentModuleIdNum);
+    if (next) {
+      router.push(`/modules/module${next.ModuleID}`);
     }
   }, [user, moduleId, allModules, trackModuleCompletion, router]);
 
@@ -460,7 +462,8 @@ function ModulePageContent() {
   const currentIndex = allItems.findIndex(item => item.id === currentItem.id);
   const isLastItem = currentIndex === allItems.length - 1;
   const currentModuleIdNum = parseInt(moduleId.replace('module', ''));
-  const nextModule = allModules.find(m => m.ModuleID === currentModuleIdNum + 1);
+  const publishedModules = allModules.filter(m => m.published);
+  const nextModule = publishedModules.find(m => m.ModuleID > currentModuleIdNum);
   
   // Check if we should show "Go to Next Module" button or completion message
   const isKnowledgeCheck = currentItem.type === 'knowledgeCheck';
@@ -471,8 +474,8 @@ function ModulePageContent() {
       ? selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__'
       : selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer
   );
-  const showNextModuleButton = isLastItem && isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && nextModule;
-  const showCompletionMessage = isLastItem && isKnowledgeCheck && isKnowledgeCheckAnswered && isKnowledgeCheckCorrect && !nextModule;
+  const isLastItemDone = !isKnowledgeCheck || (isKnowledgeCheckAnswered && isKnowledgeCheckCorrect);
+  const showModuleComplete = isLastItem && isLastItemDone;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
@@ -764,7 +767,7 @@ function ModulePageContent() {
                 {currentIndex + 1} of {allItems.length}
               </span>
               
-              {!showNextModuleButton && !showCompletionMessage && (
+              {!showModuleComplete && (
                 <button
                   onClick={handleNext}
                   disabled={currentIndex === allItems.length - 1}
@@ -780,51 +783,31 @@ function ModulePageContent() {
               )}
             </div>
 
-            {/* Go to Next Module Button */}
-            {showNextModuleButton && (
+            {/* Module Completion */}
+            {showModuleComplete && (
               <div className="mt-4 p-4 sm:p-6 bg-green-50 border-2 border-green-500 rounded-lg">
                 <div className="text-center">
                   <p className="text-base sm:text-lg font-semibold text-green-700 mb-2">
                     🎉 Congratulations! You've completed this module!
                   </p>
                   <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                    Ready to continue your learning journey?
+                    {nextModule ? 'Ready to continue your learning journey?' : 'Great work finishing this module!'}
                   </p>
-                  <button
-                    onClick={handleGoToNextModule}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
-                  >
-                    Go to Next Module →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Completion Message for Last Module */}
-            {showCompletionMessage && (
-              <div className="mt-4 p-4 sm:p-8 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-500 rounded-xl shadow-xl">
-                <div className="text-center">
-                  <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">🎊</div>
-                  <p className="text-lg sm:text-2xl font-bold text-green-700 mb-2 sm:mb-3">
-                    Congratulations! You've Completed All Modules!
-                  </p>
-                  <p className="text-sm sm:text-lg text-gray-700 mb-4 sm:mb-6">
-                    You've successfully completed the entire training program. Great work!
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+                  {nextModule ? (
+                    <button
+                      onClick={handleGoToNextModule}
+                      className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
+                    >
+                      Go to Next Module →
+                    </button>
+                  ) : (
                     <Link
                       href="/training-module"
-                      className="px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-xl font-semibold text-sm sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
+                      className="inline-block w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-green-600 text-white rounded-lg font-semibold text-base sm:text-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
                     >
-                      View All Modules
+                      Exit
                     </Link>
-                    <Link
-                      href="/#course-modules"
-                      className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-green-600 border-2 border-green-600 rounded-xl font-semibold text-sm sm:text-lg hover:bg-green-50 transition-colors shadow-lg hover:shadow-xl"
-                    >
-                      Track Progress
-                    </Link>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
