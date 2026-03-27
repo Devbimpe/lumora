@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer"
+import { getAppOrigin } from "@/src/app/lib/app-origin.js";
 
 export async function sendResetEmail(to, token) {
   // Created transporter using Gmail SMTP - took the reference from src/app/api/users/signup/route.js
@@ -10,7 +11,8 @@ export async function sendResetEmail(to, token) {
     },
   })
 
-  const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${token}`
+  const origin = getAppOrigin();
+  const resetLink = new URL(`/reset-password?token=${token}`, origin).toString();
 
   // Took the reference from src/app/api/users/signup/route.js
   const mailOptions = {
