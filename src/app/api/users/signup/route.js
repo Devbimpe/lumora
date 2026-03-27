@@ -8,6 +8,7 @@ import nodemailer from 'nodemailer';
 // Import crypto for generating secure random tokens
 import crypto from 'crypto';
 import { Timestamp } from 'firebase/firestore';
+import { getAppOrigin } from "@/src/app/lib/app-origin.js";
 
 // POST handler: Handles user signup
 // Expects a JSON body with 'name', 'userName', 'email', and 'password' fields
@@ -65,9 +66,8 @@ export async function POST(req) {
       }
     });
 
-    // Define the activation URL for development environment
-    // Note: Replace with production URL (e.g., https://lumora.com/activate?token=...) when deploying
-    const activationUrl = `http://localhost:3000/activate?token=${activationToken}`;
+    const origin = getAppOrigin();
+    const activationUrl = new URL(`/activate?token=${activationToken}`, origin).toString();
     
     // Send activation email to the user
     try {
