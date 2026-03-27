@@ -17,6 +17,9 @@ build/
 .env.production.local
 .env.local_example
 
+# Firebase Service Account Key
+serviceAccountKey.json
+
 # Database
 *.db
 *.sqlite
@@ -68,3 +71,4 @@ jspm_packages/
 image-hosting/lumora-475313-3af9e3ecefba.json
 image-hosting/token.json
 .claude
+.vercel

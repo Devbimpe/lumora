@@ -29,15 +29,11 @@ export async function GET(request) {
     } else {
       // Get all progress - ensure percentage is included for each
       const progress = await getUserProgress(userId);
-      // Ensure each progress entry has percentage
+      // Always recalculate percentage from current content/KC counts
       const progressWithPercentage = await Promise.all(
         progress.map(async (p) => {
-          if (p.percentage === undefined || p.percentage === null) {
-            // Recalculate if missing
-            const updated = await getUserModuleProgress(userId, p.moduleId);
-            return updated || { ...p, percentage: 0 };
-          }
-          return p;
+          const updated = await getUserModuleProgress(userId, p.moduleId);
+          return updated || { ...p, percentage: 0 };
         })
       );
       return NextResponse.json(progressWithPercentage);
