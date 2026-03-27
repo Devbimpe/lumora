@@ -47,7 +47,8 @@ export default function Sidebar() {
 
         if (modulesRes.ok) {
           const modules = await modulesRes.json();
-          const currentModule = modules.find(m => m.ModuleID === parseInt(moduleId));
+          const moduleIdNum = Number(moduleId);
+          const currentModule = modules.find((m) => Number(m.id) === moduleIdNum);
           if (currentModule) {
             setModuleName(currentModule.Heading || `Module ${moduleId}`);
           }
@@ -107,6 +108,14 @@ export default function Sidebar() {
     window.dispatchEvent(new CustomEvent('toggle-kc-form'));
     setIsMobileMenuOpen(false);
   };
+
+  useEffect(() => {
+    const syncKCForm = (e) => {
+      if (e.detail?.open !== undefined) setKcFormOpen(e.detail.open);
+    };
+    window.addEventListener('sync-kc-form', syncKCForm);
+    return () => window.removeEventListener('sync-kc-form', syncKCForm);
+  }, []);
 
   // ─── DEFAULT ADMIN SIDEBAR SECTIONS ───
   const sections = [

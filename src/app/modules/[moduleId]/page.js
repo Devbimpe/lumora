@@ -261,6 +261,10 @@ function ModulePageContent() {
   const trackItemView = useCallback(async (itemId) => {
     if (!user || !itemId) return;
     
+    const item = allItems.find(i => i.id === itemId);
+    // KCs only count toward progress when answered correctly (via trackKnowledgeCheckCompletion)
+    if (item?.type === 'knowledgeCheck') return;
+    
     const trackingKey = `${moduleId}-${itemId}`;
     if (trackedViews.current.has(trackingKey) || trackingInProgress.current) {
       return;
@@ -270,11 +274,6 @@ function ModulePageContent() {
     trackedViews.current.add(trackingKey);
     
     try {
-      const item = allItems.find(i => i.id === itemId);
-      const contentId = item?.type === 'content' 
-        ? item.contentId 
-        : `kc-${item?.knowledgeCheckId || itemId}`;
-      
       await fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -282,7 +281,7 @@ function ModulePageContent() {
           userId: user.id,
           moduleId: moduleId.replace('module', ''),
           action: 'view',
-          contentId: contentId
+          contentId: item.contentId
         })
       });
     } catch (error) {

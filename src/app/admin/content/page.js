@@ -53,6 +53,8 @@ function ContentPageContent() {
       setSelectedModule('');
       setContent([]);
       setKnowledgeChecks([]);
+      setHeading('');
+      setSubHeading('');
       setFaviconURL(getDefaultFaviconUrl());
       setLoading(false);
       return () => {
@@ -73,8 +75,8 @@ function ContentPageContent() {
 
       const module = data.find((item) => item.id.toString() === targetId);
       if (module) {
-        setHeading(module.Heading);
-        setSubHeading(module.Subheading);
+        setHeading(module.Heading ?? '');
+        setSubHeading(module.SubHeading ?? '');
         setFaviconURL(module.faviconURL || '');
       }
     });
@@ -90,8 +92,8 @@ function ContentPageContent() {
     }
 
     if (currentModule) {
-      setHeading(currentModule.Heading);
-      setSubHeading(currentModule.Subheading);
+      setHeading(currentModule.Heading ?? '');
+      setSubHeading(currentModule.SubHeading ?? '');
       setFaviconURL(currentModule.faviconURL || '');
     }
   }, [mode, currentModule]);
@@ -124,6 +126,11 @@ function ContentPageContent() {
     if (showKCForm) {
       setTimeout(() => kcFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
+  }, [showKCForm]);
+
+  // Keep admin-sidebar `kcFormOpen` in sync (sidebar toggles via events; saving only closed `showKCForm` here)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sync-kc-form', { detail: { open: showKCForm } }));
   }, [showKCForm]);
 
   useEffect(() => {
@@ -189,19 +196,19 @@ function ContentPageContent() {
       }
 
       if (isNew) {
-        const updatedModules = await fetchModules();
-        if (updatedModules.length > 0) {
-          const newModule = updatedModules[updatedModules.length - 1];
-          router.push(`/admin/content?moduleId=${newModule.ModuleID}`);
+        const result = await response.json();
+        await fetchModules();
+        if (result?.id != null) {
+          router.push(`/admin/content?moduleId=${result.id}`);
         }
       } else {
         setModules((prev) =>
           prev.map((module) =>
-            module.ModuleID.toString() === selectedModule
+            module.id.toString() === selectedModule
               ? {
                   ...module,
                   Heading: heading,
-                  Subheading: subHeading,
+                  SubHeading: subHeading,
                   faviconURL: urlToSave,
                 }
               : module,
