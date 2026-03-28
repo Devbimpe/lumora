@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
+import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../Module.css';
@@ -27,6 +27,8 @@ function ModulePageContent() {
   const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
   const [aiFeedbackByCheck, setAiFeedbackByCheck] = useState({});
   const [savedKnowledgeCheckSubmissions, setSavedKnowledgeCheckSubmissions] = useState({});
+  const [persistedCompletedContent, setPersistedCompletedContent] = useState([]);
+  const [persistedViewedContent, setPersistedViewedContent] = useState([]);
   const [submittedViewAnimate, setSubmittedViewAnimate] = useState(false);
 
   const isSubmittedView = currentItem?.type === 'knowledgeCheck' && selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__';
@@ -227,13 +229,18 @@ function ModulePageContent() {
     if (!user?.id || !moduleId) return;
     const moduleNum = moduleId.replace('module', '');
     let cancelled = false;
+    setSavedKnowledgeCheckSubmissions({});
+    setPersistedCompletedContent([]);
+    setPersistedViewedContent([]);
     (async () => {
       try {
         const res = await fetch(`/api/progress?userId=${user.id}&moduleId=${moduleNum}`);
         if (!res.ok || cancelled) return;
         const progress = await res.json();
-        if (!cancelled && progress?.knowledgeCheckSubmissions) {
-          setSavedKnowledgeCheckSubmissions(progress.knowledgeCheckSubmissions);
+        if (!cancelled) {
+          setSavedKnowledgeCheckSubmissions(progress?.knowledgeCheckSubmissions || {});
+          setPersistedCompletedContent(Array.isArray(progress?.completedContent) ? progress.completedContent : []);
+          setPersistedViewedContent(Array.isArray(progress?.viewedContent) ? progress.viewedContent : []);
         }
       } catch (err) {
         if (!cancelled) console.error('Failed to load module progress:', err);
@@ -241,6 +248,16 @@ function ModulePageContent() {
     })();
     return () => { cancelled = true; };
   }, [user?.id, moduleId]);
+
+  const persistedCompletedContentSet = useMemo(
+    () => new Set((persistedCompletedContent || []).map(value => String(value))),
+    [persistedCompletedContent]
+  );
+
+  const persistedViewedContentSet = useMemo(
+    () => new Set((persistedViewedContent || []).map(value => String(value))),
+    [persistedViewedContent]
+  );
 
   // Update module heading when allModules loads
   useEffect(() => {
@@ -271,7 +288,7 @@ function ModulePageContent() {
       if (item?.type !== 'content' || item.contentId == null) return;
       const contentId = item.contentId;
       
-      await fetch('/api/progress', {
+      const res = await fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -281,6 +298,12 @@ function ModulePageContent() {
           contentId: contentId
         })
       });
+      if (res.ok) {
+        const idStr = String(contentId);
+        setPersistedViewedContent((prev) =>
+          prev.some((id) => String(id) === idStr) ? prev : [...prev, contentId]
+        );
+      }
     } catch (error) {
       console.error('Failed to track item view:', error);
       trackedViews.current.delete(trackingKey);
@@ -593,6 +616,8 @@ function ModulePageContent() {
         moduleHeading={moduleHeading}
         moduleSubheading={moduleSubheading}
         selectedAnswers={selectedAnswers}
+        persistedCompletedContentSet={persistedCompletedContentSet}
+        persistedViewedContentSet={persistedViewedContentSet}
         sidebarOpen={sidebarOpen}
         onCloseSidebar={() => setSidebarOpen(false)}
         onItemClick={handleSidebarClick}

@@ -9,6 +9,8 @@ export default function ModuleSidebar({
   moduleHeading,
   moduleSubheading,
   selectedAnswers = {},
+  persistedCompletedContentSet = new Set(),
+  persistedViewedContentSet = new Set(),
   sidebarOpen,
   onCloseSidebar,
   onItemClick,
@@ -55,11 +57,20 @@ export default function ModuleSidebar({
             const isActive = currentItem?.id === item.id;
             const isCompleted =
               item.type === 'knowledgeCheck'
-                ? selectedAnswers[item.knowledgeCheckId] !== undefined &&
-                  ((!item.choices || item.choices.length === 0)
-                    ? selectedAnswers[item.knowledgeCheckId] === '__submitted__'
-                    : selectedAnswers[item.knowledgeCheckId] === item.answer)
-                : index < currentIndex;
+                ? (
+                    (
+                      selectedAnswers[item.knowledgeCheckId] !== undefined &&
+                      ((!item.choices || item.choices.length === 0)
+                        ? selectedAnswers[item.knowledgeCheckId] === '__submitted__'
+                        : selectedAnswers[item.knowledgeCheckId] === item.answer)
+                    ) ||
+                    persistedCompletedContentSet.has(`kc-${item.knowledgeCheckId}`) ||
+                    persistedCompletedContentSet.has(String(item.knowledgeCheckId))
+                  )
+                : item.type === 'content' &&
+                    (index < currentIndex ||
+                      (item.contentId != null &&
+                        persistedViewedContentSet.has(String(item.contentId))));
             const displayNumber = index + 1;
             let title = `Item ${displayNumber}`;
             if (item.type === 'content') {
