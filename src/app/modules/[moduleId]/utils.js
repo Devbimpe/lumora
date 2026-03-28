@@ -67,3 +67,36 @@ export function normalizeGradeFeedback(grade, feedback) {
   }
   return { grade, feedback };
 }
+
+/** First item in module order that is not done per saved progress (resume). */
+export function findFirstIncompleteItem(items, viewedSet, completedSet, submissions) {
+  for (const item of items) {
+    if (item.type === 'content') {
+      if (item.contentId == null || !viewedSet.has(String(item.contentId))) {
+        return item;
+      }
+      continue;
+    }
+    if (item.type === 'knowledgeCheck') {
+      const id = item.knowledgeCheckId;
+      if (completedSet.has(`kc-${id}`) || completedSet.has(String(id))) {
+        continue;
+      }
+      const isDescriptive = !item.choices || item.choices.length === 0;
+      if (isDescriptive) {
+        const sub = submissions?.[id] ?? submissions?.[String(id)];
+        if (sub && typeof sub === 'object') continue;
+      }
+      return item;
+    }
+  }
+  return null;
+}
+
+/** Descriptive KC counts as done for navigation / module complete if submitted in session, saved attempt exists, or progress marks kc complete. */
+export function isDescriptiveKCComplete(submissions, completedSet, selectedAnswers, knowledgeCheckId) {
+  if (selectedAnswers[knowledgeCheckId] === '__submitted__') return true;
+  if (completedSet.has(`kc-${knowledgeCheckId}`) || completedSet.has(String(knowledgeCheckId))) return true;
+  const sub = submissions?.[knowledgeCheckId] ?? submissions?.[String(knowledgeCheckId)];
+  return !!(sub && typeof sub === 'object');
+}

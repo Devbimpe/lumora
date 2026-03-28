@@ -128,7 +128,11 @@ function ContentPageContent() {
     }
   }, [showKCForm]);
 
-  // Keep admin-sidebar `kcFormOpen` in sync (sidebar toggles via events; saving only closed `showKCForm` here)
+  // Keep admin-sidebar form open state in sync when toggled from the main toolbar
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sync-create-form', { detail: { open: showCreateForm } }));
+  }, [showCreateForm]);
+
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('sync-kc-form', { detail: { open: showKCForm } }));
   }, [showKCForm]);

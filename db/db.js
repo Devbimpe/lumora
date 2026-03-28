@@ -310,41 +310,60 @@ export async function deleteModule(moduleId) {
   const contentQuery = query(contentRef, where('moduleId', '==', parseInt(moduleId)));
   const contentSnapshot = await getDocs(contentQuery);
 
-  const contentIds = contentSnapshot.docs.map(doc => doc.data().contentId);
-
   contentSnapshot.forEach(doc => {
     batch.delete(doc.ref);
   });
 
-  // Delete related knowledge checks
-  if (contentIds.length > 0) {
-    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-    for (const contentId of contentIds) {
-      const checksQuery = query(checksRef, where('contentId', '==', contentId));
-      const checksSnapshot = await getDocs(checksQuery);
+  // Delete all knowledge checks for this module (by moduleID), including unassociated
+  // checks with no contentId. Deleting only by contentId misses those and leaves stale
+  // rows that collide when module ids are reused after reindexing.
+  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+  const moduleChecksQuery = query(checksRef, where('moduleID', '==', parseInt(moduleId)));
+  const moduleChecksSnapshot = await getDocs(moduleChecksQuery);
 
-      const checkIds = checksSnapshot.docs.map(doc => doc.data().knowledgeCheckId);
+  const checkIdsForSubmissions = moduleChecksSnapshot.docs.map(
+    (d) => d.data().knowledgeCheckId
+  );
 
-      checksSnapshot.forEach(doc => {
-        batch.delete(doc.ref);
+  moduleChecksSnapshot.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
+  });
+
+  if (checkIdsForSubmissions.length > 0) {
+    const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
+    for (const checkId of checkIdsForSubmissions) {
+      const submissionsQuery = query(submissionsRef, where('knowledgeCheckId', '==', checkId));
+      const submissionsSnapshot = await getDocs(submissionsQuery);
+
+      submissionsSnapshot.forEach((subDoc) => {
+        batch.delete(subDoc.ref);
       });
-
-      // Delete related student submissions
-      if (checkIds.length > 0) {
-        const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
-        for (const checkId of checkIds) {
-          const submissionsQuery = query(submissionsRef, where('knowledgeCheckId', '==', checkId));
-          const submissionsSnapshot = await getDocs(submissionsQuery);
-
-          submissionsSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-          });
-        }
-      }
     }
   }
 
   await batch.commit();
+
+  // Remove learner progress for this module id so a later module that reuses the same
+  // numeric id (after reindex / new create) does not inherit viewed/completed state.
+  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
+  const progressQuery = query(progressRef, where('moduleId', '==', parseInt(moduleId)));
+  const progressSnapshot = await getDocs(progressQuery);
+  if (!progressSnapshot.empty) {
+    let progressBatch = writeBatch(db);
+    let ops = 0;
+    for (const progressDoc of progressSnapshot.docs) {
+      progressBatch.delete(progressDoc.ref);
+      ops++;
+      if (ops >= 400) {
+        await progressBatch.commit();
+        progressBatch = writeBatch(db);
+        ops = 0;
+      }
+    }
+    if (ops > 0) {
+      await progressBatch.commit();
+    }
+  }
 
   // Renumber remaining modules so there are no gaps
   await reindexModules();
