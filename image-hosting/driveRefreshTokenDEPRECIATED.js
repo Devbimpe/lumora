@@ -1,8 +1,10 @@
 /* 
-! Only run this file if the current refresh token is not working!
+!DEPRECIATED!
+This was used for when we were condiering using google drive for image hosting.
+
+
+Only run this file if the current refresh token is not working!
 This file is specifically to get a NEW token. For this you will have to login as the actual lumora account. 
-
-
 
 This way of uploading images may not be viable if the reuseable token gained from this file expires often, or requires reauthorization often.
 */
