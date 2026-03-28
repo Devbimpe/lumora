@@ -110,6 +110,14 @@ export default function Sidebar() {
   };
 
   useEffect(() => {
+    const syncCreateForm = (e) => {
+      if (e.detail?.open !== undefined) setCreateFormOpen(e.detail.open);
+    };
+    window.addEventListener('sync-create-form', syncCreateForm);
+    return () => window.removeEventListener('sync-create-form', syncCreateForm);
+  }, []);
+
+  useEffect(() => {
     const syncKCForm = (e) => {
       if (e.detail?.open !== undefined) setKcFormOpen(e.detail.open);
     };
@@ -205,7 +213,7 @@ export default function Sidebar() {
                   <div className="space-y-1">
                     {contentPages.map((page, index) => (
                       <button
-                        key={page.ContentID}
+                        key={`page-${page.ContentID}`}
                         onClick={() => scrollToPage(page.ContentID)}
                         className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${selectedPageId === page.ContentID
                           ? 'bg-green-50 text-green-700 font-semibold border-l-3 border-green-600 shadow-sm'
@@ -248,7 +256,7 @@ export default function Sidebar() {
                           const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
                           return (
                             <button
-                              key={kc.knowledgeCheckId}
+                              key={`kc-${kc.knowledgeCheckId}`}
                               onClick={() => scrollToKC(kc.knowledgeCheckId)}
                               className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${selectedKCId === kc.knowledgeCheckId
                                 ? 'bg-green-50 text-green-700 font-semibold border-l-3 border-green-600 shadow-sm'
@@ -333,7 +341,7 @@ export default function Sidebar() {
               <div className="space-y-1.5">
                 {contentPages.map((page, index) => (
                   <button
-                    key={page.ContentID}
+                    key={`page-${page.ContentID}`}
                     onClick={() => scrollToPage(page.ContentID)}
                     className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${selectedPageId === page.ContentID
                       ? 'bg-green-50 text-green-700 font-semibold border-l-3 border-green-600 shadow-sm'
@@ -377,7 +385,7 @@ export default function Sidebar() {
                   const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
                   return (
                     <button
-                      key={kc.knowledgeCheckId}
+                      key={`kc-${kc.knowledgeCheckId}`}
                       onClick={() => scrollToKC(kc.knowledgeCheckId)}
                       className={`w-full text-left px-3 py-2.5 rounded-xl transition-all ${selectedKCId === kc.knowledgeCheckId
                         ? 'bg-green-50 text-green-700 font-semibold border-l-3 border-green-600 shadow-sm'

@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'rea
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../Module.css';
-import { parseChoices } from './utils';
+import { parseChoices, findFirstIncompleteItem, isDescriptiveKCComplete } from './utils';
 import ModuleMobileHeader from './components/ModuleMobileHeader';
 import ModuleSidebar from './components/ModuleSidebar';
 import ContentItemView from './components/ContentItemView';
@@ -29,6 +29,7 @@ function ModulePageContent() {
   const [savedKnowledgeCheckSubmissions, setSavedKnowledgeCheckSubmissions] = useState({});
   const [persistedCompletedContent, setPersistedCompletedContent] = useState([]);
   const [persistedViewedContent, setPersistedViewedContent] = useState([]);
+  const [moduleProgressHydrated, setModuleProgressHydrated] = useState(false);
   const [submittedViewAnimate, setSubmittedViewAnimate] = useState(false);
 
   const isSubmittedView = currentItem?.type === 'knowledgeCheck' && selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__';
@@ -226,9 +227,13 @@ function ModulePageContent() {
 
   // Load module progress so we can show saved knowledge check answers and feedback
   useEffect(() => {
-    if (!user?.id || !moduleId) return;
+    if (!user?.id || !moduleId) {
+      setModuleProgressHydrated(false);
+      return;
+    }
     const moduleNum = moduleId.replace('module', '');
     let cancelled = false;
+    setModuleProgressHydrated(false);
     setSavedKnowledgeCheckSubmissions({});
     setPersistedCompletedContent([]);
     setPersistedViewedContent([]);
@@ -244,6 +249,8 @@ function ModulePageContent() {
         }
       } catch (err) {
         if (!cancelled) console.error('Failed to load module progress:', err);
+      } finally {
+        if (!cancelled) setModuleProgressHydrated(true);
       }
     })();
     return () => { cancelled = true; };
@@ -258,6 +265,66 @@ function ModulePageContent() {
     () => new Set((persistedViewedContent || []).map(value => String(value))),
     [persistedViewedContent]
   );
+
+  // Logged-in users: open module at first incomplete item when URL has no ?item= (resume)
+  useEffect(() => {
+    if (!user?.id || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
+    if (currentItemId) return;
+
+    const firstIncomplete = findFirstIncompleteItem(
+      allItems,
+      persistedViewedContentSet,
+      persistedCompletedContentSet,
+      savedKnowledgeCheckSubmissions
+    );
+    const target = firstIncomplete || allItems[allItems.length - 1];
+    if (!target) return;
+
+    router.replace(`/modules/${moduleId}?item=${encodeURIComponent(target.id)}`);
+  }, [
+    user?.id,
+    moduleId,
+    loading,
+    moduleProgressHydrated,
+    allItems,
+    currentItemId,
+    persistedViewedContentSet,
+    persistedCompletedContentSet,
+    savedKnowledgeCheckSubmissions,
+    router,
+  ]);
+
+  useEffect(() => {
+    setSelectedAnswers({});
+    setDescriptiveAnswers({});
+    setAiFeedbackByCheck({});
+  }, [moduleId]);
+
+  // Restore MC selections for knowledge checks already completed (correct) in saved progress
+  useEffect(() => {
+    if (!user?.id || !moduleProgressHydrated || !allItems.length || loading) return;
+
+    setSelectedAnswers((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const item of allItems) {
+        if (item.type !== 'knowledgeCheck') continue;
+        if (!item.choices || item.choices.length === 0) continue;
+        const id = item.knowledgeCheckId;
+        if (prev[id] !== undefined) continue;
+        const letter = item.answer?.trim();
+        if (!letter) continue;
+        const done =
+          persistedCompletedContentSet.has(`kc-${id}`) ||
+          persistedCompletedContentSet.has(String(id));
+        if (done) {
+          next[id] = letter;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [user?.id, moduleProgressHydrated, allItems, persistedCompletedContentSet, loading]);
 
   // Update module heading when allModules loads
   useEffect(() => {
@@ -581,16 +648,32 @@ function ModulePageContent() {
   const isKnowledgeCheckAnswered = isKnowledgeCheck && selectedAnswers[currentItem.knowledgeCheckId] !== undefined;
   const isKnowledgeCheckCorrect = isKnowledgeCheck && (
     isDescriptive
-      ? selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__'
+      ? isDescriptiveKCComplete(
+          savedKnowledgeCheckSubmissions,
+          persistedCompletedContentSet,
+          selectedAnswers,
+          currentItem.knowledgeCheckId
+        )
       : selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer
   );
-  const isLastItemDone = !isKnowledgeCheck || (isKnowledgeCheckAnswered && isKnowledgeCheckCorrect);
+  const isLastItemDone =
+    !isKnowledgeCheck ||
+    (isDescriptive
+      ? isKnowledgeCheckCorrect
+      : isKnowledgeCheckAnswered && isKnowledgeCheckCorrect);
   const allKCsCompleted = allItems.every(item => {
     if (item.type !== 'knowledgeCheck') return true;
-    const ans = selectedAnswers[item.knowledgeCheckId];
-    if (ans === undefined) return false;
     const isDesc = !item.choices || item.choices.length === 0;
-    return isDesc ? ans === '__submitted__' : ans === item.answer;
+    if (isDesc) {
+      return isDescriptiveKCComplete(
+        savedKnowledgeCheckSubmissions,
+        persistedCompletedContentSet,
+        selectedAnswers,
+        item.knowledgeCheckId
+      );
+    }
+    const ans = selectedAnswers[item.knowledgeCheckId];
+    return ans !== undefined && ans === item.answer;
   });
   const showModuleComplete = isLastItem && isLastItemDone && allKCsCompleted;
 
