@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted } from '@db/db.js';
+import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback } from '@db/db.js';
 
 // GET: Retrieve user progress
 export async function GET(request) {
@@ -51,7 +51,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { userId, moduleId, action, contentId } = body;
+    const { userId, moduleId, action, contentId, userAnswer, grade, feedback } = body;
 
     if (!userId || !moduleId) {
       return NextResponse.json(
@@ -86,10 +86,24 @@ export async function POST(request) {
       case 'completeModule':
         result = await markModuleCompleted(userId, moduleId);
         break;
+
+      case 'saveKnowledgeCheckFeedback':
+        if (!contentId) {
+          return NextResponse.json(
+            { error: 'contentId is required for saveKnowledgeCheckFeedback action' },
+            { status: 400 }
+          );
+        }
+        result = await saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
+          userAnswer: userAnswer ?? '',
+          grade: grade ?? null,
+          feedback: feedback ?? ''
+        });
+        break;
       
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Use: view, complete, or completeModule' },
+          { error: 'Invalid action. Use: view, complete, completeModule, or saveKnowledgeCheckFeedback' },
           { status: 400 }
         );
     }

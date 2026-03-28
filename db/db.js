@@ -1082,6 +1082,30 @@ export async function markModuleCompleted(userId, moduleId) {
   });
 }
 
+/**
+ * Save user answer and AI feedback for a knowledge check to module progress.
+ * Overwrites any previous submission for the same contentId (reattempt).
+ */
+export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { userAnswer, grade, feedback }) {
+  const progress = await getUserModuleProgress(userId, moduleId);
+  const existing = progress?.knowledgeCheckSubmissions || {};
+  const contentIdStr = String(contentId);
+
+  const knowledgeCheckSubmissions = {
+    ...existing,
+    [contentIdStr]: {
+      userAnswer: userAnswer ?? '',
+      grade: grade ?? null,
+      feedback: feedback ?? '',
+      updatedAt: Timestamp.now()
+    }
+  };
+
+  return await updateUserModuleProgress(userId, moduleId, {
+    knowledgeCheckSubmissions
+  });
+}
+
 // ==================== FEEDBACK OPERATIONS ====================
 
 /**
@@ -1151,5 +1175,6 @@ export default {
   markContentViewed,
   markContentCompleted,
   updateModulePublished,
-  markModuleCompleted
+  markModuleCompleted,
+  saveKnowledgeCheckFeedback
 };
