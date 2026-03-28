@@ -426,9 +426,11 @@ async function reindexModules() {
  * Reorder modules based on a new ordering provided by the admin.
  * Takes an array of moduleIds in the desired new order.
  * Example: [3, 1, 2] means module 3 goes first, module 1 second, module 2 third.
- * 
- * Uses a single batch write for performance - fetches all data in parallel,
- * builds the updates in memory, then commits everything at once.
+ *
+ * User progress doc IDs are `${userId}_${moduleId}`. Renaming them in a single batch
+ * causes collisions when IDs permute (e.g. user_1 and user_2 swap targets): one write
+ * overwrites or deletes another. We use a two-phase staging pass, then update modules,
+ * content, and knowledge checks in one batch.
  */
 export async function reorderModules(newOrder) {
   // Build a map: oldModuleId -> newModuleId
@@ -446,9 +448,60 @@ export async function reorderModules(newOrder) {
     getDocs(collection(db, COLLECTIONS.KNOWLEDGE_CHECKS)),
   ]);
 
+  // --- Phase 1: move each progress doc to a unique staging id (per user + old module id) ---
+  const stagingEntries = [];
+  {
+    let batch = writeBatch(db);
+    let ops = 0;
+    const maybeCommit = async () => {
+      if (ops >= 400) {
+        await batch.commit();
+        batch = writeBatch(db);
+        ops = 0;
+      }
+    };
+
+    for (const d of progressDocs.docs) {
+      const oldModuleId = d.data().moduleId;
+      if (idMap[oldModuleId] === undefined) continue;
+      const newModuleId = idMap[oldModuleId];
+      const userId = d.data().userId;
+      const stagingRef = doc(db, COLLECTIONS.USER_PROGRESS, `${userId}_stg_${oldModuleId}`);
+      const data = { ...d.data(), moduleId: newModuleId };
+      batch.set(stagingRef, data);
+      batch.delete(d.ref);
+      stagingEntries.push({ stagingRef, userId, newModuleId, data });
+      ops += 2;
+      await maybeCommit();
+    }
+    if (ops > 0) await batch.commit();
+  }
+
+  // --- Phase 2: staging -> final `${userId}_${newModuleId}` ---
+  {
+    let batch = writeBatch(db);
+    let ops = 0;
+    const maybeCommit = async () => {
+      if (ops >= 400) {
+        await batch.commit();
+        batch = writeBatch(db);
+        ops = 0;
+      }
+    };
+
+    for (const e of stagingEntries) {
+      const finalRef = doc(db, COLLECTIONS.USER_PROGRESS, `${e.userId}_${e.newModuleId}`);
+      batch.set(finalRef, e.data);
+      batch.delete(e.stagingRef);
+      ops += 2;
+      await maybeCommit();
+    }
+    if (ops > 0) await batch.commit();
+  }
+
+  // --- Modules, content, knowledge checks (single batch; progress already migrated) ---
   const batch = writeBatch(db);
 
-  // Update modules
   for (const d of moduleDocs.docs) {
     const oldId = d.data().moduleId;
     if (idMap[oldId] !== undefined) {
@@ -456,7 +509,6 @@ export async function reorderModules(newOrder) {
     }
   }
 
-  // Update content
   for (const d of contentDocs.docs) {
     const oldId = d.data().moduleId;
     if (idMap[oldId] !== undefined) {
@@ -464,33 +516,6 @@ export async function reorderModules(newOrder) {
     }
   }
 
-  // Update user progress
-  for (const d of progressDocs.docs) {
-    // If the progress doc uses the old moduleId in its ID, rename the doc
-    const oldDocId = d.id;
-    const expectedDocId = `${d.data().userId}_${idMap[d.data().moduleId]}`;
-    console.log(`Updating progress doc ${oldDocId} for user ${d.data().userId} from module ${d.data().moduleId} to ${idMap[d.data().moduleId]}`);
-    if (oldDocId !== expectedDocId) {
-      // Copy data to new doc with updated moduleId in ID
-      const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, expectedDocId);
-      const data = d.data();
-      data.moduleId = idMap[d.data().moduleId];
-
-      batch.set(newDocRef, data, { merge: true });
-      batch.update(d.ref, { moduleId: idMap[d.data().moduleId] });
-
-      // Delete the old doc
-      batch.delete(d.ref);
-    } else {
-      const oldId = d.data().moduleId;
-      if (idMap[oldId] !== undefined) {
-        batch.update(d.ref, { moduleId: idMap[oldId] });
-      }
-
-    }
-  }
-
-  // Update knowledge checks (note: capital ID)
   for (const d of checksDocs.docs) {
     const oldId = d.data().moduleID;
     if (idMap[oldId] !== undefined) {
@@ -498,7 +523,6 @@ export async function reorderModules(newOrder) {
     }
   }
 
-  // One single atomic write
   await batch.commit();
 }
 
