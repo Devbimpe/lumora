@@ -210,7 +210,16 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Content (Reading Material or Image)</label>
-          {imageSrc ? (
+          {/* TEXT ALWAYS AVAILABLE */}
+          <textarea
+            placeholder="Enter the main content for this page"
+            value={newReading}
+            onChange={(event) => setNewReading(event.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-4"
+            rows="6"
+          />
+          
+          {imageSrc && (
             <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
               <img
                 src={imageSrc}
@@ -255,14 +264,6 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
                 />
               </div>
             </div>
-          ) : (
-            <textarea
-              placeholder="Enter the main content for this page"
-              value={newReading}
-              onChange={(event) => setNewReading(event.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              rows="8"
-            />
           )}
         </div>
 
