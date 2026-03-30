@@ -61,8 +61,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
           contentId: null,
           question: kcQuestion,
           choices: formattedChoices,
-          answer: isDescriptive ? "" : kcAnswer,
-          explain: isDescriptive ? kcDescAnswer : kcExplain,
+          answer: isDescriptive ? kcDescAnswer : kcAnswer,
+          explain: kcExplain,
         }),
       });
 
