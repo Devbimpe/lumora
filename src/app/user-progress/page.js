@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export default function UserProgressPage() {
@@ -75,15 +76,29 @@ const enrichedProgress = moduleProgress.map((p) => ({
   Heading: modulesMap[p.moduleId]?.Heading ?? "Untitled Module",
 }));
 
-  const filteredModules = (activeFilter ? enrichedProgress : modules).filter((mod) => {
-  const matchesSearch = (mod.Heading?.toLowerCase() ?? "")
-  .includes(searchQuery.toLowerCase());
+  const progressModuleIds = new Set(moduleProgress.map((p) => p.moduleId));
+
+const notStartedModules = modules
+  .filter((mod) => !progressModuleIds.has(mod.ModuleID))
+  .map((mod) => ({ ...mod, percentage: 0, isCompleted: false }));
+
+const baseList =
+  activeFilter === "not_started"
+    ? notStartedModules
+    : activeFilter
+    ? enrichedProgress
+    : [...enrichedProgress, ...notStartedModules];
+
+const filteredModules = baseList.filter((mod) => {
+  const matchesSearch = (mod.Heading?.toLowerCase() ?? "").includes(
+    searchQuery.toLowerCase()
+  );
 
   const matchesFilter =
     activeFilter === null ||
     (activeFilter === "complete" && mod.isCompleted) ||
     (activeFilter === "in_progress" && !mod.isCompleted && mod.percentage > 0) ||
-    (activeFilter === "not_started" && mod.percentage === 0);
+    activeFilter === "not_started";
 
   return matchesSearch && matchesFilter;
 });
@@ -108,8 +123,8 @@ const enrichedProgress = moduleProgress.map((p) => ({
   };
 
   const getStatus = (mod) => {
-  if (mod.isCompleted) return statusConfig.complete;
-  if (mod.percentage > 0) return statusConfig.in_progress;
+    if (mod.isCompleted) return statusConfig.complete;
+    if (mod.percentage > 0) return statusConfig.in_progress;
   return statusConfig.not_started;
 };
 
@@ -227,10 +242,6 @@ const enrichedProgress = moduleProgress.map((p) => ({
           <div className="flex flex-col gap-4">
             {filteredModules.map((mod) => {
               const { label, badge, dot } = getStatus(mod);
-              //TOREMOVE ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-              console.log(mod)
-              //TOREMOVE ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
               return (
                 <button
                   key={mod.ModuleID}
@@ -316,6 +327,8 @@ const enrichedProgress = moduleProgress.map((p) => ({
                 onClick={() => {
 
                   // TODO REATEMPT LOGIC ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                  //console.log("Module to reatempt", selectedModule)
+                  // TODO REATEMPT LOGIC ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                   setSelectedModule(null);
                 }}
@@ -327,6 +340,8 @@ const enrichedProgress = moduleProgress.map((p) => ({
               <button
                 onClick={() => {
 
+                  // TODO NEXT MODULE NAVIFATION ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                 
                   // TODO NEXT MODULE NAVIFATION ////////////////////////////////////////////////////////////////////////////////////////////////////////////
                   
                   setSelectedModule(null);
