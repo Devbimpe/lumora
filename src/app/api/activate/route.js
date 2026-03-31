@@ -1,9 +1,4 @@
 import { getUserByActivationToken, updateUser } from '@db/db.js';
-import { cookies as getCookies } from 'next/headers'; 
-// Install cookie with command "npm install cookie" before running this code
-import { serialize } from 'cookie';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@db/firebase.js'; 
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);

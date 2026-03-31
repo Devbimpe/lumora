@@ -32,20 +32,35 @@ async function migrateProgressPercentages() {
 
   const snap = await getDocs(progressRef);
 
-  // Cache total item counts per module to avoid redundant queries
-  const totalItemsCache = {};
+  // Cache module metadata to avoid redundant queries
+  const moduleCache = {};
 
-  async function getTotalItems(moduleId) {
-    if (totalItemsCache[moduleId] !== undefined) return totalItemsCache[moduleId];
+  async function getModuleInfo(moduleId) {
+    if (moduleCache[moduleId]) return moduleCache[moduleId];
 
     const [contentPages, knowledgeChecks] = await Promise.all([
       getContentByModuleId(moduleId),
       getKnowledgeChecksByModuleId(moduleId)
     ]);
 
+    const kcIds = new Set((knowledgeChecks || []).map(kc => String(kc.knowledgeCheckId)));
     const total = (contentPages?.length || 0) + (knowledgeChecks?.length || 0);
-    totalItemsCache[moduleId] = total;
-    return total;
+    moduleCache[moduleId] = { total, kcIds };
+    return moduleCache[moduleId];
+  }
+
+  // Prefix unprefixed KC IDs in an array, returns new array or null if unchanged
+  function fixKcPrefixes(arr, kcIds) {
+    let changed = false;
+    const fixed = arr.map(id => {
+      const s = String(id);
+      if (!s.startsWith('kc-') && kcIds.has(s)) {
+        changed = true;
+        return `kc-${s}`;
+      }
+      return s;
+    });
+    return changed ? fixed : null;
   }
 
   let updatedCount = 0;
@@ -61,8 +76,14 @@ async function migrateProgressPercentages() {
       continue;
     }
 
-    const totalItems = await getTotalItems(moduleId);
-    const uniqueViewed = new Set(viewedContent.map(id => String(id)));
+    const { total: totalItems, kcIds } = await getModuleInfo(moduleId);
+
+    // Fix unprefixed KC IDs in viewedContent and completedContent
+    const fixedViewed = fixKcPrefixes(viewedContent, kcIds);
+    const fixedCompleted = fixKcPrefixes(completedContent, kcIds);
+    const currentViewed = fixedViewed || viewedContent.map(id => String(id));
+
+    const uniqueViewed = new Set(currentViewed);
     const newPercentage = totalItems > 0
       ? Math.min(Math.round((uniqueViewed.size / totalItems) * 100), 100)
       : 0;
@@ -73,20 +94,24 @@ async function migrateProgressPercentages() {
 
     const percentageChanged = oldPercentage !== newPercentage;
     const completionChanged = newIsCompleted && !oldIsCompleted;
+    const arraysChanged = fixedViewed || fixedCompleted;
 
-    if (!percentageChanged && !completionChanged) {
+    if (!percentageChanged && !completionChanged && !arraysChanged) {
       console.log(`✓ ${docSnap.id} already correct (${newPercentage}%${oldIsCompleted ? ', completed' : ''})`);
       skippedCount++;
       continue;
     }
 
     const changes = [];
+    if (arraysChanged) changes.push('fix KC ID prefixes');
     if (percentageChanged) changes.push(`${oldPercentage}% → ${newPercentage}%`);
     if (completionChanged) changes.push(`isCompleted: false → true`);
     console.log(`${docSnap.id}: ${changes.join(', ')}  (${uniqueViewed.size}/${totalItems} items viewed)`);
 
     if (!DRY_RUN) {
       const update = { percentage: newPercentage };
+      if (fixedViewed) update.viewedContent = fixedViewed;
+      if (fixedCompleted) update.completedContent = fixedCompleted;
       if (completionChanged) {
         update.isCompleted = true;
         update.completedAt = new Date();
