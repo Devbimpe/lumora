@@ -162,7 +162,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
         body: JSON.stringify({
           moduleId: selectedModule,
           overview: newOverview,
-          reading: uploadedImageURL ? '' : newReading,
+          reading: newReading,
           imageURL: uploadedImageURL || null,
           imageDescription: uploadedImageURL ? imageDescription : null,
         }),
@@ -209,7 +209,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Content (Reading Material or Image)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Text Content</label>
           {/* TEXT ALWAYS AVAILABLE */}
           <textarea
             placeholder="Enter the main content for this page"
@@ -219,6 +219,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
             rows="6"
           />
           
+          <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">Image Content</label>
           {imageSrc && (
             <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
               <img
@@ -229,7 +230,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
               />
               {!uploadedImageURL && imageFile && (
                 <button
-                  onClick={() => uploadImage(() => setNewReading(''))}
+                  onClick={() => uploadImage()}
                   disabled={uploadingImage}
                   className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm"
                 >
@@ -271,7 +272,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
           <div className="mt-6">
             <div className="flex items-center gap-4 mb-4">
               <span className="flex-1 border-t border-gray-200" aria-hidden="true" />
-              <span className="text-sm text-gray-600">Or upload an image</span>
+              <span className="text-sm text-gray-600">Upload an image</span>
               <span className="flex-1 border-t border-gray-200" aria-hidden="true" />
             </div>
             <input
@@ -302,7 +303,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
-                      uploadImage(() => setNewReading(''));
+                      uploadImage();
                     }}
                     disabled={uploadingImage}
                     className={`px-5 py-2 rounded-lg text-white font-medium text-sm transition-colors ${
@@ -336,7 +337,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
               />
               <button
                 type="button"
-                onClick={() => useImageUrl(() => setNewReading(''))}
+                onClick={() => useImageUrl()}
                 disabled={uploadingImage || !inputIsURL}
                 className={`shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   uploadingImage || !inputIsURL
@@ -380,7 +381,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
               {newOverview || 'Untitled page'}
             </h5>
             <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap wrap-break-word">
-              {newReading || (uploadedImageURL ? 'Image selected for this page.' : 'No content to preview.')}
+              {newReading || (uploadedImageURL ? 'Image selected for this page (see edit view).' : 'No content to preview.')}
             </p>
           </div>
         )}
