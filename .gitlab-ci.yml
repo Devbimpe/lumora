@@ -35,6 +35,9 @@ deploy_production:
     # Build the project for the Production environment
     - vercel build --prod --token=$VERCEL_TOKEN
     # Deploy to Vercel (Production)
-    - vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+    - DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - echo "Deployed to $DEPLOY_URL"
+    # Pin it to a stable alias
+    - vercel alias set $DEPLOY_URL lumora.vercel.app --token=$VERCEL_TOKEN
   only:
     - main
