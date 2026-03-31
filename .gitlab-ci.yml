@@ -16,6 +16,12 @@ deploy_staging:
     - vercel build --token=$VERCEL_TOKEN
     # Deploy to Vercel (Staging/Preview)
     - vercel deploy --prebuilt --token=$VERCEL_TOKEN
+
+    - DEPLOY_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - echo "Deployed to $DEPLOY_URL"
+    # Pin it to a stable alias
+    - vercel alias set $DEPLOY_URL lumora-staging.vercel.app --token=$VERCEL_TOKEN
+
   only:
     - Development
 

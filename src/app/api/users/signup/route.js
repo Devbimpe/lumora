@@ -24,7 +24,7 @@ export async function POST(req) {
 
     // Check if a user with the provided username already exists in Firestore
     const existingByUsername = await getUserByUsername(userName);
-    
+
     if (existingByUsername) {
       return Response.json({ error: 'Username already exists.' }, { status: 400 });
     }
@@ -66,9 +66,10 @@ export async function POST(req) {
       }
     });
 
-    const origin = getAppOrigin();
-    const activationUrl = new URL(`/activate?token=${activationToken}`, origin).toString();
-    
+    // Define the activation URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const activationUrl = `${baseUrl.replace(/\/$/, '')}/activate?token=${activationToken}`;
+
     // Send activation email to the user
     try {
       await transporter.sendMail({

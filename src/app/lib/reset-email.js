@@ -11,8 +11,8 @@ export async function sendResetEmail(to, token) {
     },
   })
 
-  const origin = getAppOrigin();
-  const resetLink = new URL(`/reset-password?token=${token}`, origin).toString();
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+  const resetLink = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${token}`
 
   // Took the reference from src/app/api/users/signup/route.js
   const mailOptions = {
