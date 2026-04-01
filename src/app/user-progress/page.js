@@ -327,7 +327,7 @@ const filteredModules = baseList.filter((mod) => {
                 onClick={() => {
 
                   // TODO REATEMPT LOGIC ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                  //console.log("Module to reatempt", selectedModule)
+                  console.log("Module to reatempt", selectedModule)
                   // TODO REATEMPT LOGIC ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                   setSelectedModule(null);
@@ -339,16 +339,35 @@ const filteredModules = baseList.filter((mod) => {
 
               <button
                 onClick={() => {
+                  const getId = (m) => m.ModuleID ?? m.moduleId;
+                  const currentIndex = filteredModules.findIndex(
+                    (m) => getId(m) === getId(selectedModule)
+                  );
+                  const nextModule = filteredModules[currentIndex + 1];
 
-                  // TODO NEXT MODULE NAVIFATION ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                 
-                  // TODO NEXT MODULE NAVIFATION ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                  
-                  setSelectedModule(null);
+                  if (nextModule) {
+                    const progress = moduleProgress.find((p) => p.moduleId === getId(nextModule));
+                    setSelectedModule(
+                      progress
+                        ? { ...nextModule, ...progress }
+                        : { ...nextModule, percentage: 0, isCompleted: false }
+                    );
+                  } else {
+                    setSelectedModule(null);
+                  }
                 }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-medium text-sm hover:bg-green-100 transition cursor-pointer"
+                disabled={(() => {
+                  const getId = (m) => m.ModuleID ?? m.moduleId;
+                  return filteredModules.findIndex((m) => getId(m) === getId(selectedModule)) === filteredModules.length - 1;
+                })()}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-medium text-sm hover:bg-green-100 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-50"
               >
-                Continue to next module
+                {(() => {
+                  const getId = (m) => m.ModuleID ?? m.moduleId;
+                  return filteredModules.findIndex((m) => getId(m) === getId(selectedModule)) === filteredModules.length - 1
+                    ? "No more modules"
+                    : "Continue to next module";
+                })()}
               </button>
 
               <button
