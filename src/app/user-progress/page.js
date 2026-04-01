@@ -131,13 +131,13 @@ const filteredModules = baseList.filter((mod) => {
   const statusConfig = {
     complete: {
       label: "Complete",
-      badge: "bg-emerald-100 text-emerald-700",
-      dot: "bg-emerald-500",
+      badge: "bg-green-100 text-green-700",
+      dot: "bg-green-500",
     },
     in_progress: {
       label: "In Progress",
-      badge: "bg-amber-100 text-amber-700",
-      dot: "bg-amber-500",
+      badge: "bg-orange-100 text-orange-700",
+      dot: "bg-orange-500",
     },
     not_started: {
       label: "Not Started",
@@ -320,43 +320,120 @@ const filteredModules = baseList.filter((mod) => {
           onClick={() => setSelectedModule(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 relative"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close */}
-            <button
-              onClick={() => setSelectedModule(null)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-            >
-              ✕
-            </button>
+            {/* Scrollable body */}
+            <div className="overflow-y-auto p-7 flex-1">
 
-            {/* Module info */}
-            <h2 className="text-xl font-bold text-slate-800 pr-6 mb-1">
-              {selectedModule.Heading ?? "Untitled Module"}
-            </h2>
-            {selectedModule.description && (
-              <p className="text-sm text-slate-500 mb-6">
-                {selectedModule.description}
-              </p>
-            )}
+              {/* Close */}
+              <button
+                onClick={() => setSelectedModule(null)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              >
+                ✕
+              </button>
 
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              What would you like to do?
-            </p>
+              {/* Module title */}
+              <h2 className="text-xl font-bold text-slate-800 pr-6 mb-1">
+                {selectedModule.Heading ?? "Untitled Module"}
+              </h2>
+              {selectedModule.description && (
+                <p className="text-sm text-slate-500 mb-5">
+                  {selectedModule.description}
+                </p>
+              )}
 
-            {/* Action buttons */}
-            <div className="flex flex-col gap-3">
+              {/* Overall score banner */}
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-6">
+                <div>
+                  <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-0.5">Overall Score</p>
+                  <p className="text-3xl font-bold text-green-700">78%</p>
+                </div>
+              </div>
+
+              {/* Knowledge Check Scores */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                  Knowledge Checks
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { label: "Knowledge Check 1", score: 0, total: 1 },
+                    { label: "Knowledge Check 2", score: 0, total: 1 },
+                    { label: "Knowledge Check 3", score: 1, total: 1 },
+                  ].map((check, i) => {
+                    const pct = Math.round((check.score / check.total) * 100);
+                    const barColor = pct === 100 ? "bg-green-500" : pct >= 60 ? "bg-orange-400" : "bg-red-400";
+                    return (
+                      <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-sm text-slate-700 font-medium">{check.label}</p>
+                          <span className="text-sm font-bold text-slate-800">{check.score}/{check.total}</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Free-text Feedback */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                  Free-text Feedback
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {[
+                    {
+                      question: "What is team velocity?",
+                      answer: "It is the speed of each individual developer",
+                      feedback: "It is the amount of work a team completes during a sprint, usually measured in story points",
+                    },
+                    {
+                      question: "What is a sprint in Agile?",
+                      answer: "It is a long-term project phase",
+                      feedback: "It is a short, fixed time period (usually 1-4 weeks) where a team completes specific work",
+                    },
+                    {
+                      question: "What is a daily stand-up?",
+                      answer: "It is a short daily meeting where the team shares progress, plans, and blockers",
+                      feedback: "It is a short daily meeting where the team shares progress, plans, and blockers",
+                    },
+                  ].map((item, i) => {
+                    return (
+                      <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Question {i + 1}</p>
+                        <p className="text-sm text-slate-700 mb-2">{item.question}</p>
+
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Your Answer</p>
+                        <p className="text-sm text-slate-500 italic mb-3">"{item.answer}"</p>
+
+                       {item.answer === item.feedback ? null : (
+                          <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Feedback</p>
+                            <p className="text-sm text-slate-700">{item.feedback}</p>
+                          </div>) }
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Sticky action buttons */}
+            <div className="border-t border-slate-100 px-7 py-5 flex flex-col gap-3 bg-white rounded-b-2xl">
+              <p className="text-sm font-medium text-slate-600">What would you like to do?</p>
+
               <button
                 onClick={() => {
-
-                  // TODO REATEMPT LOGIC ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                  console.log("Module to reatempt", selectedModule)
-                  // TODO REATEMPT LOGIC ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+                  router.push(`/modules/module${selectedModule.ModuleID ?? selectedModule.moduleId}?item=check-1`);
                   setSelectedModule(null);
                 }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-medium text-sm hover:bg-amber-100 transition cursor-pointer"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-700 font-medium text-sm hover:bg-orange-100 transition cursor-pointer"
               >
                 Re-attempt this module
               </button>
@@ -364,18 +441,11 @@ const filteredModules = baseList.filter((mod) => {
               <button
                 onClick={() => {
                   const getId = (m) => m.ModuleID ?? m.moduleId;
-                  const currentIndex = filteredModules.findIndex(
-                    (m) => getId(m) === getId(selectedModule)
-                  );
+                  const currentIndex = filteredModules.findIndex((m) => getId(m) === getId(selectedModule));
                   const nextModule = filteredModules[currentIndex + 1];
-
                   if (nextModule) {
                     const progress = moduleProgress.find((p) => p.moduleId === getId(nextModule));
-                    setSelectedModule(
-                      progress
-                        ? { ...nextModule, ...progress }
-                        : { ...nextModule, percentage: 0, isCompleted: false }
-                    );
+                    setSelectedModule(progress ? { ...nextModule, ...progress } : { ...nextModule, percentage: 0, isCompleted: false });
                   } else {
                     setSelectedModule(null);
                   }
