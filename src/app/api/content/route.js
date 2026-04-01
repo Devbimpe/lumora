@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContentByModuleId, createContent } from '@db/db.js';
+import { getContentByModuleId, createContent } from '@db/admin-db.js';
 
 // GET handler: Retrieves all content for a specific module
 // Expects a 'moduleId' query parameter in the request URL

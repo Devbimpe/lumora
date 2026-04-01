@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import imageHosting from '@/image-hosting/imageHosting.js';
+import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -72,6 +73,9 @@ async function validateImageURL(url) {
  */
 export async function POST(request) {
   try {
+    const session = await SecurityHelper.verifyAdmin(request);
+    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
+
     const formData = await request.formData();
     const file = formData.get('file');
 
@@ -134,6 +138,9 @@ export async function POST(request) {
  */
 export async function DELETE(request) {
   try {
+    const session = await SecurityHelper.verifyAdmin(request);
+    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
+
     // Support imageUrl in query string (simple curl) or in form body
     let imageUrl = request.nextUrl.searchParams.get('imageUrl');
     if (!imageUrl) {
