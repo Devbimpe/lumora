@@ -56,7 +56,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           Overview: editOverview,
-          Reading: uploadedImageURL ? '' : editReading,
+          Reading: editReading,
           imageURL: uploadedImageURL || null,
           imageDescription: uploadedImageURL ? editImageDescription : null,
         }),
@@ -189,12 +189,19 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Content (Reading Material or Image)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Text Content</label>
+                      <textarea
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-4"
+                        value={editReading}
+                        onChange={e => setEditReading(e.target.value)}
+                        rows="6"
+                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">Image Content</label>
                       {imageSrc ? (
                         <div className="w-full border border-gray-300 rounded-lg p-4 bg-gray-50">
                           <img src={imageSrc} alt="Current content image" className="rounded-lg max-w-full" style={{ maxHeight: "400px", objectFit: "contain" }} />
                           {!uploadedImageURL && imageFile && (
-                            <button onClick={() => uploadImage(() => setEditReading(''))} disabled={uploadingImage} className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm">
+                            <button onClick={() => uploadImage()} disabled={uploadingImage} className="mt-3 mr-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm">
                               {uploadingImage ? 'Uploading...' : 'Upload Image'}
                             </button>
                           )}
@@ -220,34 +227,25 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
                           </div>
                         </div>
                       ) : (
-                        <textarea
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          value={editReading}
-                          onChange={e => setEditReading(e.target.value)}
-                          rows="8"
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`edit_file_input_${item.ContentID}`}>Upload an Image</label>
+                          <input
+                            type="file"
+                            className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
+                            accept="image/jpeg, image/png, image/gif, image/webp, image/bmp"
+                            id={`edit_file_input_${item.ContentID}`}
+                            onChange={handleImageFileChange}
+                          />
+                          <button
+                            onClick={() => uploadImage()}
+                            disabled={uploadingImage || !imageFile}
+                            className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                          >
+                            {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                          </button>
+                        </div>
                       )}
                     </div>
-                    {/* Image upload for editing - only shown when no image */}
-                    {!imageSrc && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`edit_file_input_${item.ContentID}`}>Or Upload an Image Instead</label>
-                        <input
-                          type="file"
-                          className="cursor-pointer px-4 py-3 mr-2 border border-gray-300 rounded-lg"
-                          accept="image/jpeg, image/png, image/gif, image/webp, image/bmp"
-                          id={`edit_file_input_${item.ContentID}`}
-                          onChange={handleImageFileChange}
-                        />
-                        <button
-                          onClick={() => uploadImage(() => setEditReading(''))}
-                          disabled={uploadingImage || !imageFile}
-                          className={`w-full sm:w-auto px-4 sm:px-6 py-2 text-white rounded-lg transition-colors duration-200 font-medium text-sm sm:text-base ${uploadingImage || !imageFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-                        >
-                          {uploadingImage ? 'Uploading...' : 'Upload Image'}
-                        </button>
-                      </div>
-                    )}
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base" onClick={() => setShowEditPreview((prev) => !prev)}>
                         {showEditPreview ? "Hide Preview" : "Preview"}
@@ -286,13 +284,16 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-green-400">
                     <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Content:</h4>
-                    {item.ImageURL ? (
+                    {item.Reading && (
+                      <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words mb-4">
+                        {item.Reading}
+                      </p>
+                    )}
+                    {item.ImageURL && (
                       <div>
                         <img src={item.ImageURL} alt={`Image for ${item.Overview}`} className="rounded-lg border border-gray-200" style={{ maxWidth: "300px" }} />
                         {item.ImageDescription && (<p className="mt-2 text-xs sm:text-sm text-gray-600 italic">{item.ImageDescription}</p>)}
                       </div>
-                    ) : (
-                      <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">{item.Reading}</p>
                     )}
                   </div>
                 </div>

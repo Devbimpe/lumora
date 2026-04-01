@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getFaviconUrl, getDefaultFaviconUrl } from '../../lib/favicons';
 
@@ -9,7 +9,7 @@ import CreateKnowledgeCheckForm from '../components/CreateKnowledgeCheckForm';
 import ContentPageItem from '../components/ContentPageItem';
 import KnowledgeCheckItem from '../components/KnowledgeCheckItem';
 
-export default function ContentPage() {
+function ContentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const moduleId = searchParams.get('moduleId');
@@ -32,11 +32,11 @@ export default function ContentPage() {
   const newContentFormRef = useRef(null);
   const kcFormRef = useRef(null);
 
-  const currentModule = modules.find((module) => module.ModuleID.toString() === selectedModule);
+  const currentModule = modules.find((module) => module.id.toString() === selectedModule);
 
   const fetchModules = async () => {
     try {
-      const res = await fetch('/api/modules');
+      const res = await fetch('/api/admin/modules');
       const data = await res.json();
       setModules(data);
       return data;
@@ -53,6 +53,8 @@ export default function ContentPage() {
       setSelectedModule('');
       setContent([]);
       setKnowledgeChecks([]);
+      setHeading('');
+      setSubHeading('');
       setFaviconURL(getDefaultFaviconUrl());
       setLoading(false);
       return () => {
@@ -66,15 +68,15 @@ export default function ContentPage() {
       }
 
       const hasRequestedModule = moduleId
-        ? data.some((module) => module.ModuleID.toString() === moduleId)
+        ? data.some((module) => module.id.toString() === moduleId)
         : false;
-      const targetId = hasRequestedModule ? moduleId : data[0].ModuleID.toString();
+      const targetId = hasRequestedModule ? moduleId : data[0].id.toString();
       setSelectedModule(targetId);
 
-      const module = data.find((item) => item.ModuleID.toString() === targetId);
+      const module = data.find((item) => item.id.toString() === targetId);
       if (module) {
-        setHeading(module.Heading);
-        setSubHeading(module.Subheading);
+        setHeading(module.Heading ?? '');
+        setSubHeading(module.SubHeading ?? '');
         setFaviconURL(module.faviconURL || '');
       }
     });
@@ -90,8 +92,8 @@ export default function ContentPage() {
     }
 
     if (currentModule) {
-      setHeading(currentModule.Heading);
-      setSubHeading(currentModule.Subheading);
+      setHeading(currentModule.Heading ?? '');
+      setSubHeading(currentModule.SubHeading ?? '');
       setFaviconURL(currentModule.faviconURL || '');
     }
   }, [mode, currentModule]);
@@ -124,6 +126,15 @@ export default function ContentPage() {
     if (showKCForm) {
       setTimeout(() => kcFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
+  }, [showKCForm]);
+
+  // Keep admin-sidebar form open state in sync when toggled from the main toolbar
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sync-create-form', { detail: { open: showCreateForm } }));
+  }, [showCreateForm]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sync-kc-form', { detail: { open: showKCForm } }));
   }, [showKCForm]);
 
   useEffect(() => {
@@ -189,19 +200,19 @@ export default function ContentPage() {
       }
 
       if (isNew) {
-        const updatedModules = await fetchModules();
-        if (updatedModules.length > 0) {
-          const newModule = updatedModules[updatedModules.length - 1];
-          router.push(`/admin/content?moduleId=${newModule.ModuleID}`);
+        const result = await response.json();
+        await fetchModules();
+        if (result?.id != null) {
+          router.push(`/admin/content?moduleId=${result.id}`);
         }
       } else {
         setModules((prev) =>
           prev.map((module) =>
-            module.ModuleID.toString() === selectedModule
+            module.id.toString() === selectedModule
               ? {
                   ...module,
                   Heading: heading,
-                  Subheading: subHeading,
+                  SubHeading: subHeading,
                   faviconURL: urlToSave,
                 }
               : module,
@@ -454,5 +465,18 @@ export default function ContentPage() {
           </>
         ))}
     </div>
+  );
+}
+
+export default function ContentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+        <span className="text-gray-600 text-lg font-medium">Loading content...</span>
+      </div>
+    }>
+      <ContentPageContent />
+    </Suspense>
   );
 }

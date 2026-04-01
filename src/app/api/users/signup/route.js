@@ -8,6 +8,7 @@ import nodemailer from 'nodemailer';
 // Import crypto for generating secure random tokens
 import crypto from 'crypto';
 import { Timestamp } from 'firebase/firestore';
+import { getAppOrigin } from "@/src/app/lib/app-origin.js";
 
 // POST handler: Handles user signup
 // Expects a JSON body with 'name', 'userName', 'email', and 'password' fields
@@ -23,7 +24,7 @@ export async function POST(req) {
 
     // Check if a user with the provided username already exists in Firestore
     const existingByUsername = await getUserByUsername(userName);
-    
+
     if (existingByUsername) {
       return Response.json({ error: 'Username already exists.' }, { status: 400 });
     }
@@ -65,10 +66,10 @@ export async function POST(req) {
       }
     });
 
-    // Define the activation URL for development environment
-    // Note: Replace with production URL (e.g., https://lumora.com/activate?token=...) when deploying
-    const activationUrl = `http://localhost:3000/activate?token=${activationToken}`;
-    
+    // Define the activation URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const activationUrl = `${baseUrl.replace(/\/$/, '')}/activate?token=${activationToken}`;
+
     // Send activation email to the user
     try {
       await transporter.sendMail({

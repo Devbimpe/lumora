@@ -202,6 +202,30 @@ export async function getAllModules() {
   }));
 }
 
+export async function getAllPublishedModules() {
+  const modulesRef = collection(db, COLLECTIONS.MODULES);
+
+  try {
+    const q = query(modulesRef, where('published', '==', true), orderBy('moduleId', 'asc'));
+    const querySnapshot = await getDocs(q);
+
+    let results = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // results.sort((a, b) => {
+    //   const aId = Number(a?.moduleId ?? 0);
+    //   const bId = Number(b?.moduleId ?? 0);
+    //   return aId - bId;
+    // });
+
+    return results;
+  } catch (error) {
+    throw new Error(`Error fetching published modules: ${error.message}`);
+  }
+}
+
 /**
  * Get module by ID
  */
@@ -286,41 +310,60 @@ export async function deleteModule(moduleId) {
   const contentQuery = query(contentRef, where('moduleId', '==', parseInt(moduleId)));
   const contentSnapshot = await getDocs(contentQuery);
 
-  const contentIds = contentSnapshot.docs.map(doc => doc.data().contentId);
-
   contentSnapshot.forEach(doc => {
     batch.delete(doc.ref);
   });
 
-  // Delete related knowledge checks
-  if (contentIds.length > 0) {
-    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-    for (const contentId of contentIds) {
-      const checksQuery = query(checksRef, where('contentId', '==', contentId));
-      const checksSnapshot = await getDocs(checksQuery);
+  // Delete all knowledge checks for this module (by moduleID), including unassociated
+  // checks with no contentId. Deleting only by contentId misses those and leaves stale
+  // rows that collide when module ids are reused after reindexing.
+  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+  const moduleChecksQuery = query(checksRef, where('moduleID', '==', parseInt(moduleId)));
+  const moduleChecksSnapshot = await getDocs(moduleChecksQuery);
 
-      const checkIds = checksSnapshot.docs.map(doc => doc.data().knowledgeCheckId);
+  const checkIdsForSubmissions = moduleChecksSnapshot.docs.map(
+    (d) => d.data().knowledgeCheckId
+  );
 
-      checksSnapshot.forEach(doc => {
-        batch.delete(doc.ref);
+  moduleChecksSnapshot.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
+  });
+
+  if (checkIdsForSubmissions.length > 0) {
+    const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
+    for (const checkId of checkIdsForSubmissions) {
+      const submissionsQuery = query(submissionsRef, where('knowledgeCheckId', '==', checkId));
+      const submissionsSnapshot = await getDocs(submissionsQuery);
+
+      submissionsSnapshot.forEach((subDoc) => {
+        batch.delete(subDoc.ref);
       });
-
-      // Delete related student submissions
-      if (checkIds.length > 0) {
-        const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
-        for (const checkId of checkIds) {
-          const submissionsQuery = query(submissionsRef, where('knowledgeCheckId', '==', checkId));
-          const submissionsSnapshot = await getDocs(submissionsQuery);
-
-          submissionsSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-          });
-        }
-      }
     }
   }
 
   await batch.commit();
+
+  // Remove learner progress for this module id so a later module that reuses the same
+  // numeric id (after reindex / new create) does not inherit viewed/completed state.
+  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
+  const progressQuery = query(progressRef, where('moduleId', '==', parseInt(moduleId)));
+  const progressSnapshot = await getDocs(progressQuery);
+  if (!progressSnapshot.empty) {
+    let progressBatch = writeBatch(db);
+    let ops = 0;
+    for (const progressDoc of progressSnapshot.docs) {
+      progressBatch.delete(progressDoc.ref);
+      ops++;
+      if (ops >= 400) {
+        await progressBatch.commit();
+        progressBatch = writeBatch(db);
+        ops = 0;
+      }
+    }
+    if (ops > 0) {
+      await progressBatch.commit();
+    }
+  }
 
   // Renumber remaining modules so there are no gaps
   await reindexModules();
@@ -354,11 +397,20 @@ async function reindexModules() {
       await updateDoc(contentDoc.ref, { moduleId: correctNumber });
     }
 
-    // Update user progress that references this module
+    // Update user progress that references this module (rename doc IDs too)
     const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
     const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', currentNumber)));
     for (const progressDoc of progressDocs.docs) {
-      await updateDoc(progressDoc.ref, { moduleId: correctNumber });
+      const data = progressDoc.data();
+      const newDocId = `${data.userId}_${correctNumber}`;
+
+      if (progressDoc.id !== newDocId) {
+        const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, newDocId);
+        await setDoc(newDocRef, { ...data, moduleId: correctNumber }, { merge: true });
+        await deleteDoc(progressDoc.ref);
+      } else {
+        await updateDoc(progressDoc.ref, { moduleId: correctNumber });
+      }
     }
 
     // Update knowledge checks (note: uses moduleID with capital ID)
@@ -374,9 +426,11 @@ async function reindexModules() {
  * Reorder modules based on a new ordering provided by the admin.
  * Takes an array of moduleIds in the desired new order.
  * Example: [3, 1, 2] means module 3 goes first, module 1 second, module 2 third.
- * 
- * Uses a single batch write for performance - fetches all data in parallel,
- * builds the updates in memory, then commits everything at once.
+ *
+ * User progress doc IDs are `${userId}_${moduleId}`. Renaming them in a single batch
+ * causes collisions when IDs permute (e.g. user_1 and user_2 swap targets): one write
+ * overwrites or deletes another. We use a two-phase staging pass, then update modules,
+ * content, and knowledge checks in one batch.
  */
 export async function reorderModules(newOrder) {
   // Build a map: oldModuleId -> newModuleId
@@ -394,9 +448,60 @@ export async function reorderModules(newOrder) {
     getDocs(collection(db, COLLECTIONS.KNOWLEDGE_CHECKS)),
   ]);
 
+  // --- Phase 1: move each progress doc to a unique staging id (per user + old module id) ---
+  const stagingEntries = [];
+  {
+    let batch = writeBatch(db);
+    let ops = 0;
+    const maybeCommit = async () => {
+      if (ops >= 400) {
+        await batch.commit();
+        batch = writeBatch(db);
+        ops = 0;
+      }
+    };
+
+    for (const d of progressDocs.docs) {
+      const oldModuleId = d.data().moduleId;
+      if (idMap[oldModuleId] === undefined) continue;
+      const newModuleId = idMap[oldModuleId];
+      const userId = d.data().userId;
+      const stagingRef = doc(db, COLLECTIONS.USER_PROGRESS, `${userId}_stg_${oldModuleId}`);
+      const data = { ...d.data(), moduleId: newModuleId };
+      batch.set(stagingRef, data);
+      batch.delete(d.ref);
+      stagingEntries.push({ stagingRef, userId, newModuleId, data });
+      ops += 2;
+      await maybeCommit();
+    }
+    if (ops > 0) await batch.commit();
+  }
+
+  // --- Phase 2: staging -> final `${userId}_${newModuleId}` ---
+  {
+    let batch = writeBatch(db);
+    let ops = 0;
+    const maybeCommit = async () => {
+      if (ops >= 400) {
+        await batch.commit();
+        batch = writeBatch(db);
+        ops = 0;
+      }
+    };
+
+    for (const e of stagingEntries) {
+      const finalRef = doc(db, COLLECTIONS.USER_PROGRESS, `${e.userId}_${e.newModuleId}`);
+      batch.set(finalRef, e.data);
+      batch.delete(e.stagingRef);
+      ops += 2;
+      await maybeCommit();
+    }
+    if (ops > 0) await batch.commit();
+  }
+
+  // --- Modules, content, knowledge checks (single batch; progress already migrated) ---
   const batch = writeBatch(db);
 
-  // Update modules
   for (const d of moduleDocs.docs) {
     const oldId = d.data().moduleId;
     if (idMap[oldId] !== undefined) {
@@ -404,7 +509,6 @@ export async function reorderModules(newOrder) {
     }
   }
 
-  // Update content
   for (const d of contentDocs.docs) {
     const oldId = d.data().moduleId;
     if (idMap[oldId] !== undefined) {
@@ -412,33 +516,6 @@ export async function reorderModules(newOrder) {
     }
   }
 
-  // Update user progress
-  for (const d of progressDocs.docs) {
-    // If the progress doc uses the old moduleId in its ID, rename the doc
-    const oldDocId = d.id;
-    const expectedDocId = `${d.data().userId}_${idMap[d.data().moduleId]}`;
-    console.log(`Updating progress doc ${oldDocId} for user ${d.data().userId} from module ${d.data().moduleId} to ${idMap[d.data().moduleId]}`);
-    if (oldDocId !== expectedDocId) {
-      // Copy data to new doc with updated moduleId in ID
-      const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, expectedDocId);
-      const data = d.data();
-      data.moduleId = idMap[d.data().moduleId];
-
-      batch.set(newDocRef, data, { merge: true });
-      batch.update(d.ref, { moduleId: idMap[d.data().moduleId] });
-
-      // Delete the old doc
-      batch.delete(d.ref);
-    } else {
-      const oldId = d.data().moduleId;
-      if (idMap[oldId] !== undefined) {
-        batch.update(d.ref, { moduleId: idMap[oldId] });
-      }
-
-    }
-  }
-
-  // Update knowledge checks (note: capital ID)
   for (const d of checksDocs.docs) {
     const oldId = d.data().moduleID;
     if (idMap[oldId] !== undefined) {
@@ -446,7 +523,6 @@ export async function reorderModules(newOrder) {
     }
   }
 
-  // One single atomic write
   await batch.commit();
 }
 
@@ -898,15 +974,22 @@ export async function getUserModuleProgress(userId, moduleId) {
 
   const data = querySnapshot.docs[0].data();
 
-  // Ensure percentage field exists, calculate if missing
-  if (data.percentage === undefined || data.percentage === null) {
-    const percentage = await calculateModuleProgress(
-      userId,
-      moduleId,
-      data.viewedContent || [],
-      data.completedContent || []
-    );
-    data.percentage = percentage;
+  // Always recalculate from current content/KC counts
+  data.percentage = await calculateModuleProgress(
+    userId,
+    moduleId,
+    data.viewedContent || [],
+    data.completedContent || []
+  );
+
+  // Auto-complete modules that have reached 100%
+  if (data.percentage >= 100 && !data.isCompleted) {
+    data.isCompleted = true;
+    data.completedAt = Timestamp.now();
+    await updateUserModuleProgress(userId, moduleId, {
+      isCompleted: true,
+      completedAt: Timestamp.now()
+    });
   }
 
   return {
@@ -940,64 +1023,26 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
 
 /**
  * Calculate progress percentage for a module
- * Based on total items (pages + knowledge checks) viewed/completed
+ * Based on total items (content pages + knowledge checks) viewed
  */
 async function calculateModuleProgress(userId, moduleId, viewedItems = [], completedItems = []) {
   try {
-    // Get total items count: pages + knowledge checks
-    const knowledgeChecks = await getKnowledgeChecksByModuleId(moduleId);
-    const totalKnowledgeChecks = knowledgeChecks?.length || 0;
+    const [contentPages, knowledgeChecks] = await Promise.all([
+      getContentByModuleId(moduleId),
+      getKnowledgeChecksByModuleId(moduleId)
+    ]);
 
-    // Get pages count by scanning public/img directory
-    let totalPages = 0;
-    try {
-      // Use require for Node.js built-in modules in this context
-      const fs = require('fs');
-      const path = require('path');
-      const imgDir = path.join(process.cwd(), 'public', 'img');
-
-      if (fs.existsSync(imgDir)) {
-        const files = fs.readdirSync(imgDir);
-        const moduleNum = String(moduleId).replace('module', '');
-        const pattern = new RegExp(`^mod${moduleNum}p(\\d+)\\.(jpg|jpeg|png)$`, 'i');
-        const pageNumbers = new Set();
-
-        files.forEach(file => {
-          const match = file.match(pattern);
-          if (match) {
-            pageNumbers.add(parseInt(match[1]));
-          }
-        });
-
-        totalPages = pageNumbers.size;
-      }
-    } catch (fsError) {
-      console.warn('Could not read pages directory, using fallback:', fsError);
-      // Fallback: estimate based on module
-      const moduleNum = parseInt(moduleId);
-      const pageConfig = { 1: 1, 2: 1, 3: 9 };
-      totalPages = pageConfig[moduleNum] || 0;
-    }
-
-    const totalItems = totalPages + totalKnowledgeChecks;
+    const totalItems = (contentPages?.length || 0) + (knowledgeChecks?.length || 0);
 
     if (totalItems === 0) return 0;
 
-    // Count unique viewed items
     const uniqueViewed = new Set(viewedItems.map(id => String(id)));
+    const percentage = Math.round((uniqueViewed.size / totalItems) * 100);
 
-    // Calculate percentage based on viewed items
-    const viewedCount = uniqueViewed.size;
-    const percentage = Math.round((viewedCount / totalItems) * 100);
-
-    return Math.min(percentage, 100); // Cap at 100%
+    return Math.min(percentage, 100);
   } catch (error) {
     console.error('Error calculating module progress:', error);
-    // Fallback calculation
-    const viewedCount = new Set(viewedItems.map(id => String(id))).size;
-    const completedCount = new Set(completedItems.map(id => String(id))).size;
-    const totalCount = Math.max(viewedCount, completedCount);
-    return totalCount > 0 ? Math.min(Math.round((viewedCount / (totalCount * 2)) * 100), 100) : 0;
+    return 0;
   }
 }
 
@@ -1014,17 +1059,17 @@ export async function markContentViewed(userId, moduleId, contentId) {
   }
 
   const completedContent = progress?.completedContent || [];
-  const isCompleted = completedContent.includes(contentIdStr);
 
   // Calculate percentage
   const percentage = await calculateModuleProgress(userId, moduleId, viewedContent, completedContent);
 
   return await updateUserModuleProgress(userId, moduleId, {
     viewedContent,
-    completedContent: isCompleted ? completedContent : [...completedContent],
+    completedContent,
     lastViewedContentId: contentIdStr,
     lastViewedAt: Timestamp.now(),
-    percentage: percentage
+    percentage: percentage,
+    isCompleted: percentage >= 100
   });
 }
 
@@ -1080,6 +1125,30 @@ export async function markModuleCompleted(userId, moduleId) {
   });
 }
 
+/**
+ * Save user answer and AI feedback for a knowledge check to module progress.
+ * Overwrites any previous submission for the same contentId (reattempt).
+ */
+export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { userAnswer, grade, feedback }) {
+  const progress = await getUserModuleProgress(userId, moduleId);
+  const existing = progress?.knowledgeCheckSubmissions || {};
+  const contentIdStr = String(contentId);
+
+  const knowledgeCheckSubmissions = {
+    ...existing,
+    [contentIdStr]: {
+      userAnswer: userAnswer ?? '',
+      grade: grade ?? null,
+      feedback: feedback ?? '',
+      updatedAt: Timestamp.now()
+    }
+  };
+
+  return await updateUserModuleProgress(userId, moduleId, {
+    knowledgeCheckSubmissions
+  });
+}
+
 // ==================== FEEDBACK OPERATIONS ====================
 
 /**
@@ -1124,6 +1193,7 @@ export default {
   deleteUser,
   getAllUsers,
   getAllModules,
+  getAllPublishedModules,
   getModuleById,
   createModule,
   updateModule,
@@ -1148,5 +1218,6 @@ export default {
   markContentViewed,
   markContentCompleted,
   updateModulePublished,
-  markModuleCompleted
+  markModuleCompleted,
+  saveKnowledgeCheckFeedback
 };

@@ -69,17 +69,17 @@ export default function EditModule({ heading, subHeading, onHeadingChange, onSub
           <input
             type="text"
             placeholder="Enter heading"
-            value={heading}
+            value={heading ?? ''}
             onChange={onHeadingChange}
             className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
           />
         </div>
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Sub-Heading</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Module Description</label>
           <input
             type="text"
-            placeholder="Enter sub-heading"
-            value={subHeading}
+            placeholder="Enter module description"
+            value={subHeading ?? ''}
             onChange={onSubHeadingChange}
             className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
           />

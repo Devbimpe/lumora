@@ -220,7 +220,18 @@ export async function PATCH(req) {
 
     // Handle publish toggle request
     if (id !== undefined && published !== undefined) {
-      const { updateModulePublished } = await import("@db/db.js");
+      const { updateModulePublished, getContentByModuleId } = await import("@db/db.js");
+
+      // Prevent publishing a module with no content
+      if (published === true) {
+        const content = await getContentByModuleId(id);
+        if (content.length === 0) {
+          return new Response(JSON.stringify({
+            error: "This module cannot be published because it has no content. Please add content before publishing."
+          }), { status: 400 });
+        }
+      }
+
       await updateModulePublished(id, published);
       return new Response(JSON.stringify({ success: true }), { status: 200 });
     }
