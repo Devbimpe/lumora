@@ -1,5 +1,6 @@
-import { getUserById, deleteUser as deleteUserFromDB } from "@db/db.js";
+import { getUserById, deleteUser as deleteUserFromDB } from "@db/admin-db.js";
 import { adminAuth } from "../../../../firebaseAdmin.js";
+import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
 import { cookies } from "next/headers";
 
 export async function POST(req) {
@@ -9,6 +10,9 @@ export async function POST(req) {
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing userId" }), { status: 400 });
     }
+
+    const session = await SecurityHelper.verifyOwnership(req, userId);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
 
     const user = await getUserById(userId);
     if (!user) {

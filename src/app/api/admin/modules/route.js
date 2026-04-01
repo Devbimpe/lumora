@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAllModules } from "@db/db.js";
+import { getAllModules } from "@db/admin-db.js";
+import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
 
 // Retrieves all modules from the database
 // Returns a JSON response with formatted module data
@@ -43,7 +44,7 @@ async function addModule({ heading, subHeading, faviconURL }) {
   try {
     console.log('📥 Inserting new module...');
 
-    const { createModule } = await import("@db/db.js");
+    const { createModule } = await import("@db/admin-db.js");
 
     // Create new module in Firestore
     const result = await createModule({ heading, subheading: subHeading, faviconURL});
@@ -68,7 +69,7 @@ async function deleteModule(id) {
     console.log(`🗑️ Starting deletion for module ID: ${id}`);
 
     // This function handles deletion of module and all related data
-    await (await import("@db/db.js")).deleteModule(id);
+    await (await import("@db/admin-db.js")).deleteModule(id);
 
     console.log(`✅ Module ${id} deleted successfully`);
     return { success: true };
@@ -83,7 +84,7 @@ async function deleteModule(id) {
 // Returns success status and module ID on success
 async function updateModule({ id, heading, subHeading, faviconURL }) {
   try {
-    const dbModule = await import("@db/db.js");
+    const dbModule = await import("@db/admin-db.js");
 
     await dbModule.updateModule(id, {
       heading,
@@ -103,7 +104,7 @@ async function reorderModulesHandler({ order }) {
   try {
     console.log('Reordering Modules...', order);
 
-    const { reorderModules } = await import("@db/db.js");
+    const { reorderModules } = await import("@db/admin-db.js");
     await reorderModules(order);
 
     console.log('Modules reordered successfully');
@@ -116,8 +117,11 @@ async function reorderModulesHandler({ order }) {
 
 // GET handler: Retrieves all modules
 // Calls the getModules function and returns its result
-export async function GET() {
+export async function GET(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     return await getModules();
   } catch (error) {
     console.error('API error:', error);
@@ -132,6 +136,9 @@ export async function GET() {
 // Expects a JSON body with 'heading' and 'subHeading' fields
 export async function POST(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     const { heading, subHeading, faviconURL } = await req.json();
 
     if (!heading || !subHeading) {
@@ -159,6 +166,9 @@ export async function POST(req) {
 // Expects a JSON body with an 'id' field
 export async function DELETE(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     const { id } = await req.json();
 
     if (!id) {
@@ -181,6 +191,9 @@ export async function DELETE(req) {
 // Expects a JSON body with 'id', 'heading', and 'subHeading' fields
 export async function PUT(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     const { id, heading, subHeading, faviconURL } = await req.json();
 
     // Validate all required fields
@@ -204,6 +217,9 @@ export async function PUT(req) {
 // For publish: expects { id: "moduleId", published: true/false }
 export async function PATCH(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     const body = await req.json();
     const { order, id, published } = body;
 
@@ -220,7 +236,7 @@ export async function PATCH(req) {
 
     // Handle publish toggle request
     if (id !== undefined && published !== undefined) {
-      const { updateModulePublished, getContentByModuleId } = await import("@db/db.js");
+      const { updateModulePublished, getContentByModuleId } = await import("@db/admin-db.js");
 
       // Prevent publishing a module with no content
       if (published === true) {

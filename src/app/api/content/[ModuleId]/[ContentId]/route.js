@@ -1,6 +1,6 @@
 // This is the code for edit the content 
 import { NextResponse } from 'next/server';
-import { updateContent, getContentById, deleteContent } from '@db/db.js';
+import { updateContent, getContentById, deleteContent } from '@db/admin-db.js';
 
 // GET handler: Retrieves certain content by ContentID and ModuleID
 export async function GET(req, context) {
