@@ -582,19 +582,6 @@ function ModulePageContent() {
     }
   };
 
-  const handleGoToNextModule = useCallback(() => {
-    if (user) {
-      trackModuleCompletion();
-    }
-    
-    const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
-    const published = allModules.filter(m => m.published);
-    const next = published.find(m => m.ModuleID > currentModuleIdNum);
-    if (next) {
-      router.push(`/modules/module${next.ModuleID}`);
-    }
-  }, [user, moduleId, allModules, trackModuleCompletion, router]);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center">
@@ -743,15 +730,50 @@ function ModulePageContent() {
             )}
           </div>
 
-          <ModuleNavigation
-            currentIndex={currentIndex}
-            totalItems={allItems.length}
-            showModuleComplete={showModuleComplete}
-            hasNextPublishedModule={!!nextModule}
-            onPrev={handlePrev}
-            onNext={handleNext}
-            onGoToNextModule={handleGoToNextModule}
-          />
+          {/* Navigation Buttons */}
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center gap-2 sm:gap-4">
+              <button
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+                  currentIndex === 0
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                <span className="hidden sm:inline">← Previous</span>
+                <span className="sm:hidden">←</span>
+              </button>
+              
+              <span className="text-xs sm:text-sm text-gray-600 font-medium">
+                {currentIndex + 1} of {allItems.length}
+              </span>
+              
+              {isLastItem ? (
+                <button
+                  onClick={() => {
+                    if (currentItem.type === 'content') {
+                      trackModuleCompletion();
+                    }
+                  }}
+                  className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
+                >
+                  <span className="hidden sm:inline">View results</span>
+                  <span className="sm:hidden">View results</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
+                >
+                  <span className="hidden sm:inline">Next →</span>
+                  <span className="sm:hidden">→</span>
+                </button>
+              )}
+            </div>
+
+          </div>
         </div>
       </main>
     </div>
