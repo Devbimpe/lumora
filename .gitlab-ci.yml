@@ -1,0 +1,43 @@
+stages:
+  - deploy
+
+variables:
+  # Adding this saves Vercel CLI telemetry
+  VERCEL_TELEMETRY_DISABLED: 1
+
+deploy_staging:
+  stage: deploy
+  image: node:20
+  script:
+    - npm install -g vercel
+    # Pull the Vercel Preview environment configuration and secrets
+    - vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+    # Build the project for the Preview environment
+    - vercel build --token=$VERCEL_TOKEN
+    # Deploy to Vercel (Staging/Preview)
+    - vercel deploy --prebuilt --token=$VERCEL_TOKEN
+
+    - DEPLOY_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - echo "Deployed to $DEPLOY_URL"
+    # Pin it to a stable alias
+    - vercel alias set $DEPLOY_URL lumora-staging.vercel.app --token=$VERCEL_TOKEN
+
+  only:
+    - Development
+
+deploy_production:
+  stage: deploy
+  image: node:20
+  script:
+    - npm install -g vercel
+    # Pull the Vercel Production environment configuration and secrets
+    - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+    # Build the project for the Production environment
+    - vercel build --prod --token=$VERCEL_TOKEN
+    # Deploy to Vercel (Production)
+    - DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - echo "Deployed to $DEPLOY_URL"
+    # Pin it to a stable alias
+    - vercel alias set $DEPLOY_URL lumora.vercel.app --token=$VERCEL_TOKEN
+  only:
+    - main

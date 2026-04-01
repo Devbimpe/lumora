@@ -6,14 +6,20 @@ import Link from "next/link";
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref className="h-full block">
     <div
-      className={`p-4 sm:p-6 ${bgColor} ${borderColor} border-2 cursor-pointer hover:bg-opacity-80 flex flex-col sm:flex-row items-center transition duration-300 hover:scale-105 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl h-full`}
+      // Align content to the top and allow long descriptions to wrap within the card.
+      className={`p-4 sm:p-6 ${bgColor} ${borderColor} border-2 cursor-pointer hover:bg-opacity-80 flex flex-col sm:flex-row items-start transition duration-300 hover:scale-105 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl h-full`}
     >
       {icon && (
         <img src={icon} alt={title} className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-3 sm:mb-0 sm:mr-5" />
       )}
-      <div className="text-center sm:text-left">
+      <div className="text-center sm:text-left flex-1 min-w-0">
+        {/* Dark green module text to match the main header */}
         <h2 className="text-lg sm:text-xl font-bold text-green-700">{title}</h2>
-        {subtitle && <p className="text-sm sm:text-base text-green-700 mt-1">{subtitle}</p>}
+        {subtitle && (
+          <p className="text-sm sm:text-base text-green-700 mt-1 whitespace-normal break-words">
+            {subtitle}
+          </p>
+        )}
       </div>
     </div>
   </Link>
@@ -42,13 +48,17 @@ const TrainingModule = () => {
         }
         const data = await response.json();
         
-        // Map API data to component format
-        const formattedModules = data.map((module, index) => ({
+        // FILTER: Only keep modules where published is true
+        // We filter BEFORE mapping so the index (used for bgColor) stays consistent (Green, Orange, Green...)
+        const publishedModules = data.filter(module => module.published === true);
+
+        // Map filtered data to component format — icon only from saved faviconURL (no fallback)
+        const formattedModules = publishedModules.map((module, index) => ({
           id: module.ModuleID,
           title: `MODULE ${module.ModuleID}: ${module.Heading}`,
           subtitle: module.Subheading || "",
           href: `/modules/module${module.ModuleID}`,
-          icon: `/M${module.ModuleID}.jpg`,
+          icon: module.faviconURL || null,
           bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
         }));
         
@@ -76,7 +86,7 @@ const TrainingModule = () => {
         </div>
       ) : modules.length === 0 ? (
         <div className="text-center py-8 text-gray-600">
-          No modules available
+          No active modules available.
         </div>
       ) : (
         <ModuleWrapper>

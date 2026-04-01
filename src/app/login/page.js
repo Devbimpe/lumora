@@ -1,20 +1,72 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import "../globals.css"
 import "./login.css"
 
 export default function Login() {
+  return (
+    <Suspense fallback={
+      <div className="page">
+        <main className="w-full">
+          <div className="LoginPage">
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+              <span className="text-gray-600 text-lg font-medium">Loading...</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    }>
+      <LoginInner />
+    </Suspense>
+  )
+}
+
+function LoginInner() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [errorCode, setErrorCode] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl")
+
+  // Check if user is already authenticated and redirect if so
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      try {      
+        const response = await fetch("/api/check-auth");
+        const data = await response.json();
+        if (data.authenticated) {
+          console.log("User is already authenticated, redirecting...");
+          if (callbackUrl && callbackUrl.startsWith("/")) {
+            router.push(callbackUrl);
+          } else if(data.user.role === "Admin") {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
+        } else {
+          console.log("User is not authenticated, showing signup form.");
+          setCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+        setCheckingAuth(false);
+      }
+    };
+    checkAuthentication();
+  }, [router]);
+
+
 
   // Proper password validation for EVERYONE
   const validatePassword = (password) => {
@@ -45,6 +97,7 @@ export default function Login() {
 
     // Clear error when user starts typing
     if (error) setError("")
+    if (errorCode) setErrorCode("")
   }
 
   const handleSubmit = async (e) => {
@@ -56,6 +109,7 @@ export default function Login() {
     const passwordError = validatePassword(formData.password)
     if (passwordError) {
       setError(passwordError)
+      setErrorCode("")
       setLoading(false)
       return
     }
@@ -79,19 +133,41 @@ export default function Login() {
       if (data.success) {
         console.log("Login successful!")
         console.log("User role:", data.user.role)
-        console.log("Redirecting to:", data.redirectUrl)
-        // Redirect to home page immediately
-        window.location.href = data.redirectUrl || "/"
+        const destination = (callbackUrl && callbackUrl.startsWith("/"))
+          ? callbackUrl
+          : (data.redirectUrl || "/")
+        console.log("Redirecting to:", destination)
+        window.location.href = destination
       } else {
         setError(data.message)
+        setErrorCode(data.errorCode || "")
       }
     } catch (error) {
       console.error("Network error:", error)
       setError("Network error. Please check your connection.")
+      setErrorCode("")
     } finally {
       setLoading(false)
     }
   }
+
+
+  // Show checking auth state
+  if (checkingAuth) {
+    return (
+      <div className="page">
+        <main className="w-full">
+          <div className="LoginPage">
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+              <span className="text-gray-600 text-lg font-medium">Checking authentication...</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
 
   return (
     <div className="page">
@@ -107,7 +183,9 @@ export default function Login() {
               {/* Error Message */}
               {error && (
                 <div className="error-message">
+                  {/* Display login error message */}
                   {error}
+                  {errorCode === "user-not-found" && <div className="mt-2"></div>}
                 </div>
               )}
 
