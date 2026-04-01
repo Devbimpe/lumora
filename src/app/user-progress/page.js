@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function UserProgressPage() {
   const [modules, setModules] = useState([]); // All modules
@@ -11,6 +12,9 @@ export default function UserProgressPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null); // module that opens the popup
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const checkAuthStatus = async () => {
     try {
@@ -65,6 +69,25 @@ export default function UserProgressPage() {
   }
 }, [user?.id]);
 
+useEffect(() => {
+  const modId = searchParams.get("modId");
+  if (!modId || modules.length === 0) return;
+
+  const getId = (m) => m.ModuleID ?? m.moduleId;
+  const match = modules.find((m) => String(getId(m)) === modId);
+  if (!match) return;
+
+  const progress = moduleProgress.find((p) => p.moduleId === getId(match));
+  setSelectedModule(
+    progress
+      ? { ...match, ...progress }
+      : { ...match, percentage: 0, isCompleted: false }
+  );
+
+  // Clean the URL without triggering a navigation/re-render
+  router.replace("/user-progress");
+}, [modules, moduleProgress]);
+
 const modulesMap = modules.reduce((acc, mod) => {
   acc[mod.ModuleID] = mod;
   return acc;
@@ -74,6 +97,7 @@ const modulesMap = modules.reduce((acc, mod) => {
 const enrichedProgress = moduleProgress.map((p) => ({
   ...p,
   Heading: modulesMap[p.moduleId]?.Heading ?? "Untitled Module",
+  percentage: p.isCompleted ? 100 : p.percentage,
 }));
 
   const progressModuleIds = new Set(moduleProgress.map((p) => p.moduleId));
