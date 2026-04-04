@@ -35,7 +35,6 @@ export default function UserProgressPage() {
       const res = await fetch("/api/modules");
       const data = await res.json();
       setModules(data);
-      console.log("Modules", data)
       return data;
     } catch (err) {
       console.error("Failed to fetch modules:", err);
@@ -49,7 +48,6 @@ export default function UserProgressPage() {
       const data = await response.json();
       if(Array.isArray(data)) {
         setModuleProgress(data);
-        console.log("User-Progress", data);
       }
     } catch (error) {
       console.error("Progress fetch failed:", error);
@@ -344,86 +342,117 @@ const filteredModules = baseList.filter((mod) => {
                 </p>
               )}
 
-              {/* Overall score banner */}
-              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-6">
-                <div>
-                  <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-0.5">Overall Score</p>
-                  <p className="text-3xl font-bold text-green-700">78%</p>
-                </div>
-              </div>
+              {selectedModule.isCompleted ? (
+                (() => {
+                  const submissions = selectedModule.knowledgeCheckSubmissions
+                    ? Object.values(selectedModule.knowledgeCheckSubmissions)
+                    : [];
 
-              {/* Knowledge Check Scores */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                  Knowledge Checks
-                </h3>
-                <div className="flex flex-col gap-2">
-                  {[
-                    { label: "Knowledge Check 1", score: 0, total: 1 },
-                    { label: "Knowledge Check 2", score: 0, total: 1 },
-                    { label: "Knowledge Check 3", score: 1, total: 1 },
-                  ].map((check, i) => {
-                    const pct = Math.round((check.score / check.total) * 100);
-                    const barColor = pct === 100 ? "bg-green-500" : pct >= 60 ? "bg-orange-400" : "bg-red-400";
-                    return (
-                      <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="text-sm text-slate-700 font-medium">{check.label}</p>
-                          <span className="text-sm font-bold text-slate-800">{check.score}/{check.total}</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                  const overallScore =
+                    submissions.length === 0
+                      ? 100
+                      : Math.round(
+                          (submissions.reduce((sum, s) => sum + (s.grade ?? 0), 0) /
+                            submissions.length)
+                        );
+
+                  const scoreBg =
+                    overallScore === 100
+                      ? "bg-green-50 border-green-200"
+                      : overallScore >= 60
+                      ? "bg-orange-50 border-orange-200"
+                      : "bg-red-50 border-red-200";
+
+                  const scoreLabelColor =
+                    overallScore === 100
+                      ? "text-green-600"
+                      : overallScore >= 60
+                      ? "text-orange-500"
+                      : "text-red-500";
+
+                  return (
+                    <>
+                      {/* Overall score banner */}
+                      <div className={`flex items-center justify-between border rounded-xl px-5 py-4 mb-6 ${scoreBg}`}>
+                        <div>
+                          <p className={`text-xs font-medium uppercase tracking-wide mb-0.5 ${scoreLabelColor}`}> Overall Score </p>
+                          <p className="text-2xl font-bold">{overallScore}%</p>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      {/* Knowledge Check Scores */}
+                      {submissions.length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="text-sm font-semibold text-slate-700 mb-3">Knowledge Checks: ( {submissions.length} submission )</h3>
+                          <div className="flex flex-col gap-2">
+                            {submissions.map((sub, i) => {
+                              const pct = Math.round((sub.grade ?? 0));
+                              const barColor =
+                                pct === 100 ? "bg-green-500" : pct >= 60 ? "bg-orange-400" : "bg-red-400";
+                              return (
+                                <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <p className="text-sm text-slate-700 font-medium">Knowledge Check {i + 1}</p>
+                                    <span className="text-sm font-bold text-slate-800">{sub.grade ?? 0}/100</span>
+                                  </div>
+                                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Free-text Feedback */}
+                      {submissions.length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="text-sm font-semibold text-slate-700 mb-3">Free-text Feedback</h3>
+                          <div className="flex flex-col gap-3">
+                            {submissions.map((sub, i) => {
+                              const isCorrect = (sub.grade ?? 0) === 1;
+                              return (
+                                <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                    Submission {i + 1}
+                                  </p>
+                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                                    Your Answer
+                                  </p>
+                                  <p className="text-sm text-slate-500 italic mb-3">"{sub.userAnswer}"</p>
+                                  {!isCorrect && sub.feedback && (
+                                    <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm">
+                                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                        Feedback
+                                      </p>
+                                      <p className="text-sm text-slate-700">{sub.feedback}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No submissions */}
+                      {submissions.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-8 text-slate-400 mb-6">
+                          <p className="text-sm font-medium">No knowledge checks recorded.</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              ) : (
+                // Module not yet completed
+                <div className="flex flex-col items-center justify-center py-12 text-slate-400 mb-6">
+                  <p className="text-base font-medium text-slate-500">Complete the module first</p>
+                  <p className="text-sm mt-1">Your results will appear here once you finish.</p>
                 </div>
-              </div>
-
-              {/* Free-text Feedback */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                  Free-text Feedback
-                </h3>
-                <div className="flex flex-col gap-3">
-                  {[
-                    {
-                      question: "What is team velocity?",
-                      answer: "It is the speed of each individual developer",
-                      feedback: "It is the amount of work a team completes during a sprint, usually measured in story points",
-                    },
-                    {
-                      question: "What is a sprint in Agile?",
-                      answer: "It is a long-term project phase",
-                      feedback: "It is a short, fixed time period (usually 1-4 weeks) where a team completes specific work",
-                    },
-                    {
-                      question: "What is a daily stand-up?",
-                      answer: "It is a short daily meeting where the team shares progress, plans, and blockers",
-                      feedback: "It is a short daily meeting where the team shares progress, plans, and blockers",
-                    },
-                  ].map((item, i) => {
-                    return (
-                      <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Question {i + 1}</p>
-                        <p className="text-sm text-slate-700 mb-2">{item.question}</p>
-
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Your Answer</p>
-                        <p className="text-sm text-slate-500 italic mb-3">"{item.answer}"</p>
-
-                       {item.answer === item.feedback ? null : (
-                          <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm">
-                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Feedback</p>
-                            <p className="text-sm text-slate-700">{item.feedback}</p>
-                          </div>) }
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
+              )}
             </div>
-
             {/* Sticky action buttons */}
             <div className="border-t border-slate-100 px-7 py-5 flex flex-col gap-3 bg-white rounded-b-2xl">
               <p className="text-sm font-medium text-slate-600">What would you like to do?</p>
