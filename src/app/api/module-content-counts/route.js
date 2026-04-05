@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllModules, getContentByModuleId, getKnowledgeChecksByModuleId } from '@db/db.js';
+import { getAllModules, getContentByModuleId, getKnowledgeChecksByModuleId } from '@db/admin-db.js';
 
 export async function GET(request) {
   try {

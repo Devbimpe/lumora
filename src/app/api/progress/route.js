@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@db/db.js';
+import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@db/admin-db.js';
+import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
 
 // GET: Retrieve user progress
 export async function GET(request) {
@@ -14,6 +15,9 @@ export async function GET(request) {
         { status: 400 }
       );
     }
+
+    const session = await SecurityHelper.verifyOwnership(request, userId);
+    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
 
     if (moduleId) {
       // Get progress for specific module
@@ -59,6 +63,9 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    const session = await SecurityHelper.verifyOwnership(request, userId);
+    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
 
     let result;
 

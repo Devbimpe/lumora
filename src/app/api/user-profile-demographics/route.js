@@ -1,4 +1,5 @@
-import { getUserById, updateUser } from "@db/db.js";
+import { getUserById, updateUser } from "@db/admin-db.js";
+import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
 
 // GET method – returns existing demographic data for the user
 export async function GET(request) {
@@ -12,6 +13,9 @@ export async function GET(request) {
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    const session = await SecurityHelper.verifyOwnership(request, userId);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
 
     const user = await getUserById(userId);
 
@@ -51,6 +55,9 @@ export async function POST(request) {
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    const session = await SecurityHelper.verifyOwnership(request, userId);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
 
     await updateUser(userId, {
       demographics: {

@@ -1,6 +1,6 @@
 // Sample code for the API route to fetch users from the database:
 // TODO: This is a demo function for the backend. This should be removed once other backend functions get added to /src/app/api'
-import { getAllUsers } from '@db/db.js';
+import { getAllUsers } from '@db/admin-db.js';
 
 export async function GET() {
   try {

@@ -1,13 +1,7 @@
-// Import database functions
-import { getUserByEmail, getUserByUsername, createUser } from '@db/db.js';
-// Import Firebase Auth functions
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@db/firebase.js';
-// Import nodemailer for sending custom activation emails
+import { adminAuth } from '@/firebaseAdmin.js';
+import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
-// Import crypto for generating secure random tokens
 import crypto from 'crypto';
-import { Timestamp } from 'firebase/firestore';
 import { getAppOrigin } from "@/src/app/lib/app-origin.js";
 
 // POST handler: Handles user signup
@@ -22,33 +16,40 @@ export async function POST(req) {
       return Response.json({ error: 'All fields are required.' }, { status: 400 });
     }
 
-    // Check if a user with the provided username already exists in Firestore
-    const existingByUsername = await getUserByUsername(userName);
+    const db = admin.firestore();
+    const usersRef = db.collection('users');
 
-    if (existingByUsername) {
+    // Securely check if a user with the provided username already exists in Firestore
+    const existingByUsernameSnapshot = await usersRef.where('username', '==', userName).limit(1).get();
+
+    if (!existingByUsernameSnapshot.empty) {
       return Response.json({ error: 'Username already exists.' }, { status: 400 });
     }
 
-    // Create Firebase Auth user
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
+    // Securely create Firebase Auth user using Admin SDK
+    const userRecord = await adminAuth.createUser({
+      email: email,
+      password: password,
+      displayName: name,
+    });
 
     // Generate a random activation token for our custom flow (48 bytes, hex-encoded)
     const activationToken = crypto.randomBytes(48).toString('hex');
     // Set token expiration to 30 minutes from now
-    const expires = Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000));
+    const expires = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000));
 
-    // Create the user document in Firestore with our custom fields
-    await createUser({
-      firebaseUid: firebaseUser.uid, // Link to Firebase Auth user
+    // Securely create the user document in Firestore, bypassing standard security rules
+    await usersRef.add({
+      firebaseUid: userRecord.uid, // Link to Firebase Auth user
       name: name,
       username: userName,
       email: email,
+      role: 'Student',
+      percentModulesCompleted: 0,
       isActivated: false, // We'll set this to true after email verification
       activationToken: activationToken,
       activationTokenExpires: expires,
-      role: 'Student',
-      percentModulesCompleted: 0
+      createdAt: admin.firestore.Timestamp.now()
     });
 
     // Configure nodemailer transporter for sending emails via Gmail
@@ -98,8 +99,21 @@ export async function POST(req) {
 
   } catch (err) {
     // Log any errors during the signup process
-    console.error(err);
-    // Return generic error response for the client
-    return Response.json({ error: 'Server error.' }, { status: 500 });
+    console.error('Signup error:', err);
+    
+    // Pass user-friendly Firebase Auth errors to the frontend (Admin SDK error codes)
+    if (err.code === 'auth/email-already-exists' || err.code === 'auth/email-already-in-use') {
+      return Response.json({ error: 'This email address is already registered.' }, { status: 400 });
+    }
+    if (err.code === 'auth/invalid-password') {
+      return Response.json({ error: 'Password should be at least 6 characters.' }, { status: 400 });
+    }
+    if (err.code === 'auth/invalid-email') {
+      return Response.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+    }
+
+    // Return the specific error message to the client (to avoid swallowing useful errors)
+    const errorMessage = err.message || 'Server error.';
+    return Response.json({ error: errorMessage }, { status: 500 });
   }
 }

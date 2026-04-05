@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAllUsers } from "@db/db.js";
+import { getAllUsers } from "@db/admin-db.js";
+import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
 
 // Retrieves all users from the database
 // Returns a JSON response with user data
@@ -47,7 +48,7 @@ async function deleteUser(userId) {
     console.log(`🗑️ Starting deletion for user ID: ${userId}`);
 
     // This function handles deletion of user and related submissions
-    await (await import("@db/db.js")).deleteUser(userId);
+    await (await import("@db/admin-db.js")).deleteUser(userId);
 
     console.log(`User ${userId} deleted successfully`);
     return { success: true };
@@ -68,7 +69,7 @@ async function deleteUser(userId) {
 // Expects a user ID and new activation status (boolean)
 async function toggleUserActivation(userId, newStatus) {
   try {
-    const { getUserById, updateUser } = await import("@db/db.js");
+    const { getUserById, updateUser } = await import("@db/admin-db.js");
 
     // Check if user exists
     const user = await getUserById(userId);
@@ -86,8 +87,11 @@ async function toggleUserActivation(userId, newStatus) {
 }
 
 // GET handler: Retrieves all users
-export async function GET() {
+export async function GET(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     return await getUsers();
   } catch (error) {
     console.error('API error:', error);
@@ -102,6 +106,9 @@ export async function GET() {
 // Expects a JSON body with an 'id' field
 export async function DELETE(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     const { id } = await req.json();
 
     if (!id) {
@@ -124,6 +131,9 @@ export async function DELETE(req) {
 // Expects a JSON body with 'userId' and 'isActivated' fields
 export async function PUT(req) {
   try {
+    const session = await SecurityHelper.verifyAdmin(req);
+    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+
     const { userId, isActivated } = await req.json();
 
     if (!userId || isActivated === undefined) {

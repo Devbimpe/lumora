@@ -1,4 +1,4 @@
-import { getUserByFirebaseUid, updateUser } from "@db/db.js"
+import { getUserByFirebaseUid, updateUser } from "@db/admin-db.js"
 import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth } from "@db/firebase.js"
 import { adminAuth } from "../../../../firebaseAdmin.js"
