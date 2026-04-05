@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback } from '@db/db.js';
+import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@db/db.js';
 
 // GET: Retrieve user progress
 export async function GET(request) {
@@ -100,10 +100,20 @@ export async function POST(request) {
           feedback: feedback ?? ''
         });
         break;
+
+      case 'resetUserProgress':
+        if (!moduleId) {
+          return NextResponse.json(
+            { error: 'moduleId is required for resetUserProgress action' },
+            { status: 400 }
+          );
+        }
+        result = await resetUserModuleProgress(userId, moduleId);
+        break;
       
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Use: view, complete, completeModule, or saveKnowledgeCheckFeedback' },
+          { error: 'Invalid action. Use: view, complete, completeModule, saveKnowledgeCheckFeedback or resetUserProgress' },
           { status: 400 }
         );
     }

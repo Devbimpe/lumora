@@ -752,10 +752,13 @@ function ModulePageContent() {
               
               {isLastItem ? (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (currentItem.type === 'content') {
-                      trackModuleCompletion();
+                      await trackModuleCompletion();
                     }
+                    setTimeout(() => {
+                      router.push(`/user-progress?modId=${moduleId.replace('module', '')}`);
+                    }, 1000)
                   }}
                   className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
                 >

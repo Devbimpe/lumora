@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function UserProgressPage() {
@@ -12,6 +12,7 @@ export default function UserProgressPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null); // module that opens the popup
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function UserProgressPage() {
     try {
       const res = await fetch("/api/modules");
       const data = await res.json();
+      console.log("Modules", data);
       setModules(data);
       return data;
     } catch (err) {
@@ -46,6 +48,7 @@ export default function UserProgressPage() {
     try {
       const response = await fetch(`/api/progress?userId=${user?.id}`);
       const data = await response.json();
+      console.log("Progress", data);
       if(Array.isArray(data)) {
         setModuleProgress(data);
       }
@@ -53,6 +56,7 @@ export default function UserProgressPage() {
       console.error("Progress fetch failed:", error);
     } finally {
       setLoading(false);
+      setProgressLoaded(true);
     }
   };
 
@@ -69,7 +73,7 @@ export default function UserProgressPage() {
 
 useEffect(() => {
   const modId = searchParams.get("modId");
-  if (!modId || modules.length === 0) return;
+  if (!modId || modules.length === 0 || !progressLoaded) return; // ← gate on progressLoaded
 
   const getId = (m) => m.ModuleID ?? m.moduleId;
   const match = modules.find((m) => String(getId(m)) === modId);
@@ -82,9 +86,8 @@ useEffect(() => {
       : { ...match, percentage: 0, isCompleted: false }
   );
 
-  // Clean the URL without triggering a navigation/re-render
   router.replace("/user-progress");
-}, [modules, moduleProgress]);
+}, [modules, moduleProgress, progressLoaded]);
 
 const modulesMap = modules.reduce((acc, mod) => {
   acc[mod.ModuleID] = mod;
@@ -98,7 +101,7 @@ const enrichedProgress = moduleProgress.map((p) => ({
   percentage: p.isCompleted ? 100 : p.percentage,
 }));
 
-  const progressModuleIds = new Set(moduleProgress.map((p) => p.moduleId));
+const progressModuleIds = new Set(moduleProgress.map((p) => p.moduleId));
 
 const notStartedModules = modules
   .filter((mod) => !progressModuleIds.has(mod.ModuleID))
@@ -143,6 +146,29 @@ const filteredModules = baseList.filter((mod) => {
       dot: "bg-slate-400",
     },
   };
+
+  const resetUserProgress = useCallback(async () => {
+  if (!user || !selectedModule) return;
+
+  const moduleId = selectedModule.ModuleID ?? selectedModule.moduleId;
+
+  try {
+    await fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        moduleId,
+        action: 'resetUserProgress'
+      })
+    });
+
+    router.push(`/modules/module${moduleId}?item=check-1`);
+    setSelectedModule(null);
+  } catch (error) {
+    console.error('Failed to reset user progress:', error);
+  }
+}, [user, selectedModule, router]);
 
   const getStatus = (mod) => {
     if (mod.isCompleted) return statusConfig.complete;
@@ -458,10 +484,7 @@ const filteredModules = baseList.filter((mod) => {
               <p className="text-sm font-medium text-slate-600">What would you like to do?</p>
 
               <button
-                onClick={() => {
-                  router.push(`/modules/module${selectedModule.ModuleID ?? selectedModule.moduleId}?item=check-1`);
-                  setSelectedModule(null);
-                }}
+                onClick={resetUserProgress}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-700 font-medium text-sm hover:bg-orange-100 transition cursor-pointer"
               >
                 Re-attempt this module
