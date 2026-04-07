@@ -1026,6 +1026,31 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
 }
 
 /**
+ * Reset user progress for a module
+ */
+export async function resetUserModuleProgress(userId, moduleId) {
+  const moduleIdNum = parseInt(moduleId);
+  const progressDocId = `${userId}_${moduleIdNum}`;
+  const progressDocRef = doc(db, COLLECTIONS.USER_PROGRESS, progressDocId);
+
+  const resetPayload = {
+    userId,
+    moduleId: moduleIdNum,
+    completedContent: [],
+    knowledgeCheckSubmissions: {},
+    lastCompletedAt: null,
+    lastCompletedContentId: null,
+    percentage: 0,
+    viewedContent: [],
+    updatedAt: Timestamp.now(),
+  };
+
+  await setDoc(progressDocRef, resetPayload); // No merge — full overwrite
+
+  return progressDocId;
+}
+
+/**
  * Calculate progress percentage for a module
  * Based on total items (content pages + knowledge checks) viewed
  */
@@ -1219,6 +1244,7 @@ export default {
   getUserProgress,
   getUserModuleProgress,
   updateUserModuleProgress,
+  resetUserModuleProgress,
   markContentViewed,
   markContentCompleted,
   updateModulePublished,
