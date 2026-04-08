@@ -162,8 +162,7 @@ const filteredModules = baseList.filter((mod) => {
         action: 'resetUserProgress'
       })
     });
-
-    router.push(`/modules/module${moduleId}?item=check-1`);
+    router.push(`/modules/module${moduleId}`);
     setSelectedModule(null);
   } catch (error) {
     console.error('Failed to reset user progress:', error);
