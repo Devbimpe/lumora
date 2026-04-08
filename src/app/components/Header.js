@@ -114,6 +114,15 @@ export function Header() {
               </Link>
             )}
 
+            {user && ( 
+              <Link 
+                href="/user-progress" 
+                className="text-gray-700 hover:text-green-600 font-medium transition-colors"
+              >
+                Module Progress
+              </Link>
+            )}
+
             {user && user.role === "Admin" && (
               <Link 
                 href="/admin" 
@@ -169,6 +178,16 @@ export function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Training Modules
+              </Link>
+            )}
+
+            {user && ( 
+              <Link 
+                href="/user-progress" 
+                className="block text-gray-700 hover:text-green-600 font-medium transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Module Progress
               </Link>
             )}
 
