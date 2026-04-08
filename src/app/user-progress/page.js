@@ -288,11 +288,13 @@ const filteredModules = baseList.filter((mod) => {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {filteredModules.map((mod) => {
+            {filteredModules.map((mod, index) => {
               const { label, badge, dot } = getStatus(mod);
+              const moduleKey =
+                mod.ModuleID ?? mod.moduleId ?? mod.id ?? `module-${index}`;
               return (
                 <button
-                  key={mod.ModuleID}
+                  key={String(moduleKey)}
                   onClick={() => setSelectedModule(mod)}
                   className="w-full text-left bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm hover:shadow-md hover:border-green-300 transition-all duration-150 group cursor-pointer"
                 >
