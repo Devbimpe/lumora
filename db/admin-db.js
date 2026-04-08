@@ -128,6 +128,40 @@ export async function getUserByActivationToken(token) {
 }
 
 /**
+ * Get user by password reset token (validates token is not expired)
+ */
+export async function getUserByResetToken(token) {
+  const usersRef = collection(db, COLLECTIONS.USERS);
+  const q = query(
+    usersRef,
+    where('resetToken', '==', token)
+  );
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    return null;
+  }
+
+  const userDoc = querySnapshot.docs[0];
+  const userData = userDoc.data();
+
+  // Validate expiry — resetTokenExpires is stored as a Firestore Timestamp
+  const expires = userData.resetTokenExpires;
+  if (!expires) return null;
+
+  // Handle both Firestore Timestamp objects and raw millisecond numbers
+  const expiresMs = typeof expires.toMillis === 'function'
+    ? expires.toMillis()
+    : Number(expires);
+
+  if (Date.now() > expiresMs) {
+    return null; // Token has expired
+  }
+
+  return { id: userDoc.id, ...userData };
+}
+
+/**
  * Get all users
  */
 export async function getAllUsers() {
