@@ -119,7 +119,7 @@ export function Header() {
                 href="/user-progress" 
                 className="text-gray-700 hover:text-green-600 font-medium transition-colors"
               >
-                Modue Progress
+                Module Progress
               </Link>
             )}
 
