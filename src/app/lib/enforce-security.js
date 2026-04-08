@@ -47,7 +47,12 @@ export class SecurityHelper {
 
     if (session.user.role === 'Admin') return session; // Admins bypass ownership check
 
-    if (session.user.userId !== targetUserId && session.user.firebaseUid !== targetUserId) {
+    // Normalize IDs to strings because route params/query values are strings.
+    const requestedId = String(targetUserId);
+    const tokenUserId = session.user.userId != null ? String(session.user.userId) : null;
+    const tokenFirebaseUid = session.user.firebaseUid != null ? String(session.user.firebaseUid) : null;
+
+    if (tokenUserId !== requestedId && tokenFirebaseUid !== requestedId) {
       return { valid: false, error: "Unauthorized operation on target user." };
     }
 
