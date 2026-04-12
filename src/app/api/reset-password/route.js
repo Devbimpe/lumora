@@ -1,36 +1,63 @@
-import bcrypt from "bcrypt"
 import { NextResponse } from "next/server"
-import { getAllUsers, updateUser } from "../../../../db/db.js"
-import { adminAuth } from "../../../../firebaseAdmin.js"
+import admin from "firebase-admin"
+import { getUserByResetToken, updateUser } from "../../../../db/admin-db.js"
+import "@/firebaseAdmin.js" // Ensure Firebase Admin is initialized
 
 export async function POST(req) {
-  const { token, password } = await req.json()
-
-  if (!token || !password) {
-    return NextResponse.json({ success: false, message: "Token and password required" })
-  }
-
-  const users = await getAllUsers()
-  const user = users.find(u => u.resetToken === token && u.resetTokenExpires > Date.now())
-
-  if (!user) {
-    return NextResponse.json({ success: false, message: "Invalid or expired token" })
-  }
-
   try {
-    await adminAuth.updateUser(user.firebaseUid, { password })
+    const { token, password } = await req.json()
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    if (!token || !password) {
+      return NextResponse.json(
+        { success: false, message: "Token and password are required." },
+        { status: 400 }
+      )
+    }
 
+    if (password.length < 6) {
+      return NextResponse.json(
+        { success: false, message: "Password must be at least 6 characters." },
+        { status: 400 }
+      )
+    }
+
+    // Look up the user by reset token only — no full user scan.
+    // getUserByResetToken checks that the token matches AND has not expired.
+    const user = await getUserByResetToken(token)
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "This reset link is invalid or has expired. Please request a new one." },
+        { status: 400 }
+      )
+    }
+
+    // Update the password in Firebase Auth via Admin SDK (privileged — cannot be spoofed by curl)
+    await admin.auth().updateUser(user.firebaseUid, { password })
+
+    // Invalidate the reset token so it cannot be reused
     await updateUser(user.id, {
-      password: hashedPassword,
       resetToken: null,
-      resetTokenExpires: null
+      resetTokenExpires: null,
     })
 
-    return NextResponse.json({ success: true, message: "Password successfully reset" })
+    return NextResponse.json(
+      { success: true, message: "Password successfully reset. You can now log in." },
+      { status: 200 }
+    )
+
   } catch (err) {
-    console.error("Reset password error:", err)
-    return NextResponse.json({ success: false, message: "Failed to reset password" })
+    console.error("Reset-password error:", err)
+
+    if (err.code === "auth/invalid-password") {
+      return NextResponse.json(
+        { success: false, message: "Password must be at least 6 characters." },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { success: false, message: "Failed to reset password. Please try again." },
+      { status: 500 }
+    )
   }
 }
