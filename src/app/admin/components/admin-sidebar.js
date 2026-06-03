@@ -134,6 +134,7 @@ export default function Sidebar() {
     { id: 'feedback', label: 'Feedback', path: '/admin/feedback' },
     { id: 'progress', label: 'Module Progress', path: '/admin/module-progress' },
     { id: 'management', label: 'Module Management', path: '/admin/module-management' },
+    { id: 'training-module', label: 'Training Module', path: '/training-module' },
   ];
 
   const getActiveSection = () => {
@@ -142,6 +143,7 @@ export default function Sidebar() {
     if (pathname.includes('feedback')) return 'feedback';
     if (pathname.includes('module-progress')) return 'progress';
     if (pathname.includes('module-management') || pathname.includes('content')) return 'management';
+    if (pathname.includes('training-module')) return 'training-module';
     return 'dashboard';
   };
 
@@ -492,13 +494,6 @@ export default function Sidebar() {
               ))}
             </nav>
             <div className="p-4 space-y-2 border-t border-gray-200">
-              <Link
-                href="/training-module"
-                onClick={closeMobileMenu}
-                className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-all duration-200 text-sm"
-              >
-                Training Module
-              </Link>
               <button
                 onClick={() => {
                   closeMobileMenu();
@@ -546,12 +541,6 @@ export default function Sidebar() {
 
         {/* Bottom Actions */}
         <div className="p-4 space-y-2 border-t border-gray-200">
-          <Link
-            href="/training-module"
-            className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-all duration-200 text-sm"
-          >
-            Training Module
-          </Link>
           <button
             onClick={handleLogout}
             className="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 text-sm"
