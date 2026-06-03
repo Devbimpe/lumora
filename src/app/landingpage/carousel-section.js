@@ -126,7 +126,7 @@ export default function CarouselSection() {
               {slides.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentSlide(index)}
+                  onClick={() => handleSlideChange(index)}
                   className={`h-2 rounded-full transition-all duration-300 ${
                     index === currentSlide
                       ? "w-10 bg-green-800 shadow-lg"
