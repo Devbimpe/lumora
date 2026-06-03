@@ -61,7 +61,7 @@ export function Header() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
             <Link 
-              href="/" 
+              href="/#top" 
               className="text-gray-700 hover:text-green-600 font-medium transition-colors"
             >
               Home
@@ -126,7 +126,7 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden mt-4 pb-4 border-t border-gray-100 pt-4 space-y-3">
             <Link 
-              href="/" 
+              href="/#top" 
               className="block text-gray-700 hover:text-green-600 font-medium transition-colors py-2"
               onClick={() => setMobileMenuOpen(false)}
             >
