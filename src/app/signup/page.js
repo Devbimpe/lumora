@@ -97,6 +97,9 @@ export default function Page() {
       if (res.ok) {
         setSuccess(data.message);
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
+        setTimeout(() => {
+          router.push('/login');
+          }, 3000);
       } else {
         setError(data.error || 'Signup failed.');
       }
