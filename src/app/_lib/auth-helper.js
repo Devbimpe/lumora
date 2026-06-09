@@ -65,3 +65,9 @@ export function mapAuthError(err, errorMap) {
   if (key) return AUTH_ERROR_MESSAGES[key];
   return err.message || 'An unexpected error occurred.';
 }
+
+// Keep in sync with Firebase Auth policy!
+/** @param {string} password  */
+export function validatePasswordPolicy(password) {
+  return password.length >= 8 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).*$/m.test(password);
+}

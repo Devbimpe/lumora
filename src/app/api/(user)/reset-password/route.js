@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getUserByResetToken, updateUser, updateUserAccount } from "@/app/_db/admin-db.js"
 import { badRequestError, definePublicRoute, validateJsonBody } from "@/app/_lib/route";
-import { mapAuthError, serverAuthErrorMap } from "@/app/_lib/auth-errors";
+import { mapAuthError, serverAuthErrorMap } from "@/app/_lib/auth-helper";
 
 export const POST = definePublicRoute(async (req) => {
   try {

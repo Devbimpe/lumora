@@ -4,7 +4,7 @@ import {
   validateJsonBody,
 } from '@/app/_lib/route';
 import { createUserAccount, createUserDoc } from '@/app/_db/admin-db';
-import { mapAuthError, serverAuthErrorMap } from '@/app/_lib/auth-errors';
+import { mapAuthError, serverAuthErrorMap } from '@/app/_lib/auth-helper';
 import { sendEmailVerification } from '@/app/api/(user)/email-verification';
 
 // POST handler: Handles user signup

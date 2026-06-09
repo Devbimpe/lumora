@@ -8,7 +8,7 @@ import "./login.css"
 import { useAuth } from "@/app/components/AuthProvider"
 import { api } from "@/app/_lib/api-client"
 import { isHTTPError } from "ky"
-import { mapAuthError, clientAuthErrorMap } from "@/app/_lib/auth-errors"
+import { mapAuthError, clientAuthErrorMap, validatePasswordPolicy } from "@/app/_lib/auth-helper"
 
 export default function Login() {
   return (
@@ -61,28 +61,6 @@ function LoginInner() {
     checkRedirect()
   }, [router, checkingAuth, currentUser]);
 
-
-
-  // Proper password validation for EVERYONE
-  const validatePassword = (password) => {
-    if (password.length < 8) {
-      return "Password must be at least 8 characters long"
-    }
-    if (!/[A-Z]/.test(password)) {
-      return "Password must contain at least one uppercase letter"
-    }
-    if (!/[a-z]/.test(password)) {
-      return "Password must contain at least one lowercase letter"
-    }
-    if (!/[0-9]/.test(password)) {
-      return "Password must contain at least one number"
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      return "Password must contain at least one special character"
-    }
-    return null
-  }
-
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -99,10 +77,8 @@ function LoginInner() {
     setLoading(true)
     setError("")
 
-    // Validate password for EVERYONE - no exceptions
-    const passwordError = validatePassword(formData.password)
-    if (passwordError) {
-      setError(passwordError)
+    if (!validatePasswordPolicy(formData.password)) {
+      setError("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.")
       setLoading(false)
       return
     }
