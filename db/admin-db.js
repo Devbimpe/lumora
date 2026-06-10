@@ -412,52 +412,7 @@ export async function deleteModule(moduleId) {
  * Example: If modules are 1, 3, 4 -> becomes 1, 2, 3
  */
 async function reindexModules() {
-  // Get all modules sorted by their current number
-  const modules = await getAllModules();
-
-  for (let i = 0; i < modules.length; i++) {
-    const correctNumber = i + 1;
-    const currentNumber = modules[i].moduleId;
-
-    // Skip if already correct
-    if (currentNumber === correctNumber) {
-      continue;
-    }
-
-    // Update module number
-    const moduleRef = doc(db, COLLECTIONS.MODULES, modules[i].id);
-    await updateDoc(moduleRef, { moduleId: correctNumber });
-
-    // Update content that references this module
-    const contentRef = collection(db, COLLECTIONS.CONTENT);
-    const contentDocs = await getDocs(query(contentRef, where('moduleId', '==', currentNumber)));
-    for (const contentDoc of contentDocs.docs) {
-      await updateDoc(contentDoc.ref, { moduleId: correctNumber });
-    }
-
-    // Update user progress that references this module (rename doc IDs too)
-    const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-    const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', currentNumber)));
-    for (const progressDoc of progressDocs.docs) {
-      const data = progressDoc.data();
-      const newDocId = `${data.userId}_${correctNumber}`;
-
-      if (progressDoc.id !== newDocId) {
-        const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, newDocId);
-        await setDoc(newDocRef, { ...data, moduleId: correctNumber }, { merge: true });
-        await deleteDoc(progressDoc.ref);
-      } else {
-        await updateDoc(progressDoc.ref, { moduleId: correctNumber });
-      }
-    }
-
-    // Update knowledge checks (note: uses moduleID with capital ID)
-    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-    const checksDocs = await getDocs(query(checksRef, where('moduleID', '==', currentNumber)));
-    for (const checkDoc of checksDocs.docs) {
-      await updateDoc(checkDoc.ref, { moduleID: correctNumber });
-    }
-  }
+  throw new Error("to be reworked")
 }
 
 /**
@@ -471,97 +426,7 @@ async function reindexModules() {
  * content, and knowledge checks in one batch.
  */
 export async function reorderModules(newOrder) {
-  // Build a map: oldModuleId -> newModuleId
-  // e.g. newOrder = [3, 1, 2] means: 3->1, 1->2, 2->3
-  const idMap = {};
-  for (let i = 0; i < newOrder.length; i++) {
-    idMap[newOrder[i]] = i + 1;
-  }
-
-  // Fetch everything we need in parallel (4 reads at once)
-  const [moduleDocs, contentDocs, progressDocs, checksDocs] = await Promise.all([
-    getDocs(collection(db, COLLECTIONS.MODULES)),
-    getDocs(collection(db, COLLECTIONS.CONTENT)),
-    getDocs(collection(db, COLLECTIONS.USER_PROGRESS)),
-    getDocs(collection(db, COLLECTIONS.KNOWLEDGE_CHECKS)),
-  ]);
-
-  // --- Phase 1: move each progress doc to a unique staging id (per user + old module id) ---
-  const stagingEntries = [];
-  {
-    let batch = writeBatch(db);
-    let ops = 0;
-    const maybeCommit = async () => {
-      if (ops >= 400) {
-        await batch.commit();
-        batch = writeBatch(db);
-        ops = 0;
-      }
-    };
-
-    for (const d of progressDocs.docs) {
-      const oldModuleId = d.data().moduleId;
-      if (idMap[oldModuleId] === undefined) continue;
-      const newModuleId = idMap[oldModuleId];
-      const userId = d.data().userId;
-      const stagingRef = doc(db, COLLECTIONS.USER_PROGRESS, `${userId}_stg_${oldModuleId}`);
-      const data = { ...d.data(), moduleId: newModuleId };
-      batch.set(stagingRef, data);
-      batch.delete(d.ref);
-      stagingEntries.push({ stagingRef, userId, newModuleId, data });
-      ops += 2;
-      await maybeCommit();
-    }
-    if (ops > 0) await batch.commit();
-  }
-
-  // --- Phase 2: staging -> final `${userId}_${newModuleId}` ---
-  {
-    let batch = writeBatch(db);
-    let ops = 0;
-    const maybeCommit = async () => {
-      if (ops >= 400) {
-        await batch.commit();
-        batch = writeBatch(db);
-        ops = 0;
-      }
-    };
-
-    for (const e of stagingEntries) {
-      const finalRef = doc(db, COLLECTIONS.USER_PROGRESS, `${e.userId}_${e.newModuleId}`);
-      batch.set(finalRef, e.data);
-      batch.delete(e.stagingRef);
-      ops += 2;
-      await maybeCommit();
-    }
-    if (ops > 0) await batch.commit();
-  }
-
-  // --- Modules, content, knowledge checks (single batch; progress already migrated) ---
-  const batch = writeBatch(db);
-
-  for (const d of moduleDocs.docs) {
-    const oldId = d.data().moduleId;
-    if (idMap[oldId] !== undefined) {
-      batch.update(d.ref, { moduleId: idMap[oldId] });
-    }
-  }
-
-  for (const d of contentDocs.docs) {
-    const oldId = d.data().moduleId;
-    if (idMap[oldId] !== undefined) {
-      batch.update(d.ref, { moduleId: idMap[oldId] });
-    }
-  }
-
-  for (const d of checksDocs.docs) {
-    const oldId = d.data().moduleID;
-    if (idMap[oldId] !== undefined) {
-      batch.update(d.ref, { moduleID: idMap[oldId] });
-    }
-  }
-
-  await batch.commit();
+  throw new Error("to be reworked")
 }
 
 /**
