@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
-import { getUserByEmail, updateUser, Timestamp } from "../../../../db/admin-db.js"
-import { sendResetEmail } from "../../lib/reset-email.js"
+import { getUserByEmail, updateUser } from "@/app/_db/admin-db.js"
+import { sendResetEmail } from "@/app/lib/reset-email.js"
 
 export async function POST(req) {
   try {

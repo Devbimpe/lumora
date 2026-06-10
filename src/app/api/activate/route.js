@@ -1,4 +1,4 @@
-import { getUserByActivationToken, updateUser } from '@db/admin-db.js';
+import { getUserByActivationToken, updateUser } from '@/app/_db/admin-db.js';
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);

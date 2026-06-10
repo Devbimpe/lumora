@@ -1,5 +1,5 @@
-import { getUserById, deleteUser as deleteUserFromDB } from "@db/admin-db.js";
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import { getUserById, deleteUser as deleteUserFromDB } from "@/app/_db/admin-db.js";
+import { SecurityHelper } from "@/app/lib/enforce-security.js";
 import { cookies } from "next/headers";
 import { getAuth } from "firebase-admin/auth";
 

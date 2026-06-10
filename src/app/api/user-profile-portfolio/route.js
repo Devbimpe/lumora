@@ -1,5 +1,5 @@
-import { getUserById, updateUser } from "@db/admin-db.js";
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import { getUserById, updateUser } from "@/app/_db/admin-db.js";
+import { SecurityHelper } from "@/app/lib/enforce-security.js";
 
 // GET method
 export async function GET(request) {

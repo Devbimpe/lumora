@@ -4,7 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import imageHosting from '@/image-hosting/imageHosting.js';
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import { SecurityHelper } from "@/app/lib/enforce-security.js";
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB

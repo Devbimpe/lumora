@@ -1,4 +1,4 @@
-import { getUserByFirebaseUid } from "@db/admin-db.js"
+import { getUserByFirebaseUid } from "@/app/_db/admin-db.js"
 import jwt from "jsonwebtoken"
 
 

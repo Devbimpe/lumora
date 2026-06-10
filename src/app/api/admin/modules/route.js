@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAllModules } from "@db/admin-db.js";
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import { getAllModules } from "@/app/_db/admin-db.js";
+import { SecurityHelper } from "@/app/lib/enforce-security.js";
 
 // Retrieves all modules from the database
 // Returns a JSON response with formatted module data
@@ -44,7 +44,7 @@ async function addModule({ heading, subHeading, faviconURL }) {
   try {
     console.log('📥 Inserting new module...');
 
-    const { createModule } = await import("@db/admin-db.js");
+    const { createModule } = await import("@/app/_db/admin-db.js");
 
     // Create new module in Firestore
     const result = await createModule({ heading, subheading: subHeading, faviconURL});
@@ -69,7 +69,7 @@ async function deleteModule(id) {
     console.log(`🗑️ Starting deletion for module ID: ${id}`);
 
     // This function handles deletion of module and all related data
-    await (await import("@db/admin-db.js")).deleteModule(id);
+    await (await import("@/app/_db/admin-db.js")).deleteModule(id);
 
     console.log(`✅ Module ${id} deleted successfully`);
     return { success: true };
@@ -84,7 +84,7 @@ async function deleteModule(id) {
 // Returns success status and module ID on success
 async function updateModule({ id, heading, subHeading, faviconURL }) {
   try {
-    const dbModule = await import("@db/admin-db.js");
+    const dbModule = await import("@/app/_db/admin-db.js");
 
     await dbModule.updateModule(id, {
       heading,
@@ -104,7 +104,7 @@ async function reorderModulesHandler({ order }) {
   try {
     console.log('Reordering Modules...', order);
 
-    const { reorderModules } = await import("@db/admin-db.js");
+    const { reorderModules } = await import("@/app/_db/admin-db.js");
     await reorderModules(order);
 
     console.log('Modules reordered successfully');
@@ -236,7 +236,7 @@ export async function PATCH(req) {
 
     // Handle publish toggle request
     if (id !== undefined && published !== undefined) {
-      const { updateModulePublished, getContentByModuleId } = await import("@db/admin-db.js");
+      const { updateModulePublished, getContentByModuleId } = await import("@/app/_db/admin-db.js");
 
       // Prevent publishing a module with no content
       if (published === true) {

@@ -4,7 +4,7 @@ import {
   createKnowledgeCheck,
   deleteKnowledgeCheck,
   updateKnowledgeCheck,
-} from "@db/admin-db.js";
+} from "@/app/_db/admin-db.js";
 
 /**
  * GET handler: Retrieves knowledge checks for a module

@@ -1,6 +1,6 @@
-import { getUserByEmail, getUserByFirebaseUid, updateUser } from "@db/admin-db.js"
+import { getUserByEmail, getUserByFirebaseUid, updateUser } from "@/app/_db/admin-db.js"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth } from "@db/firebase.js"
+import { auth } from "@/app/_db/firebase.js"
 import jwt from "jsonwebtoken"
 
 

@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer"
-import { getAppOrigin } from "@/src/app/lib/app-origin.js";
+import { getAppOrigin } from "@/app/lib/app-origin.js";
 
 export async function sendResetEmail(to, token) {
   // Created transporter using Gmail SMTP - took the reference from src/app/api/users/signup/route.js

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@db/admin-db.js';
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@/app/_db/admin-db.js';
+import { SecurityHelper } from "@/app/lib/enforce-security.js";
 
 // GET: Retrieve user progress
 export async function GET(request) {

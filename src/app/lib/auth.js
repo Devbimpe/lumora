@@ -4,7 +4,7 @@ import {
   onAuthStateChanged,
   getIdToken 
 } from 'firebase/auth';
-import { auth } from '@db/firebase.js';
+import { auth } from '@/app/_db/firebase.js';
 
 // Client-side authentication utilities
 export class AuthService {

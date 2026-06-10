@@ -1,4 +1,4 @@
-import { getModuleWithContent, getAllModules, getContentByModuleId, getKnowledgeChecksByContentId } from '@db/admin-db.js';
+import { getModuleWithContent, getAllModules, getContentByModuleId, getKnowledgeChecksByContentId } from '@/app/_db/admin-db.js';
 
 // GET handler: Retrieves module details, associated content, and knowledge checks
 // Supports optional filtering by moduleId via query parameter

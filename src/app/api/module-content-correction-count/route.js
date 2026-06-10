@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getModuleWithContent } from '@db/admin-db.js';
+import { getModuleWithContent } from '@/app/_db/admin-db.js';
 
 // GET: Get the actual count of displayable content sections (sidebar items) for a module
 export async function GET(request) {

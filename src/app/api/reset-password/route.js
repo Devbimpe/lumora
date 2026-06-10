@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getAuth } from "firebase-admin/auth"
-import { getUserByResetToken, updateUser } from "../../../../db/admin-db.js"
+import { getUserByResetToken, updateUser } from "@/_db/admin-db.js"
 
 const auth = getAuth(); // TODO: move to admin-db.js
 
