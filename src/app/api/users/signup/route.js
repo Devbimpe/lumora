@@ -1,8 +1,11 @@
-import { adminAuth } from '@/firebaseAdmin.js';
-import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import { Timestamp } from '@db/admin-db';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-import { getAppOrigin } from "@/src/app/lib/app-origin.js";
+
+const auth = getAuth(); // TODO: move to admin-db.js
+const db = getFirestore();
 
 // POST handler: Handles user signup
 // Expects a JSON body with 'name', 'userName', 'email', and 'password' fields
@@ -16,7 +19,6 @@ export async function POST(req) {
       return Response.json({ error: 'All fields are required.' }, { status: 400 });
     }
 
-    const db = admin.firestore();
     const usersRef = db.collection('users');
 
     // Securely check if a user with the provided username already exists in Firestore
@@ -27,7 +29,7 @@ export async function POST(req) {
     }
 
     // Securely create Firebase Auth user using Admin SDK
-    const userRecord = await adminAuth.createUser({
+    const userRecord = await auth.createUser({
       email: email,
       password: password,
       displayName: name,
@@ -36,7 +38,7 @@ export async function POST(req) {
     // Generate a random activation token for our custom flow (48 bytes, hex-encoded)
     const activationToken = crypto.randomBytes(48).toString('hex');
     // Set token expiration to 30 minutes from now
-    const expires = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000));
+    const expires = Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000));
 
     // Securely create the user document in Firestore, bypassing standard security rules
     await usersRef.add({
@@ -49,7 +51,7 @@ export async function POST(req) {
       isActivated: false, // We'll set this to true after email verification
       activationToken: activationToken,
       activationTokenExpires: expires,
-      createdAt: admin.firestore.Timestamp.now()
+      createdAt: Timestamp.now()
     });
 
     // Configure nodemailer transporter for sending emails via Gmail
@@ -100,7 +102,7 @@ export async function POST(req) {
   } catch (err) {
     // Log any errors during the signup process
     console.error('Signup error:', err);
-    
+
     // Pass user-friendly Firebase Auth errors to the frontend (Admin SDK error codes)
     if (err.code === 'auth/email-already-exists' || err.code === 'auth/email-already-in-use') {
       return Response.json({ error: 'This email address is already registered.' }, { status: 400 });

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
-import admin from "firebase-admin"
+import { getAuth } from "firebase-admin/auth"
 import { getUserByResetToken, updateUser } from "../../../../db/admin-db.js"
-import "@/firebaseAdmin.js" // Ensure Firebase Admin is initialized
+
+const auth = getAuth(); // TODO: move to admin-db.js
 
 export async function POST(req) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req) {
     }
 
     // Update the password in Firebase Auth via Admin SDK (privileged — cannot be spoofed by curl)
-    await admin.auth().updateUser(user.firebaseUid, { password })
+    await auth.updateUser(user.firebaseUid, { password })
 
     // Invalidate the reset token so it cannot be reused
     await updateUser(user.id, {

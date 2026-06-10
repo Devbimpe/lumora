@@ -1,7 +1,9 @@
 import { getUserById, deleteUser as deleteUserFromDB } from "@db/admin-db.js";
-import { adminAuth } from "../../../../firebaseAdmin.js";
 import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
 import { cookies } from "next/headers";
+import { getAuth } from "firebase-admin/auth";
+
+const auth = getAuth(); // TODO: move to admin-db.js
 
 export async function POST(req) {
   try {
@@ -28,11 +30,11 @@ export async function POST(req) {
     await deleteUserFromDB(userId);
 
     // Delete user from Firebase Auth
-    await adminAuth.deleteUser(firebaseUid);
+    await auth.deleteUser(firebaseUid);
 
     const cookieStore = await cookies();
     cookieStore.delete("auth-token");
-    
+
     return new Response(JSON.stringify({ message: "Account deleted successfully" }), { status: 200 });
   } catch (err) {
     console.error("Error deleting account:", err);

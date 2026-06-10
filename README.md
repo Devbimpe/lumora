@@ -31,15 +31,8 @@ When Setting up a dev enviroment the developer needs to:
      NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
      NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
      ```
+     <!-- TODO: document the admin SDK setup (service account) as well -->
    - Save the file.
-
-3. **Set up Firestore Database**  
-   - In Firebase Console, go to Firestore Database
-   - Create database in production mode
-   - Set up security rules as needed
-
-4. **Test the connection**  
-   - Run the application and verify it connects to Firebase without errors.
 
 ### Deploying Lumora
 TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed and a production build has been created.

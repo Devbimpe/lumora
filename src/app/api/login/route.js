@@ -1,7 +1,6 @@
-import { getUserByFirebaseUid, updateUser } from "@db/admin-db.js"
+import { getUserByEmail, getUserByFirebaseUid, updateUser } from "@db/admin-db.js"
 import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth } from "@db/firebase.js"
-import { adminAuth } from "../../../../firebaseAdmin.js"
 import jwt from "jsonwebtoken"
 
 
@@ -109,7 +108,7 @@ export async function POST(request) {
 
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
       try {
-        const userRecord = await adminAuth.getUserByEmail(email)
+        const userRecord = await getUserByEmail(email)
         if (userRecord) {
           return Response.json(
             { success: false, message: "Wrong password. Please try again.", errorCode: "wrong-password" },
@@ -129,11 +128,11 @@ export async function POST(request) {
         }
       }
     }
-    
+
     if (error.code === 'auth/too-many-requests') {
       return Response.json({ success: false, message: "Too many failed login attempts. Please try again later." }, { status: 429 })
     }
-    
+
     return Response.json({ success: false, message: "Server error occurred" }, { status: 500 })
   }
 }

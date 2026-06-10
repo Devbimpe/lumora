@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
-import admin from "firebase-admin"
-import { getUserByEmail, updateUser } from "../../../../db/admin-db.js"
+import { getUserByEmail, updateUser, Timestamp } from "../../../../db/admin-db.js"
 import { sendResetEmail } from "../../lib/reset-email.js"
 
 export async function POST(req) {
@@ -29,7 +28,7 @@ export async function POST(req) {
     // Generate a cryptographically secure token (48 bytes, hex-encoded)
     const token = crypto.randomBytes(48).toString("hex")
     // Store expiry as Firestore Timestamp for consistency with the rest of the codebase
-    const expires = admin.firestore.Timestamp.fromDate(
+    const expires = Timestamp.fromDate(
       new Date(Date.now() + 15 * 60 * 1000)
     )
 

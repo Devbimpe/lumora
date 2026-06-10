@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
-import db from "@/db/db";
+// import db from "@/db/db";
+// TODO: fetch from server instead
 
 // This JS object is to represent an ENUM for module status filters
 const moduleStatusENUM = {
@@ -277,9 +278,9 @@ export default function ModuleProgressPage() {
             isSearchable={true}
             classNames={{
               control: ({ isFocused }) => `
-                    flex-1 w-50 self-stretch transition-all duration-200 
+                    flex-1 w-50 self-stretch transition-all duration-200
                     px-3 sm:px-4 py-2 sm:py-2 h-full
-                    bg-gray-100 hover:bg-gray-200 
+                    bg-gray-100 hover:bg-gray-200
                     overflow-hidden border-0!
                     ${isFocused ? "bg-gray-200 ring-2 ring-green-500 border-transparent shadow-none" : "border-0! shadow-[inset_0_2px_6px_rgba(0,0,0,0.1)]"}
                     rounded-lg! outline-none! text-sm leading-5 flex items-center
