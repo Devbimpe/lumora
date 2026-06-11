@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "lib": ["ESNext"],
     "paths": {
       "@/ai/*": ["./ai/*"],
       "@/image-hosting/*": ["./image-hosting/*"],

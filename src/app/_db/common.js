@@ -9,7 +9,15 @@ export const COLLECTIONS = {
 };
 
 /**
+ * @typedef {{ toDate: (this: Timestamp) => Date }} Timestamp
+ */
+
+/**
  * @typedef {Object} UserDoc
  * @property {'Admin' | 'Student'} role
  * @property {string} username
+ * @property {string} name
+ * @property {string | undefined} activationToken
+ * @property {Timestamp | undefined} activationTokenExpires
+ * @property {number | undefined} percentModulesCompleted
  */

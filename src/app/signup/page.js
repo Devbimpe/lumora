@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { useAuth } from '@/app/components/AuthProvider';
 import '../globals.css';
 import '../login/login.css';
+import { api } from '@/app/lib/api-client';
 
 export default function Page() {
-  const router = useRouter();
   const [form, setForm] = useState({
     name: '',
     userName: '',
@@ -17,32 +17,25 @@ export default function Page() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  const router = useRouter();
+  const { user: currentUser, loading: checkingAuth, signUp } = useAuth();
 
   // Check if user is already authenticated and redirect if so
   useEffect(() => {
-    const checkAuthentication = async () => {
-      try {      
-        const response = await fetch("/api/check-auth");
-        const data = await response.json();
-        if (data.authenticated) {
-          console.log("User is already authenticated, redirecting...");
-          if(data.user.role === "Admin") {
-            router.push("/admin");
-          } else {
-            router.push("/");
-          }
-        } else {
-          console.log("User is not authenticated, showing signup form.");
-          setCheckingAuth(false);
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-        setCheckingAuth(false);
+    if (!checkingAuth && currentUser) {
+      console.log("User is authenticated, redirecting...");
+      if (currentUser.account.email && !currentUser.account.emailVerified) {
+        router.push("/login"); // Hasn't verified email yet
+      } else if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("/login")) {
+        router.push(callbackUrl);
+      } else if(currentUser.role === "Admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
       }
-    };
-    checkAuthentication();
-  }, [router]);
+    }
+  }, [router, checkingAuth, currentUser]);
 
 
 
@@ -67,7 +60,7 @@ export default function Page() {
     setIsLoading(true);
 
     // Frontend validation
-    if (!form.name || !form.userName || !form.email || !form.password || !form.confirmPassword) {
+    if (!form.name.trim() || !form.userName.trim() || !form.email || !form.password || !form.confirmPassword) {
       setError('All fields are required.');
       setIsLoading(false);
       return;
@@ -90,22 +83,21 @@ export default function Page() {
     }
 
     try {
-      const res = await fetch('/api/users/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userName: form.userName,
+      const res = await api.post('/api/signup', {
+        throwHttpErrors: false,
+        json: {
+          name: form.name,
+          username: form.userName,
           email: form.email,
           password: form.password,
-          name: form.name,
-        }),
+        }
       });
 
+      const data = await res.json();
       if (res.ok) {
-        setSuccess('Check your email — we’ve sent you an activation link to complete your registration.');
+        setSuccess(data.message);
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
       } else {
-        const data = await res.json();
         setError(data.error || 'Signup failed.');
       }
     } catch (err) {
@@ -163,6 +155,7 @@ export default function Page() {
                   id="name"
                   name="name"
                   type="text"
+                  autoComplete="name"
                   placeholder="Enter your full name"
                   value={form.name}
                   onChange={handleChange}
@@ -179,6 +172,7 @@ export default function Page() {
                   name="userName"
                   type="text"
                   placeholder="Enter your username"
+                  autoComplete="off"
                   value={form.userName}
                   onChange={handleChange}
                   required
@@ -193,6 +187,7 @@ export default function Page() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="username"
                   placeholder="Enter your email"
                   value={form.email}
                   onChange={handleChange}
@@ -209,6 +204,7 @@ export default function Page() {
                   id="password"
                   name="password"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Enter your password"
                   value={form.password}
                   onChange={handleChange}
@@ -230,6 +226,7 @@ export default function Page() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Confirm your password"
                   value={form.confirmPassword}
                   onChange={handleChange}

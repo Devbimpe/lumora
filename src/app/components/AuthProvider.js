@@ -11,9 +11,9 @@ import {
   browserSessionPersistence,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut as _signOut,
   browserLocalPersistence,
+  reload as _reload,
 } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
@@ -35,6 +35,7 @@ import { redirect, usePathname } from 'next/navigation';
  * @property {boolean} loading
  * @property {(email: string, password: string, remember?: boolean) => Promise<void>} signIn
  * @property {() => Promise<void>} signOut
+ * @property {() => Promise<void>} reload
  */
 
 const AuthContext = createContext(/** @type {AuthContextReturn} */ (null));
@@ -56,13 +57,17 @@ function isPublicPath(pathname) {
 export function AuthProvider({ children }) {
   const pathname = usePathname();
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(
+    /** @type {Readonly<UserSession> | null} */ (null),
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isPublicPath(pathname) && !loading && !user) {
-      console.warn('User is not logged in');
-      redirect('/');
+    if (!isPublicPath(pathname) && !loading) {
+      if (!user || (user?.account?.email && !user?.account?.emailVerified)) {
+        console.warn('User is not logged in');
+        redirect('/');
+      }
     }
   }, [pathname, loading, user]);
 
@@ -139,8 +144,12 @@ export function AuthProvider({ children }) {
     await _signOut(auth);
   }, []);
 
+  const reload = useCallback(async () => {
+    if (auth.currentUser) await _reload(auth.currentUser);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, reload }}>
       {children}
     </AuthContext.Provider>
   );

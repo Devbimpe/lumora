@@ -6,6 +6,8 @@ import { FirebaseError } from "firebase/app"
 import "../globals.css"
 import "./login.css"
 import { useAuth } from "@/app/components/AuthProvider"
+import { api } from "@/app/lib/api-client"
+import { isHTTPError } from "ky"
 
 export default function Login() {
   return (
@@ -34,15 +36,15 @@ function LoginInner() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
-  const { user: currentUser, loading: checkingAuth, signIn } = useAuth();
 
+  const { user: currentUser, loading: checkingAuth, signIn, reload } = useAuth();
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl")
 
   // Check if user is already authenticated and redirect if so
-  useEffect(() => {
-    if (!checkingAuth && currentUser) {
+  function checkRedirect() {
+    if (!checkingAuth && currentUser && (!currentUser.account.email || currentUser.account.emailVerified)) {
       console.log("User is authenticated, redirecting...");
       if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("/login")) {
         router.push(callbackUrl);
@@ -52,6 +54,10 @@ function LoginInner() {
         router.push("/");
       }
     }
+  }
+
+  useEffect(() => {
+    checkRedirect()
   }, [router, checkingAuth, currentUser]);
 
 
@@ -101,11 +107,28 @@ function LoginInner() {
     }
 
     try {
+      let wasLoggedIn = !!currentUser;
       console.log("🚀 Attempting login...")
       await signIn(formData.email, formData.password, formData.rememberMe)
+
+      const { status } = await api.post('/api/email-verification').json()
+      if (status === 'verified') {
+        if (wasLoggedIn) {
+          await reload(); // Make sure the `email_verified` status is up-to-date
+          checkRedirect();
+        }
+      } else if (status === 'valid_token') {
+        setError('Account not activated. Please check your email for the activation link. You can resend it after the current link expires.')
+      } else if (status === 'sent') {
+        setError('Account not activated. We’ve sent you an activation link to complete your registration.')
+      } else {
+        console.warn('Unexpected email verification status:', status)
+      }
     } catch (error) {
       if (error instanceof FirebaseError) {
         setError(error.message) // TODO
+      } else if (isHTTPError(error) && typeof error.data === 'object' && error.data?.error) {
+        setError(error.data.error)
       } else {
         console.error("Network error:", error)
         setError("Network error. Please check your connection.")

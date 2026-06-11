@@ -2,6 +2,8 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Inbox } from 'lucide-react';
+import { api } from '@/app/lib/api-client';
+import { useAuth } from '@/app/components/AuthProvider';
 import LoadingSpinner from '../components/LoadingSpinner'; 
 import ErrorMessage from '../components/ErrorMessage';     
 import StatusMessage from '../components/StatusMessage';   
@@ -9,6 +11,8 @@ import UserRow from '../components/UserRow';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function UserManagementPage() { 
+  const { loading: authLoading } = useAuth();
+
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,10 +47,9 @@ export default function UserManagementPage() {
   const performToggleActivation = async (userId, currentStatus) => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
-      const response = await fetch('/api/admin/users', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, isActivated: newStatus }),
+      const response = await api.put('/api/admin/users', {
+        throwHttpErrors: false,
+        json: { userId, isActivated: newStatus },
       });
 
       if (!response.ok) {
@@ -86,13 +89,9 @@ export default function UserManagementPage() {
     const { userId } = deleteModal;
     
     try {
-      const response = await fetch('/api/admin/users', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId }),
+      await api.delete('/api/admin/users', {
+        json: { id: userId },
       });
-
-      if (!response.ok) throw new Error('Failed to delete user');
 
       setUsers(prev => prev.filter(user => user.UserID !== userId));
       setSubmitStatus('User deleted successfully!');
@@ -108,12 +107,7 @@ export default function UserManagementPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/admin/users');
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load users');
-      }
-      const data = await response.json();
+      const data = await api.get('/api/admin/users').json();
       setUsers(data);
       setFilteredUsers(data);
     } catch (error) {
@@ -147,8 +141,10 @@ export default function UserManagementPage() {
   }, [users, searchTerm, filterStatus]);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (!authLoading) {
+      fetchUsers();
+    }
+  }, [authLoading]);
 
   return (
     <div className="w-full max-w-7xl mx-auto p-3 sm:p-6">

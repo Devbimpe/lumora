@@ -20,7 +20,7 @@ import { NextResponse } from 'next/server';
  */
 
 /**
- * @param {'public' | 'user' | 'admin'} type
+ * @param {'public' | 'user' | 'unverified_user' | 'admin'} type
  * @param {NextPublicRouteHandler | NextSessionRouteHandler} handler
  * @returns {NextRouteHandler}
  */
@@ -33,11 +33,28 @@ function defineRoute(type, handler) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     } else {
-      if (type !== 'user' && session.role !== 'Admin') {
-        return NextResponse.json(
-          { error: 'Admin access required' },
-          { status: 403 },
-        );
+      switch (type) {
+        case 'public':
+        case 'user':
+          if (session.claim.email && !session.claim.email_verified) {
+            return NextResponse.json(
+              { error: 'User email is not verified' },
+              { status: 403 },
+            );
+          }
+        // fallthrough
+        case 'unverified_user':
+          break;
+        case 'admin':
+          if (session.role !== 'Admin') {
+            return NextResponse.json(
+              { error: 'Admin access required' },
+              { status: 403 },
+            );
+          }
+          break;
+        default:
+          throw new TypeError(`invalid route type: ${type}`);
       }
     }
 
@@ -65,6 +82,14 @@ export function defineUserRoute(handler) {
  * @param {NextSessionRouteHandler} handler
  * @returns {NextRouteHandler}
  */
+export function defineUnverifiedUserRoute(handler) {
+  return defineRoute('unverified_user', handler);
+}
+
+/**
+ * @param {NextSessionRouteHandler} handler
+ * @returns {NextRouteHandler}
+ */
 export function defineAdminRoute(handler) {
   return defineRoute('admin', handler);
 }
@@ -73,7 +98,7 @@ export function defineAdminRoute(handler) {
  * @param {NextRequest} req
  * @returns {Promise<UserSession | null>}
  */
-async function resolveSession(req) {
+export async function resolveSession(req) {
   const header = req.headers.get('authorization');
   if (!header || !header.startsWith('Bearer ')) return null;
   const token = header.substring('Bearer '.length);
@@ -113,19 +138,41 @@ export function verifyOwnership(session, ownerId) {
 }
 
 /**
+ * @param {string} message
+ * @returns {NextResponse}
+ */
+export async function badRequestError(message) {
+  return NextResponse.json({ error: message }, { status: 400 });
+}
+
+/**
+ * @param {string} [message]
+ * @returns {NextResponse}
+ */
+export async function accessForbiddenError(message = 'Forbidden') {
+  return NextResponse.json({ error: message }, { status: 403 });
+}
+
+/**
+ * @param {string} [message]
+ * @returns {NextResponse}
+ */
+export async function internalServerError(message = 'An error occurred.') {
+  return NextResponse.json({ error: message }, { status: 500 });
+}
+
+/**
  * @template {T}
  * @param {NextRequest} req
+ * @param {(this: NextRequest, body: T | any) => string | undefined} [validator]
  * @returns {Promise<{ body: T, validationError: null } | { body: null, validationError: NextResponse }>}
  */
-export async function validateJsonBody(req) {
+export async function validateJsonBody(req, validator) {
   const contentType = req.headers.get('content-type');
   if (!contentType?.startsWith('application/json'))
     return {
       body: null,
-      validationError: NextResponse.json(
-        { error: 'required JSON content type' },
-        { status: 400 },
-      ),
+      validationError: badRequestError('required JSON content type'),
     };
 
   let body;
@@ -134,11 +181,30 @@ export async function validateJsonBody(req) {
   } catch {
     return {
       body: null,
-      validationError: NextResponse.json(
-        { error: 'invalid JSON body' },
-        { status: 400 },
-      ),
+      validationError: badRequestError('malformed JSON body'),
     };
+  }
+
+  if (typeof validator === 'function') {
+    let error;
+    try {
+      error = validator.call(req, body);
+    } catch {
+      return {
+        body: null,
+        validationError: badRequestError('malformed request body'),
+      };
+    }
+
+    if (typeof error !== 'undefined' && error !== null)
+      return {
+        body: null,
+        validationError: NextResponse.json({ error }, { status: 400 }),
+      };
+  } else if (typeof validator === 'undefined') {
+    // No validator
+  } else {
+    throw new TypeError('unsupported validator type');
   }
 
   return { body, validationError: null };

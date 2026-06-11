@@ -34,7 +34,7 @@ export async function verifyIdToken(token) {
 }
 
 /** Get user by doc ID. Should be the same as Firebase User ID after migration.
- * @returns {Promise<UserDoc>}
+ * @returns {Promise<UserDoc | null>}
 */
 export async function getUserById(uid) {
   const usersRef = db.collection(COLLECTIONS.USERS);
@@ -117,9 +117,7 @@ export async function getUserByUsername(username) {
  */
 export async function getUserByActivationToken(token) {
   const usersRef = db.collection(COLLECTIONS.USERS);
-  const q = usersRef
-    .where('activationToken', '==', token)
-    .where('isActivated', '==', false);
+  const q = usersRef.where('activationToken', '==', token);
   const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
@@ -165,34 +163,58 @@ export async function getUserByResetToken(token) {
 /**
  * Get all users
  */
-export async function getAllUsers() {
+export async function* getAllUsers() {
   const usersRef = db.collection(COLLECTIONS.USERS);
   const querySnapshot = await usersRef.get();
 
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  const chunkSize = 100; // Firebase Auth query limit
+  for (let i = 0; i < querySnapshot.docs.length; i += chunkSize) {
+    const chunk = querySnapshot.docs.slice(i, i + chunkSize);
+    const lookup = new Map();
+    for (const doc of chunk)
+      lookup.set(doc.id, doc);
+    
+    const { users: firebaseUsers } = await auth.getUsers(chunk.map(doc => ({ uid: doc.id })));
+    for (const firebaseUser of firebaseUsers) {
+      const doc = lookup.get(firebaseUser.uid);
+      if (doc)
+        yield {
+          account: firebaseUser,
+          doc: /** @type {UserDoc} */ (doc.data())
+        }
+    }
+  }
 }
 
 /**
- * Create a new user
+ * Create a new user account in Firebase Auth
+ * @param {import('firebase-admin/auth').CreateRequest} req 
  */
-export async function createUser(userData) {
+export function createUserAccount(req) {
+  return auth.createUser(req);
+}
+
+/**
+ * Create a new user document
+ */
+export async function createUserDoc(userData) {
   const usersRef = db.collection(COLLECTIONS.USERS);
-  const docRef = await usersRef.add({
-    ...userData,
-    role: userData.role || 'Student',
-    percentModulesCompleted: userData.percentModulesCompleted || 0,
-    isActivated: userData.isActivated || false,
-    createdAt: Timestamp.now()
+  const newDocRef = usersRef.doc();
+
+  const error = await db.runTransaction(async t => {
+    if (userData.username) {
+      const existingUsername = await t.get(usersRef.where('username', '==', userData.username).limit(1));
+      if (!existingUsername.empty) return 'Username is already in use';
+    }
+
+    t.create(newDocRef, userData);
   });
 
-  return docRef.id;
+  return { uid: newDocRef.id, error };
 }
 
 /**
- * Update user
+ * Update user document
  */
 export async function updateUser(userId, updates) {
   const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
@@ -200,6 +222,15 @@ export async function updateUser(userId, updates) {
     ...updates,
     updatedAt: Timestamp.now()
   });
+}
+
+/**
+ * Update user account in Firebase Auth
+ * @param {string} uid 
+ * @param {import('firebase-admin/auth').UpdateRequest} updates 
+ */
+export function updateUserAccount(uid, updates) {
+  return auth.updateUser(uid, updates);
 }
 
 /**
@@ -221,9 +252,9 @@ export async function deleteUser(userId) {
     batch.delete(doc.ref);
   });
 
+  await auth.deleteUser(userId);
   await batch.commit();
 }
-
 
 // ==================== MODULE OPERATIONS ====================
 
@@ -1104,7 +1135,6 @@ export default {
   getUserByUsername,
   getUserById,
   getUserByActivationToken,
-  createUser,
   updateUser,
   deleteUser,
   getAllUsers,
