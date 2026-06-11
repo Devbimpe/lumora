@@ -2,8 +2,10 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { FirebaseError } from "firebase/app"
 import "../globals.css"
 import "./login.css"
+import { useAuth } from "@/app/components/AuthProvider"
 
 export default function Login() {
   return (
@@ -31,9 +33,8 @@ function LoginInner() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [errorCode, setErrorCode] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const { user: currentUser, loading: checkingAuth, signIn } = useAuth();
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -41,30 +42,17 @@ function LoginInner() {
 
   // Check if user is already authenticated and redirect if so
   useEffect(() => {
-    const checkAuthentication = async () => {
-      try {      
-        const response = await fetch("/api/check-auth");
-        const data = await response.json();
-        if (data.authenticated) {
-          console.log("User is already authenticated, redirecting...");
-          if (callbackUrl && callbackUrl.startsWith("/")) {
-            router.push(callbackUrl);
-          } else if(data.user.role === "Admin") {
-            router.push("/admin");
-          } else {
-            router.push("/");
-          }
-        } else {
-          console.log("User is not authenticated, showing signup form.");
-          setCheckingAuth(false);
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-        setCheckingAuth(false);
+    if (!checkingAuth && currentUser) {
+      console.log("User is authenticated, redirecting...");
+      if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("/login")) {
+        router.push(callbackUrl);
+      } else if(currentUser.role === "Admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
       }
-    };
-    checkAuthentication();
-  }, [router]);
+    }
+  }, [router, checkingAuth, currentUser]);
 
 
 
@@ -97,7 +85,6 @@ function LoginInner() {
 
     // Clear error when user starts typing
     if (error) setError("")
-    if (errorCode) setErrorCode("")
   }
 
   const handleSubmit = async (e) => {
@@ -109,43 +96,20 @@ function LoginInner() {
     const passwordError = validatePassword(formData.password)
     if (passwordError) {
       setError(passwordError)
-      setErrorCode("")
       setLoading(false)
       return
     }
 
     try {
       console.log("🚀 Attempting login...")
-
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        console.log("Login successful!")
-        console.log("User role:", data.user.role)
-        const destination = (callbackUrl && callbackUrl.startsWith("/"))
-          ? callbackUrl
-          : (data.redirectUrl || "/")
-        console.log("Redirecting to:", destination)
-        window.location.href = destination
-      } else {
-        setError(data.message)
-        setErrorCode(data.errorCode || "")
-      }
+      await signIn(formData.email, formData.password, formData.rememberMe)
     } catch (error) {
-      console.error("Network error:", error)
-      setError("Network error. Please check your connection.")
-      setErrorCode("")
+      if (error instanceof FirebaseError) {
+        setError(error.message) // TODO
+      } else {
+        console.error("Network error:", error)
+        setError("Network error. Please check your connection.")
+      }
     } finally {
       setLoading(false)
     }
@@ -185,7 +149,6 @@ function LoginInner() {
                 <div className="error-message">
                   {/* Display login error message */}
                   {error}
-                  {errorCode === "user-not-found" && <div className="mt-2"></div>}
                 </div>
               )}
 
@@ -195,6 +158,7 @@ function LoginInner() {
                   type="email"
                   name="email"
                   id="email"
+                  autoComplete="username"
                   placeholder="Enter your email"
                   required
                   value={formData.email}
@@ -209,6 +173,7 @@ function LoginInner() {
                   type="password"
                   name="password"
                   id="password"
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   required
                   value={formData.password}

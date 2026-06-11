@@ -1,13 +1,12 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { logoutAndBroadcast } from "../lib/auth"
+import { useAuth } from "@/app/components/AuthProvider"
 
 export function Header() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading, signOut } = useAuth()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -15,47 +14,10 @@ export function Header() {
   const isModulePage = pathname?.startsWith('/modules/')
   const isAdminPage = pathname?.startsWith('/admin')
 
-  useEffect(() => {
-    checkAuthStatus()
-    
-    function refreshAuth() {
-      checkAuthStatus()
-    }
-  
-    window.addEventListener("auth-changed", refreshAuth)
-  
-    return () => window.removeEventListener("auth-changed", refreshAuth)
-  }, [])
-
-  // Extra safety: refresh auth when route changes (prevents stale UI if an event is missed)
-  useEffect(() => {
-    checkAuthStatus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/check-auth")
-      const data = await response.json()
-      if (data.authenticated) {
-        setUser(data.user)
-        console.log("User loaded in header:", data.user.username, "| Role:", data.user.role)
-      } else {
-        setUser(null)  
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error)
-      setUser(null)  
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleLogout = async () => {
     try {
-      await logoutAndBroadcast()
-      setUser(null)
-      window.location.href = "/" 
+      await signOut()
+      window.location.href = "/"
     } catch (error) {
       console.error("Logout failed:", error)
     }

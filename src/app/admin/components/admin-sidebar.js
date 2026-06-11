@@ -3,12 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { logoutAndBroadcast } from '../../lib/auth';
+import { useAuth } from '@/app/components/AuthProvider';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Detect if we are on the content editing page with a moduleId
@@ -146,12 +147,8 @@ export default function Sidebar() {
   const activeSection = getActiveSection();
 
   const handleLogout = async () => {
-    try {
-      await logoutAndBroadcast();
-      router.push('/');
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    await signOut();
+    router.push('/');
   };
 
   const closeMobileMenu = () => {

@@ -1,5 +1,9 @@
+import 'server-only'
 import { cert as firebaseAdminCert, initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { COLLECTIONS } from '@/app/_db/common';
+import { performMigration } from '@/app/_db/admin-db-migration';
+import { getAuth } from 'firebase-admin/auth';
 
 // Re-export for the rest of the app
 export { Timestamp };
@@ -8,7 +12,7 @@ if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVAT
   throw new Error('Missing Firebase admin credentials in env');
 }
 
-if (!getApps().length)
+if (!getApps().length) {
   initializeApp({
     credential: firebaseAdminCert({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -16,21 +20,17 @@ if (!getApps().length)
       privateKey: process.env.FIREBASE_PRIVATE_KEY
     })
   });
+  await performMigration();
+}
 
 const db = getFirestore();
-
-// Collection names
-export const COLLECTIONS = {
-  USERS: 'users',
-  MODULES: 'modules',
-  CONTENT: 'content',
-  KNOWLEDGE_CHECKS: 'knowledgeChecks',
-  STUDENT_SUBMISSIONS: 'studentSubmissions',
-  FEEDBACK: 'feedback',
-  USER_PROGRESS: 'userProgress'
-};
+const auth = getAuth();
 
 // ==================== USER OPERATIONS ====================
+
+export async function verifyIdToken(token) {
+  return await auth.verifyIdToken(token);
+}
 
 /**
  * Get user by email
