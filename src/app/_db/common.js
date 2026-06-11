@@ -7,3 +7,9 @@ export const COLLECTIONS = {
   FEEDBACK: 'feedback',
   USER_PROGRESS: 'userProgress',
 };
+
+/**
+ * @typedef {Object} UserDoc
+ * @property {'Admin' | 'Student'} role
+ * @property {string} username
+ */

@@ -4,6 +4,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
 import { performMigration } from '@/app/_db/admin-db-migration';
 import { getAuth } from 'firebase-admin/auth';
+/** @import { UserDoc } from '@/app/_db/common' */
 
 // Re-export for the rest of the app
 export { Timestamp };
@@ -32,6 +33,36 @@ export async function verifyIdToken(token) {
   return await auth.verifyIdToken(token);
 }
 
+/** Get user by doc ID. Should be the same as Firebase User ID after migration.
+ * @returns {Promise<UserDoc>}
+*/
+export async function getUserById(uid) {
+  const usersRef = db.collection(COLLECTIONS.USERS);
+  let snapshot = await usersRef.doc(uid).get();
+
+  if (!snapshot.exists) {
+    // Legacy fallback
+    const queryResult = await usersRef.where('firebaseUid', '==', uid).get();
+    if (queryResult.empty) return null;
+    if (queryResult.size > 1) console.warn(`multiple user documents returned for ${uid}`);
+    snapshot = queryResult.docs[0];
+  }
+
+  if (!snapshot.exists) return null;
+
+  let warned = false;
+  return Object.freeze({
+    get id() {
+      if (!warned) {
+        warned = true;
+        console.warn('`id` property in user document is deprecated');
+      }
+      return uid;
+    },
+    ...snapshot.data()
+  });
+}
+
 /**
  * Get user by email
  */
@@ -50,6 +81,7 @@ export async function getUserByEmail(email) {
 
 /**
  * Get user by Firebase UID
+ * @deprecated use `getUserById` instead
  */
 export async function getUserByFirebaseUid(firebaseUid) {
   const usersRef = db.collection(COLLECTIONS.USERS);
@@ -77,20 +109,6 @@ export async function getUserByUsername(username) {
   }
 
   const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
-}
-
-/**
- * Get user by ID
- */
-export async function getUserById(userId) {
-  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
-  const userDoc = await userRef.get();
-
-  if (!userDoc.exists) {
-    return null;
-  }
-
   return { id: userDoc.id, ...userDoc.data() };
 }
 

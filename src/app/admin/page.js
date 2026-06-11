@@ -36,7 +36,7 @@ export default function Dashboard() {
           Welcome Admin!
         </h1>
         <p className="text-sm sm:text-base md:text-lg text-gray-600">
-          Last login: {formatLoginTime(user?.metadata?.lastSignInTime)}
+          Last login: {formatLoginTime(user?.account?.metadata?.lastSignInTime)}
         </p>
       </div>
 

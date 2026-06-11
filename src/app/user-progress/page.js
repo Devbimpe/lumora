@@ -3,11 +3,14 @@
 import { Suspense } from 'react';
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { api } from '@/app/lib/api-client';
+import { useAuth } from '@/app/components/AuthProvider';
 
 function UserProgressContent() {
+  const { user } = useAuth();
+
   const [modules, setModules] = useState([]); // All modules
   const [moduleProgress, setModuleProgress] = useState([]); //Modules with progress made
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState(null);
@@ -17,24 +20,9 @@ function UserProgressContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/check-auth");
-      const data = await response.json();
-      if (data.authenticated) {
-        setUser(data.user);
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchModules = async () => {
     try {
-      const res = await fetch("/api/modules");
-      const data = await res.json();
+      const data = await api.get("/api/modules").json();
       console.log("Modules", data);
       setModules(data);
       return data;
@@ -46,8 +34,7 @@ function UserProgressContent() {
 
   const fetchUserProgress = async () => {
     try {
-      const response = await fetch(`/api/progress?userId=${user?.id}`);
-      const data = await response.json();
+      const data = await api.get(`/api/progress?userId=${user?.uid}`).json();
       console.log("Progress", data);
       if(Array.isArray(data)) {
         setModuleProgress(data);
@@ -61,15 +48,11 @@ function UserProgressContent() {
   };
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  useEffect(() => {
-  if (user?.id) {
-    fetchModules()
-    fetchUserProgress();
-  }
-}, [user?.id]);
+    if (user?.uid) {
+      fetchModules()
+      fetchUserProgress();
+    }
+  }, [user]);
 
 useEffect(() => {
   const modId = searchParams.get("modId");

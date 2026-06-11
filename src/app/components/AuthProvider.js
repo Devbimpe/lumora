@@ -11,6 +11,7 @@ import {
   browserSessionPersistence,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut as _signOut,
   browserLocalPersistence,
 } from 'firebase/auth';
@@ -18,19 +19,22 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
 import { auth, db } from '@/app/_db/client-db';
 import { redirect, usePathname } from 'next/navigation';
-/** @import { User } from 'firebase/auth' */
+/** @import { UserDoc } from '@/app/_db/common' */
 
 /**
- * @typedef {Object} UserProfile
- * @property {'Admin' | 'Student'} role
+ * @typedef {Object} UserSession
+ * @property {string} uid
+ * @property {UserDoc['role']} role
+ * @property {import('firebase/auth').User} account
+ * @property {Readonly<UserDoc>} doc
  */
 
 /**
  * @typedef {object} AuthContextReturn
- * @prop {(User & UserProfile) | null} user
- * @prop {boolean} loading
- * @prop {(email: string, password: string, remember?: boolean) => Promise<void>} signIn
- * @prop {() => Promise<void>} signOut
+ * @property {Readonly<UserSession> | null} user
+ * @property {boolean} loading
+ * @property {(email: string, password: string, remember?: boolean) => Promise<void>} signIn
+ * @property {() => Promise<void>} signOut
  */
 
 const AuthContext = createContext(/** @type {AuthContextReturn} */ (null));
@@ -55,14 +59,12 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  if (!isPublicPath(pathname)) {
-    auth.authStateReady().then(() => {
-      if (!auth.currentUser) {
-        console.warn('User is not logged in');
-        redirect('/');
-      }
-    });
-  }
+  useEffect(() => {
+    if (!isPublicPath(pathname) && !loading && !user) {
+      console.warn('User is not logged in');
+      redirect('/');
+    }
+  }, [pathname, loading, user]);
 
   useEffect(() => {
     let unsubAuth = null;
@@ -86,13 +88,25 @@ export function AuthProvider({ children }) {
         docRef,
         (snapshot) => {
           if (!snapshot.exists()) {
-            console.error('User doc missing in Firestore');
+            console.error('User doc missing in Firestore'); // TODO: improve edge case handling
             setUser(null);
             return;
           }
 
-          // Order is important; do not allow the Firestore document to override Auth user 
-          setUser({ ...snapshot.data(), ...firebaseUser });
+          /** @type {Readonly<UserDoc>} */
+          const doc = Object.freeze(snapshot.data());
+          setUser(
+            Object.freeze({
+              get uid() {
+                return firebaseUser.uid;
+              },
+              get role() {
+                return doc.role;
+              },
+              account: firebaseUser,
+              doc,
+            }),
+          );
           setLoading(false);
         },
         (error) => {
