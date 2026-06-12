@@ -1,11 +1,13 @@
 import { getUserById, updateUser } from "@/app/_db/admin-db.js";
-import { SecurityHelper } from "@/app/lib/enforce-security.js";
+import {
+  defineUserRoute,
+  verifyOwnership,
+} from "@/app/lib/route";
 
 // GET — return personalInfo ONLY
-export async function GET(request) {
+export const GET = defineUserRoute(async (request, session) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const userId = request.nextUrl.searchParams.get("userId");
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing userId" }), {
@@ -14,8 +16,7 @@ export async function GET(request) {
       });
     }
 
-    const session = await SecurityHelper.verifyOwnership(request, userId);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+    if (!verifyOwnership(session, userId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
 
     const user = await getUserById(userId);
     if (!user) {
@@ -38,8 +39,8 @@ export async function GET(request) {
           // Personal info fields
           personalInfo: {
             fullName: personalInfo.fullName || "",
-            userName: personalInfo.userName || "",
-            email: personalInfo.email || "",
+            userName: user.username || "",
+            email: user.email || "",
             pronouns: personalInfo.pronouns || "",
             headline: personalInfo.headline || "",
             bio: personalInfo.bio || "",
@@ -57,10 +58,10 @@ export async function GET(request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-}
+});
 
 // POST — save everything INSIDE personalInfo
-export async function POST(request) {
+export const POST = defineUserRoute(async (request, session) => {
   try {
     const body = await request.json();
     const { userId, fullName, userName, email, pronouns, headline, bio } = body;
@@ -72,18 +73,18 @@ export async function POST(request) {
       });
     }
 
-    const session = await SecurityHelper.verifyOwnership(request, userId);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+    if (!verifyOwnership(session, userId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
 
     // Save root-level fields AND personalInfo
+    // Changing username and email is not supported for now
     await updateUser(userId, {
         name: fullName || "",
-        username: userName || "",
-        email: email || "",
+        // username: userName || "",
+        // email: email || "",
         personalInfo: {
             fullName,
-            userName,
-            email,
+            // userName,
+            // email,
             pronouns,        
             headline,        
             bio,             
@@ -104,4 +105,4 @@ export async function POST(request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-}
+});

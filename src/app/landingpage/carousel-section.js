@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "../components/button"
+import { useAuth } from "@/app/components/AuthProvider"
 
 const slides = [
   {
@@ -30,27 +31,8 @@ const slides = [
 export default function CarouselSection() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading } = useAuth()
   const router = useRouter()
-
-  useEffect(() => {
-    checkAuthStatus()
-  }, [])
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/check-auth")
-      const data = await response.json()
-      if (data.authenticated) {
-        setUser(data.user)
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   useEffect(() => {
     const timer = setInterval(() => {

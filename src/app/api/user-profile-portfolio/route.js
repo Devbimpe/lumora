@@ -1,11 +1,13 @@
 import { getUserById, updateUser } from "@/app/_db/admin-db.js";
-import { SecurityHelper } from "@/app/lib/enforce-security.js";
+import {
+  defineUserRoute,
+  verifyOwnership,
+} from "@/app/lib/route";
 
 // GET method
-export async function GET(request) {
+export const GET = defineUserRoute(async (request, session) => {
     try {
-        const { searchParams } = new URL(request.url);
-        const userId = searchParams.get("userId");
+        const userId = request.nextUrl.searchParams.get("userId");
     
         if (!userId) {
             return new Response(JSON.stringify({ error: "Missing userId" }), {
@@ -14,8 +16,7 @@ export async function GET(request) {
             });
         }
 
-        const session = await SecurityHelper.verifyOwnership(request, userId);
-        if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+        if (!verifyOwnership(session, userId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     
         const user = await getUserById(userId);
         if (!user) {
@@ -38,10 +39,10 @@ export async function GET(request) {
             headers: { "Content-Type": "application/json" }
         });
     }
-}
+});
 
 // POST method
-export async function POST(request) {
+export const POST = defineUserRoute(async (request, session) => {
     try {
         const body = await request.json();
         const { userId, linkedIn, github, website } = body;
@@ -53,8 +54,7 @@ export async function POST(request) {
             });
         }
 
-        const session = await SecurityHelper.verifyOwnership(request, userId);
-        if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+        if (!verifyOwnership(session, userId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     
         await updateUser(userId, {
             portfolio: {
@@ -77,4 +77,4 @@ export async function POST(request) {
             headers: { "Content-Type": "application/json" }
         });
     }
-}
+});

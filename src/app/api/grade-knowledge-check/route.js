@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { gradeKnowledgeCheck } from '@/ai/groq.js';
+import { defineUserRoute, internalServerError } from '@/app/lib/route';
 
 // POST /api/grade-knowledge-check — body: { "question", "userAnswer", "sampleAnswer?", "explanation?" }
-export async function POST(req) {
+export const POST = defineUserRoute(async (req) => {
   try {
     const { question, userAnswer, sampleAnswer, explanation } = await req.json();
     if (!question || !userAnswer) {
@@ -52,6 +53,4 @@ export async function POST(req) {
       { status }
     );
   }
-}
-
-
+});

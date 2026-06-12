@@ -1,9 +1,10 @@
 // This is the code to display the content in the admin/module-management
 import { NextResponse } from 'next/server';
 import { getAllPublishedModules } from '@/app/_db/admin-db.js';
+import { defineUserRoute, internalServerError } from '@/app/lib/route';
 
 // Get the module ID, Heading and Subheading from the Modules table
-export async function GET() {
+export const GET = defineUserRoute(async () => {
   try {
     const modules = await getAllPublishedModules();
     // Transform to match expected format
@@ -16,6 +17,6 @@ export async function GET() {
     }));
     return NextResponse.json(formattedModules);
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return internalServerError(error.message);
   }
-}
+});

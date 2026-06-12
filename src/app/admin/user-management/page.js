@@ -289,7 +289,7 @@ export default function UserManagementPage() {
         onClose={() => setDeactivateModal({ isOpen: false, userId: null, username: '', currentStatus: null })}
         onConfirm={() => performToggleActivation(deactivateModal.userId, deactivateModal.currentStatus)}
         title="Deactivate User"
-        message={`Are you sure you want to deactivate "${deactivateModal.username}"? They will lose access to the system until reactivated.`}
+        message={`Are you sure you want to deactivate "${deactivateModal.username}"? They can reverify their email to get activated again.`}
         confirmText="Deactivate"
         cancelText="Cancel"
         type="warning"

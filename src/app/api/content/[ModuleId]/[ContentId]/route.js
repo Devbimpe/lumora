@@ -1,11 +1,16 @@
 // This is the code for edit the content 
 import { NextResponse } from 'next/server';
 import { updateContent, getContentById, deleteContent } from '@/app/_db/admin-db.js';
+import {
+  defineAdminRoute,
+  defineUserRoute,
+  internalServerError,
+} from '@/app/lib/route';
 
 // GET handler: Retrieves certain content by ContentID and ModuleID
-export async function GET(req, context) {
+export const GET = defineUserRoute(async (req, session, ctx) => {
   try {
-    const params = await context.params;
+    const params = await ctx.params;
     const contentId = params.ContentId;
     const moduleId = params.ModuleId;
 
@@ -26,18 +31,14 @@ export async function GET(req, context) {
     
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({
-      error: 'Failed to fetch content from database',
-      details: error.message
-    }, { status: 500 });
+    return internalServerError('Failed to fetch content from database');
   }
-}
+});
 
 // PUT handler: Updates content for a specific ContentID
-// Expects a JSON body with 'Overview' and 'Reading' fields, and a ContentID from route parameters
-export async function PUT(req, context) {
+export const PUT = defineAdminRoute(async (req, session, ctx) => {
   try {
-    const params = await context.params;
+    const params = await ctx.params;
     const contentId = params.ContentId;
     const moduleId = params.ModuleId;
     
@@ -50,13 +51,13 @@ export async function PUT(req, context) {
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
+});
 
 
 // DELETE handler: Deletes content by ContentID and ModuleId
-export async function DELETE(req, context) {
+export const DELETE = defineAdminRoute(async (req, session, ctx) => {
   try {
-    const params = await context.params;
+    const params = await ctx.params;
     const contentId = params.ContentId;
     const moduleId = params.ModuleId;
 
@@ -65,9 +66,6 @@ export async function DELETE(req, context) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete API Error:', error);
-    return NextResponse.json({
-      error: 'Failed to delete content',
-      details: error.message
-    }, { status: 500 });
+    return internalServerError('Failed to delete content');
   }
-}
+});

@@ -14,9 +14,9 @@ import { NextResponse } from 'next/server';
  */
 
 /**
- * @typedef {(req: NextRequest) => NextResponse | Promise<NextResponse>} NextRouteHandler
- * @typedef {(req: NextRequest, session: UserSession) => ReturnType<NextRouteHandler>} NextSessionRouteHandler
- * @typedef {(req: NextRequest, session?: UserSession) => ReturnType<NextRouteHandler>} NextPublicRouteHandler
+ * @typedef {(req: NextRequest, ctx?: any) => NextResponse | Promise<NextResponse>} NextRouteHandler
+ * @typedef {(req: NextRequest, session: UserSession, ctx?: any) => ReturnType<NextRouteHandler>} NextSessionRouteHandler
+ * @typedef {(req: NextRequest, session: undefined, ctx?: any) => ReturnType<NextRouteHandler>} NextPublicRouteHandler
  */
 
 /**
@@ -25,7 +25,7 @@ import { NextResponse } from 'next/server';
  * @returns {NextRouteHandler}
  */
 function defineRoute(type, handler) {
-  return async function wrappedHandler(req) {
+  return async function wrappedHandler(req, ...rest) {
     const session = await resolveSession(req);
 
     if (!session) {
@@ -58,7 +58,7 @@ function defineRoute(type, handler) {
       }
     }
 
-    return handler(req, session);
+    return handler(req, session, ...rest);
   };
 }
 

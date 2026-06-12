@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getContentByModuleId, createContent } from '@/app/_db/admin-db.js';
+import {
+  badRequestError,
+  defineAdminRoute,
+  defineUserRoute,
+  internalServerError,
+} from '@/app/lib/route';
 
 // GET handler: Retrieves all content for a specific module
 // Expects a 'moduleId' query parameter in the request URL
-export async function GET(request) {
+export const GET = defineUserRoute(async (request) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const moduleId = searchParams.get('moduleId');
+    const moduleId = request.nextUrl.searchParams.get('moduleId');
 
     if (!moduleId) {
-      return NextResponse.json({ error: 'Module ID is required' }, { status: 400 });
+      return badRequestError('Module ID is required');
     }
 
     const content = await getContentByModuleId(moduleId);
@@ -27,23 +32,18 @@ export async function GET(request) {
     return NextResponse.json(formattedContent);
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({
-      error: 'Failed to fetch content from database',
-      details: error.message
-    }, { status: 500 });
+    return internalServerError('Failed to fetch content from database');
   }
-}
+});
 
 // POST handler: Create new content
-export async function POST(request) {
+export const POST = defineAdminRoute(async (request) => {
   try {
     const body = await request.json();
     const { moduleId, overview, reading, imageURL, imageDescription } = body;
 
     if (!moduleId || !overview || (!reading && !imageURL)) {
-      return NextResponse.json({
-        error: 'Module ID, overview, and either reading or image are required'
-      }, { status: 400 });
+      return badRequestError('Module ID, overview, and either reading or image are required');
     }
 
     const result = await createContent({
@@ -60,9 +60,6 @@ export async function POST(request) {
     }, { status: 201 });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({
-      error: 'Failed to create content',
-      details: error.message
-    }, { status: 500 });
+    return internalServerError('Failed to create content');
   }
-}
+});
