@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getUserByResetToken, updateUser, updateUserAccount } from "@/app/_db/admin-db.js"
 import { badRequestError, definePublicRoute, validateJsonBody } from "@/app/lib/route";
+import { mapAuthError, serverAuthErrorMap } from "@/app/lib/auth-errors";
 
 export const POST = definePublicRoute(async (req) => {
   try {
@@ -43,14 +44,11 @@ export const POST = definePublicRoute(async (req) => {
   } catch (err) {
     console.error("Reset-password error:", err)
 
-    // TODO: revamp this
-    if (err.code === "auth/invalid-password") {
-      return badRequestError("Password does not meet requirements.")
+    if (err.code && err.code in serverAuthErrorMap) {
+      return badRequestError(mapAuthError(err, serverAuthErrorMap))
     }
 
-    return NextResponse.json(
-      { error: "Failed to reset password. Please try again." },
-      { status: 500 }
-    )
+    const message = err.message || "Failed to reset password. Please try again.";
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 })

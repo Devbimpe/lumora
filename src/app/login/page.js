@@ -8,6 +8,7 @@ import "./login.css"
 import { useAuth } from "@/app/components/AuthProvider"
 import { api } from "@/app/lib/api-client"
 import { isHTTPError } from "ky"
+import { mapAuthError, clientAuthErrorMap } from "@/app/lib/auth-errors"
 
 export default function Login() {
   return (
@@ -126,7 +127,7 @@ function LoginInner() {
       }
     } catch (error) {
       if (error instanceof FirebaseError) {
-        setError(error.message) // TODO
+        setError(mapAuthError(error, clientAuthErrorMap))
       } else if (isHTTPError(error) && typeof error.data === 'object' && error.data?.error) {
         setError(error.data.error)
       } else {

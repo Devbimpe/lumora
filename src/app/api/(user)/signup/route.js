@@ -4,6 +4,7 @@ import {
   validateJsonBody,
 } from '@/app/lib/route';
 import { createUserAccount, createUserDoc } from '@/app/_db/admin-db';
+import { mapAuthError, serverAuthErrorMap } from '@/app/lib/auth-errors';
 import { sendEmailVerification } from '@/app/api/(user)/email-verification';
 
 // POST handler: Handles user signup
@@ -53,26 +54,15 @@ export const POST = definePublicRoute(async (req) => {
       { status: 200 },
     );
   } catch (err) {
-    // TODO: rework error code mapping
-    // Pass user-friendly Firebase Auth errors to the frontend (Admin SDK error codes)
-    if (
-      err.code === 'auth/email-already-exists' ||
-      err.code === 'auth/email-already-in-use'
-    ) {
-      return badRequestError('This email address is already registered.');
-    }
-    if (err.code === 'auth/invalid-password') {
-      return badRequestError('Password does not meet requirements.');
-    }
-    if (err.code === 'auth/invalid-email') {
-      return badRequestError('Please enter a valid email address.');
+    const message = mapAuthError(err, serverAuthErrorMap);
+
+    // Known auth validation errors -> 400
+    if (err.code && err.code in serverAuthErrorMap) {
+      return badRequestError(message);
     }
 
-    // Log any unhandled errors
+    // Unknown errors -> 500
     console.warn('Signup error:', err);
-
-    // Return the specific error message to the client (to avoid swallowing useful errors)
-    const errorMessage = err.message || 'Server error.';
-    return Response.json({ error: errorMessage }, { status: 500 });
+    return Response.json({ error: message }, { status: 500 });
   }
 });
