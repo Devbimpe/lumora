@@ -17,17 +17,19 @@ export const GET = definePublicRoute(async (req) => {
     return badRequestError('Activation link has expired. Please log in again.')
   }
 
+  // Invalidate the token before anything else
+  await updateUser(user.uid, {
+    activationToken: null,
+    activationTokenExpires: null
+  });
+
   // Check if token is expired
   if (user.activationTokenExpires && user.activationTokenExpires.toDate() < new Date()) {
     return badRequestError('Activation link has expired. Please log in again.')
   }
 
-  // Activate user and clear token
-  await updateUserAccount(user.id, { emailVerified: true });
-  await updateUser(user.id, {
-    activationToken: null,
-    activationTokenExpires: null
-  });
+  // Activate user
+  await updateUserAccount(user.uid, { emailVerified: true });
 
   return NextResponse.json({ 
     message: 'Account activated! You can now login with your email and password.',

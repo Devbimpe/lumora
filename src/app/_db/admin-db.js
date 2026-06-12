@@ -6,6 +6,8 @@ import { performMigration } from '@/app/_db/admin-db-migration';
 import { getAuth } from 'firebase-admin/auth';
 /** @import { UserDoc } from '@/app/_db/common' */
 
+/** @typedef {UserDoc & { uid: string }} UserDocWithId */
+
 // Re-export for the rest of the app
 export { Timestamp };
 
@@ -34,7 +36,7 @@ export async function verifyIdToken(token) {
 }
 
 /** Get user by doc ID. Should be the same as Firebase User ID after migration.
- * @returns {Promise<UserDoc | null>}
+ * @returns {Promise<UserDocWithId | null>}
 */
 export async function getUserById(uid) {
   const usersRef = db.collection(COLLECTIONS.USERS);
@@ -59,7 +61,8 @@ export async function getUserById(uid) {
       }
       return uid;
     },
-    ...snapshot.data()
+    ...snapshot.data(),
+    uid,
   });
 }
 
@@ -67,16 +70,15 @@ export async function getUserById(uid) {
  * Get user by email
  */
 export async function getUserByEmail(email) {
-  const usersRef = db.collection(COLLECTIONS.USERS);
-  const q = usersRef.where('email', '==', email);
-  const querySnapshot = await q.get();
-
-  if (querySnapshot.empty) {
+  let uid;
+  try {
+    const userRecord = await auth.getUserByEmail(email);
+    uid = userRecord.uid;
+  } catch {
     return null;
   }
 
-  const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
+  return await getUserById(uid);
 }
 
 /**
@@ -97,27 +99,12 @@ export async function getUserByFirebaseUid(firebaseUid) {
 }
 
 /**
- * Get user by username
- */
-export async function getUserByUsername(username) {
-  const usersRef = db.collection(COLLECTIONS.USERS);
-  const q = usersRef.where('username', '==', username);
-  const querySnapshot = await q.get();
-
-  if (querySnapshot.empty) {
-    return null;
-  }
-
-  const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
-}
-
-/**
  * Get user by activation token
+ * @returns {Promise<UserDocWithId | null>}
  */
 export async function getUserByActivationToken(token) {
   const usersRef = db.collection(COLLECTIONS.USERS);
-  const q = usersRef.where('activationToken', '==', token);
+  const q = usersRef.where('activationToken', '==', token).limit(1);
   const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
@@ -125,16 +112,16 @@ export async function getUserByActivationToken(token) {
   }
 
   const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
+  return { uid: userDoc.id, ...userDoc.data() };
 }
 
 /**
- * Get user by password reset token (validates token is not expired)
+ * Get user by password reset token
+ * @returns {Promise<UserDocWithId | null>}
  */
 export async function getUserByResetToken(token) {
   const usersRef = db.collection(COLLECTIONS.USERS);
-  const q = usersRef
-    .where('resetToken', '==', token);
+  const q = usersRef.where('resetToken', '==', token).limit(1);
   const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
@@ -142,22 +129,7 @@ export async function getUserByResetToken(token) {
   }
 
   const userDoc = querySnapshot.docs[0];
-  const userData = userDoc.data();
-
-  // Validate expiry — resetTokenExpires is stored as a Firestore Timestamp
-  const expires = userData.resetTokenExpires;
-  if (!expires) return null;
-
-  // Handle both Firestore Timestamp objects and raw millisecond numbers
-  const expiresMs = typeof expires.toMillis === 'function'
-    ? expires.toMillis()
-    : Number(expires);
-
-  if (Date.now() > expiresMs) {
-    return null; // Token has expired
-  }
-
-  return { id: userDoc.id, ...userData };
+  return { uid: userDoc.id, ...userDoc.data() };
 }
 
 /**
@@ -215,6 +187,7 @@ export async function createUserDoc(userData) {
 
 /**
  * Update user document
+ * @param {{ [K in keyof UserDoc]?: UserDoc[K] | null }} updates 
  */
 export async function updateUser(userId, updates) {
   const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
@@ -1131,10 +1104,6 @@ export async function getFeedbackByUserId(userId) {
 
 // For backward compatibility with existing code
 export default {
-  getUserByEmail,
-  getUserByUsername,
-  getUserById,
-  getUserByActivationToken,
   updateUser,
   deleteUser,
   getAllUsers,

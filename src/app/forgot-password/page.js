@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { api } from "@/app/lib/api-client"
 import "../globals.css"
 import "../login/login.css"
 
@@ -17,23 +18,15 @@ export default function ForgotPassword() {
         setMessage("")
     
         try {
-            const response = await fetch("/api/forgot-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
-            })
-          
-            let data
-            try {
-                data = await response.json()
-            } catch {
-                data = { success: false, message: "Invalid server response" }
-            }
-          
-            if (data.success) {
-                setMessage(data.message)
-            } else {
+            const data = await api.post("/api/forgot-password", {
+                throwHttpErrors: false,
+                json: { email }
+            }).json()
+
+            if (data.error) {
                 setError(data.message)
+            } else {
+                setMessage(data.message)
             }
         } catch (err) {
             console.error("Network error:", err)
@@ -70,6 +63,7 @@ export default function ForgotPassword() {
                                     type="email" 
                                     id="email" 
                                     name="email"
+                                    autoComplete="username"
                                     placeholder="Enter your email"
                                     required 
                                     value={email} 
