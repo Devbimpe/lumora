@@ -168,6 +168,7 @@ export function createUserAccount(req) {
 
 /**
  * Create a new user document
+ * @param {Partial<UserDoc>} userData 
  */
 export async function createUserDoc(userData) {
   const usersRef = db.collection(COLLECTIONS.USERS);

@@ -26,6 +26,7 @@ export const POST = definePublicRoute(async (req) => {
     const { uid, error: docError } = await createUserDoc({
       name,
       username,
+      email,
       role: 'Student',
     });
 

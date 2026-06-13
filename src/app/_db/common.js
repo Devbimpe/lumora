@@ -17,6 +17,7 @@ export const COLLECTIONS = {
  * @property {'Admin' | 'Student'} role
  * @property {string} username
  * @property {string} name
+ * @property {string} email
  * @property {Timestamp | undefined} updatedAt
  * @property {number | undefined} percentModulesCompleted
  * @property {string | undefined} activationToken
