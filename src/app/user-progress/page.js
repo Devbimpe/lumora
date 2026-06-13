@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { api } from '@/app/lib/api-client';
 import { useAuth } from '@/app/components/AuthProvider';
 
 function UserProgressContent() {
@@ -22,7 +21,8 @@ function UserProgressContent() {
 
   const fetchModules = async () => {
     try {
-      const data = await api.get("/api/modules").json();
+      const res = await fetch("/api/modules");
+      const data = await res.json();
       console.log("Modules", data);
       setModules(data);
       return data;
@@ -34,7 +34,8 @@ function UserProgressContent() {
 
   const fetchUserProgress = async () => {
     try {
-      const data = await api.get(`/api/progress?userId=${user?.uid}`).json();
+      const response = await fetch(`/api/progress?userId=${user?.uid}`);
+      const data = await response.json();
       console.log("Progress", data);
       if(Array.isArray(data)) {
         setModuleProgress(data);

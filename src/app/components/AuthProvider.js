@@ -19,6 +19,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
 import { auth, db } from '@/app/_db/client-db';
 import { redirect, usePathname } from 'next/navigation';
+import '@/app/lib/api-client'; // Ensure global `fetch` is patched
 /** @import { UserDoc } from '@/app/_db/common' */
 
 /**
