@@ -78,7 +78,7 @@ async function sendResetEmail(to, token) {
         <p>Click below to reset it:</p>
         <p><a href="${resetLink}">Reset Password</a></p>
         <p>If you did not request this, you can ignore this email.</p>
-        <p>This link expires in 15 minutes.</p>
+        <p>This link expires in 30 minutes.</p>
       </div>
     `,
   }
