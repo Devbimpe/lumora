@@ -191,6 +191,10 @@ export async function createUserDoc(userData) {
  * @param {{ [K in keyof UserDoc]?: UserDoc[K] | null }} updates 
  */
 export async function updateUser(userId, updates) {
+  if ('role' in updates && updates.role !== 'Student') {
+    throw new Error("safe guard: cannot update user role using this function");
+  }
+
   const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
   await userRef.update({
     ...updates,
