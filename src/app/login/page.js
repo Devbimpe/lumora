@@ -108,16 +108,12 @@ function LoginInner() {
     }
 
     try {
-      let wasLoggedIn = !!currentUser;
       console.log("🚀 Attempting login...")
       await signIn(formData.email, formData.password, formData.rememberMe)
 
       const { status } = await api.post('/api/email-verification').json()
       if (status === 'verified') {
-        if (wasLoggedIn) {
-          await reload(); // Make sure the `email_verified` status is up-to-date
-          checkRedirect();
-        }
+        checkRedirect();
       } else if (status === 'valid_token') {
         setError('Account not activated. Please check your email for the activation link. You can resend it after the current link expires.')
       } else if (status === 'sent') {

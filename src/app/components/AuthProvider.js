@@ -14,6 +14,7 @@ import {
   signOut as _signOut,
   browserLocalPersistence,
   reload as _reload,
+  onIdTokenChanged,
 } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
@@ -72,8 +73,35 @@ export function AuthProvider({ children }) {
     }
   }, [pathname, loading, user]);
 
+  /**
+   * @param {UserSession['account'] | null} firebaseUser 
+   * @param {UserSession['doc'] | null} doc 
+   */
+  function updateUserObject(firebaseUser, doc) {
+    if (!firebaseUser) {
+      setUser(null);
+    } else if (!doc) {
+      console.error('User doc missing in Firestore'); // TODO: improve edge case handling
+      setUser(null);
+    } else {
+      setUser(
+        Object.freeze({
+          get uid() {
+            return firebaseUser.uid;
+          },
+          get role() {
+            return doc.role;
+          },
+          account: firebaseUser,
+          doc,
+        }),
+      );
+    }
+  }
+
   useEffect(() => {
     let unsubAuth = null;
+    let unsubToken = null;
     let unsubDoc = null;
 
     unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
@@ -94,25 +122,12 @@ export function AuthProvider({ children }) {
         docRef,
         (snapshot) => {
           if (!snapshot.exists()) {
-            console.error('User doc missing in Firestore'); // TODO: improve edge case handling
-            setUser(null);
+            updateUserObject(firebaseUser, null);
             return;
           }
 
-          /** @type {Readonly<UserDoc>} */
           const doc = Object.freeze(snapshot.data());
-          setUser(
-            Object.freeze({
-              get uid() {
-                return firebaseUser.uid;
-              },
-              get role() {
-                return doc.role;
-              },
-              account: firebaseUser,
-              doc,
-            }),
-          );
+          updateUserObject(firebaseUser, doc)
           setLoading(false);
         },
         (error) => {
@@ -123,14 +138,29 @@ export function AuthProvider({ children }) {
       );
     });
 
+    unsubToken = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) return;
+      const tokenData = await firebaseUser.getIdTokenResult();
+      if (tokenData) {
+        delete tokenData['token'];
+        console.log('User token claim:', tokenData);
+      }
+    });
+
     return () => {
       unsubAuth?.();
+      unsubToken?.();
       unsubDoc?.();
     };
   }, []);
 
   /** @type {AuthContextReturn['signIn']} */
   const signIn = useCallback(async (email, password, remember) => {
+    if (auth.currentUser) {
+      // Ensure user object is cleared first for React state
+      await _signOut(auth);
+    }
+
     if (remember) {
       await auth.setPersistence(browserLocalPersistence);
     } else {
@@ -146,7 +176,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const reload = useCallback(async () => {
-    if (auth.currentUser) await _reload(auth.currentUser);
+    if (auth.currentUser) {
+      await _reload(auth.currentUser);
+      await auth.currentUser.getIdToken(true); // Force refresh token
+    }
   }, []);
 
   return (
