@@ -24,6 +24,7 @@ export const GET = definePublicRoute(async (req) => {
   });
 
   // Check if token is expired
+  // This is safe because the `user` object is a snapshot and won't be affected by `updateUser`
   if (user.activationTokenExpires && user.activationTokenExpires.toDate() < new Date()) {
     return badRequestError('Activation link has expired. Please log in again.')
   }

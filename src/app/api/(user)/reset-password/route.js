@@ -29,6 +29,7 @@ export const POST = definePublicRoute(async (req) => {
     })
 
     // Check if token is expired
+    // This is safe because the `user` object is a snapshot and won't be affected by `updateUser`
     if (user.resetTokenExpires && user.resetTokenExpires.toDate() < new Date()) {
       return badRequestError("This reset link is invalid or has expired. Please request a new one.")
     }
