@@ -18,8 +18,6 @@ async function getUsers() {
       Role: user.doc.role,
       PercentModulesCompleted: user.doc.percentModulesCompleted || 0,
       isActivated: user.account.emailVerified,
-      activationToken: user.doc.activationToken,
-      activationTokenExpires: user.doc.activationTokenExpires?.toDate()?.toISOString()
     }));
 
     console.log(`📊 Found ${users.length} users`);
