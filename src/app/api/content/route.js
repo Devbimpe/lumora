@@ -5,7 +5,7 @@ import {
   defineAdminRoute,
   defineUserRoute,
   internalServerError,
-} from '@/app/lib/route';
+} from '@/app/_lib/route';
 
 // GET handler: Retrieves all content for a specific module
 // Expects a 'moduleId' query parameter in the request URL

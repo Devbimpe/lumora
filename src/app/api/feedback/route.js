@@ -5,7 +5,7 @@ import {
   defineUserRoute,
   internalServerError,
   validateJsonBody,
-} from '@/app/lib/route';
+} from '@/app/_lib/route';
 
 export const POST = defineUserRoute(async (request, session) => {
   try {

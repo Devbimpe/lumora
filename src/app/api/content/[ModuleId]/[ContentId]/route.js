@@ -5,7 +5,7 @@ import {
   defineAdminRoute,
   defineUserRoute,
   internalServerError,
-} from '@/app/lib/route';
+} from '@/app/_lib/route';
 
 // GET handler: Retrieves certain content by ContentID and ModuleID
 export const GET = defineUserRoute(async (req, session, ctx) => {

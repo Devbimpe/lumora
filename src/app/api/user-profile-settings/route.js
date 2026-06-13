@@ -6,7 +6,7 @@ import {
   internalServerError,
   validateJsonBody,
   verifyOwnership,
-} from '@/app/lib/route';
+} from '@/app/_lib/route';
 import { NextResponse } from 'next/server';
 
 export const POST = defineUserRoute(async (req, session) => {

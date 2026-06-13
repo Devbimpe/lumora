@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/components/AuthProvider';
 import '../globals.css';
 import '../login/login.css';
-import { api } from '@/app/lib/api-client';
+import { api } from '@/app/_lib/api-client';
 
 export default function Page() {
   const [form, setForm] = useState({

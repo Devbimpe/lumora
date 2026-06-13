@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { gradeKnowledgeCheck } from '@/ai/groq.js';
-import { defineUserRoute, internalServerError } from '@/app/lib/route';
+import { defineUserRoute, internalServerError } from '@/app/_lib/route';
 
 // POST /api/grade-knowledge-check — body: { "question", "userAnswer", "sampleAnswer?", "explanation?" }
 export const POST = defineUserRoute(async (req) => {

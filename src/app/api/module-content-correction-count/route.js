@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getModuleWithContent } from '@/app/_db/admin-db.js';
-import { defineUserRoute } from '@/app/lib/route';
+import { defineUserRoute } from '@/app/_lib/route';
 
 // GET: Get the actual count of displayable content sections (sidebar items) for a module
 export const GET = defineUserRoute(async (request) => {

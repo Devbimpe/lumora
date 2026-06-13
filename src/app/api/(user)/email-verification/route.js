@@ -1,5 +1,5 @@
 import { sendEmailVerification } from "@/app/api/(user)/email-verification";
-import { defineUnverifiedUserRoute } from "@/app/lib/route";
+import { defineUnverifiedUserRoute } from "@/app/_lib/route";
 import { NextResponse } from "next/server";
 
 export const POST = defineUnverifiedUserRoute(async (req, session) => {

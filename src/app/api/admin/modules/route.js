@@ -13,7 +13,7 @@ import {
   defineAdminRoute,
   internalServerError,
   validateJsonBody,
-} from '@/app/lib/route';
+} from '@/app/_lib/route';
 
 // Retrieves all modules from the database
 // Returns a JSON response with formatted module data

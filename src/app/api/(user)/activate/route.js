@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUserByActivationToken, updateUser, updateUserAccount } from '@/app/_db/admin-db.js';
-import { badRequestError, definePublicRoute } from '@/app/lib/route';
+import { badRequestError, definePublicRoute } from '@/app/_lib/route';
 
 export const GET = definePublicRoute(async (req) => {
   const token = req.nextUrl.searchParams.get('token');

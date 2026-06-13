@@ -2,9 +2,9 @@ import {
   badRequestError,
   definePublicRoute,
   validateJsonBody,
-} from '@/app/lib/route';
+} from '@/app/_lib/route';
 import { createUserAccount, createUserDoc } from '@/app/_db/admin-db';
-import { mapAuthError, serverAuthErrorMap } from '@/app/lib/auth-errors';
+import { mapAuthError, serverAuthErrorMap } from '@/app/_lib/auth-errors';
 import { sendEmailVerification } from '@/app/api/(user)/email-verification';
 
 // POST handler: Handles user signup

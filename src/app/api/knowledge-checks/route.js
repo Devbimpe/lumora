@@ -5,7 +5,7 @@ import {
   deleteKnowledgeCheck,
   updateKnowledgeCheck,
 } from "@/app/_db/admin-db.js";
-import { defineAdminRoute, defineUserRoute } from "@/app/lib/route";
+import { defineAdminRoute, defineUserRoute } from "@/app/_lib/route";
 
 /**
  * GET handler: Retrieves knowledge checks for a module

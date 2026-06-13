@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAllModules, getContentByModuleId, getKnowledgeChecksByModuleId } from '@/app/_db/admin-db.js';
-import { defineUserRoute } from '@/app/lib/route';
+import { defineUserRoute } from '@/app/_lib/route';
 
 export const GET = defineUserRoute(async (request) => {
   try {

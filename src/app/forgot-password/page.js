@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { api } from "@/app/lib/api-client"
+import { api } from "@/app/_lib/api-client"
 import "../globals.css"
 import "../login/login.css"
 

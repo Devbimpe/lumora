@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { deleteUser as _deleteUser, getAllUsers, getUserById, updateUserAccount } from "@/app/_db/admin-db.js";
-import { defineAdminRoute } from '@/app/lib/route';
+import { defineAdminRoute } from '@/app/_lib/route';
 
 // Retrieves all users from the database
 // Returns a JSON response with user data

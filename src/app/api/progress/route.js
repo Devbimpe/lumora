@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@/app/_db/admin-db.js';
-import { defineUserRoute, validateJsonBody, verifyOwnership } from '@/app/lib/route';
+import { defineUserRoute, validateJsonBody, verifyOwnership } from '@/app/_lib/route';
 
 // GET: Retrieve user progress
 export const GET = defineUserRoute(async (request, session) => {

@@ -2,7 +2,7 @@ import crypto from "node:crypto"
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 import { getUserByEmail, Timestamp, updateUser } from "@/app/_db/admin-db.js"
-import { badRequestError, definePublicRoute, validateJsonBody } from "@/app/lib/route"
+import { badRequestError, definePublicRoute, validateJsonBody } from "@/app/_lib/route"
 
 export const POST = definePublicRoute(async req => {
   try {

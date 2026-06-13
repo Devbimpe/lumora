@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getModuleWithContent, getAllModules, getContentByModuleId, getKnowledgeChecksByContentId } from '@/app/_db/admin-db.js';
-import { defineUserRoute, internalServerError } from '@/app/lib/route';
+import { defineUserRoute, internalServerError } from '@/app/_lib/route';
 
 // GET handler: Retrieves module details, associated content, and knowledge checks
 // Supports optional filtering by moduleId via query parameter

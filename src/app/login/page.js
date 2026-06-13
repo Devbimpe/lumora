@@ -6,9 +6,9 @@ import { FirebaseError } from "firebase/app"
 import "../globals.css"
 import "./login.css"
 import { useAuth } from "@/app/components/AuthProvider"
-import { api } from "@/app/lib/api-client"
+import { api } from "@/app/_lib/api-client"
 import { isHTTPError } from "ky"
-import { mapAuthError, clientAuthErrorMap } from "@/app/lib/auth-errors"
+import { mapAuthError, clientAuthErrorMap } from "@/app/_lib/auth-errors"
 
 export default function Login() {
   return (

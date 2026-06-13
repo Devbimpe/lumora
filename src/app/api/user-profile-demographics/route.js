@@ -2,7 +2,7 @@ import { getUserById, updateUser } from "@/app/_db/admin-db.js";
 import {
   defineUserRoute,
   verifyOwnership,
-} from "@/app/lib/route";
+} from "@/app/_lib/route";
 
 // GET method – returns existing demographic data for the user
 export const GET = defineUserRoute(async (request, session) => {

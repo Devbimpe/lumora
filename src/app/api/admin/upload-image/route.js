@@ -8,7 +8,7 @@ import {
   badRequestError,
   defineAdminRoute,
   internalServerError,
-} from '@/app/lib/route';
+} from '@/app/_lib/route';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB

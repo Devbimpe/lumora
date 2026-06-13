@@ -2,7 +2,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Inbox } from 'lucide-react';
-import { api } from '@/app/lib/api-client';
+import { api } from '@/app/_lib/api-client';
 import { useAuth } from '@/app/components/AuthProvider';
 import LoadingSpinner from '../components/LoadingSpinner'; 
 import ErrorMessage from '../components/ErrorMessage';     
