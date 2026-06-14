@@ -84,6 +84,16 @@ export async function POST(req) {
           <p><a href="${activationUrl}">Activate your account</a></p>
           <p>If you did not sign up, you can ignore this email.</p>
         `, // Email body with activation link
+        text: ` 
+Hello ${name},
+Thank you for registering with Lumora!
+      
+To complete your registration, please click the link below within 30 minutes:
+${activationUrl}
+      
+If you did not sign up, you can ignore this email. 
+`,
+
       });
       console.log('✅ Activation email sent successfully');
     } catch (emailError) {
