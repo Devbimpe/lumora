@@ -14,7 +14,8 @@ export const POST = definePublicRoute(async req => {
       return badRequestError("Email is required.")
     }
 
-    // Handle the request asynchronously, eliminating timing differences.
+    // Fire-and-forget: don't await. If we only wait for email delivery when
+    // the user exists, response timing reveals which emails are registered.
     requestResetIfUserExists(email)
 
     // Always return the same message whether the email exists or not.

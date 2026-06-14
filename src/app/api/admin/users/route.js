@@ -6,8 +6,6 @@ import { defineAdminRoute } from '@/app/_lib/route';
 // Returns a JSON response with user data
 async function getUsers() {
   try {
-    console.log('✅ Database connected');
-
     const users = await Array.fromAsync(getAllUsers());
 
     // Transform to match expected format with SQL-style field names

@@ -74,8 +74,8 @@ export function AuthProvider({ children }) {
   }, [pathname, loading, user]);
 
   /**
-   * @param {UserSession['account'] | null} firebaseUser 
-   * @param {UserSession['doc'] | null} doc 
+   * @param {UserSession['account'] | null} firebaseUser
+   * @param {UserSession['doc'] | null} doc
    */
   function updateUserObject(firebaseUser, doc) {
     if (!firebaseUser) {
@@ -127,7 +127,7 @@ export function AuthProvider({ children }) {
           }
 
           const doc = Object.freeze(snapshot.data());
-          updateUserObject(firebaseUser, doc)
+          updateUserObject(firebaseUser, doc);
           setLoading(false);
         },
         (error) => {

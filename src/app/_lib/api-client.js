@@ -1,6 +1,6 @@
 'use client';
-import { auth } from '@/app/_db/client-db';
 import ky from 'ky';
+import { auth } from '@/app/_db/client-db';
 
 const _fetch = globalThis.fetch.bind(globalThis);
 

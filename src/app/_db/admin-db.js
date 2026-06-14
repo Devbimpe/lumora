@@ -174,6 +174,7 @@ export async function createUserDoc(userData) {
   const usersRef = db.collection(COLLECTIONS.USERS);
   const newDocRef = usersRef.doc();
 
+  // Use transaction to prevent race condition with usernames
   const error = await db.runTransaction(async t => {
     if (userData.username) {
       const existingUsername = await t.get(usersRef.where('username', '==', userData.username).limit(1));

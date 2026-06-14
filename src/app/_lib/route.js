@@ -37,20 +37,14 @@ function defineRoute(type, handler) {
         case 'public':
         case 'user':
           if (session.claim.email && !session.claim.email_verified) {
-            return NextResponse.json(
-              { error: 'User email is not verified' },
-              { status: 403 },
-            );
+            return accessForbiddenError('User email is not verified');
           }
         // fallthrough
         case 'unverified_user':
           break;
         case 'admin':
           if (session.role !== 'Admin') {
-            return NextResponse.json(
-              { error: 'Admin access required' },
-              { status: 403 },
-            );
+            return accessForbiddenError('Admin access required');
           }
           break;
         default:
@@ -63,6 +57,7 @@ function defineRoute(type, handler) {
 }
 
 /**
+ * Define a public route accessible without authentication.
  * @param {NextPublicRouteHandler} handler
  * @returns {NextRouteHandler}
  */
@@ -71,6 +66,7 @@ export function definePublicRoute(handler) {
 }
 
 /**
+ * Define a route requiring authenticated user with verified email.
  * @param {NextSessionRouteHandler} handler
  * @returns {NextRouteHandler}
  */
@@ -79,6 +75,7 @@ export function defineUserRoute(handler) {
 }
 
 /**
+ * Define a route requiring authenticated user (email verification not required).
  * @param {NextSessionRouteHandler} handler
  * @returns {NextRouteHandler}
  */
@@ -87,6 +84,7 @@ export function defineUnverifiedUserRoute(handler) {
 }
 
 /**
+ * Define a route requiring admin privileges.
  * @param {NextSessionRouteHandler} handler
  * @returns {NextRouteHandler}
  */
@@ -98,7 +96,7 @@ export function defineAdminRoute(handler) {
  * @param {NextRequest} req
  * @returns {Promise<UserSession | null>}
  */
-export async function resolveSession(req) {
+async function resolveSession(req) {
   const header = req.headers.get('authorization');
   if (!header || !header.startsWith('Bearer ')) return null;
   const token = header.substring('Bearer '.length);
