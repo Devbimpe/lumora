@@ -1,12 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingRoot: require('path').join(__dirname),
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  outputFileTracingRoot: import.meta.dirname,
   images: {
     unoptimized: true,
   },
 }
 
-module.exports = nextConfig
+export default nextConfig

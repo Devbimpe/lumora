@@ -40,7 +40,7 @@
   "name": "lumora",
   "version": "1.0.0",
   "description": "LUMORA is an interactive e-learning platform designed to deliver training modules on key themes relevant to software development. The web application presents users with scenario-based questions and responses, guiding them through structured learning content in a way that is engaging and accessible. It also allows for managing training content, questions and answers, as well as tracking user progress.",
-  "main": "next.config.js",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://git.cs.dal.ca/courses/csci-x691/lumora.git"

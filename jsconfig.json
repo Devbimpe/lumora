@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
     "paths": {
       "@/ai/*": ["./ai/*"],
       "@/image-hosting/*": ["./image-hosting/*"],
       "@/*": ["./src/*"],
     },
-    "skipLibCheck": true
+    "lib": ["ESNext"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler"
   }
 }
