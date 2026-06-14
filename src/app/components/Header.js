@@ -208,8 +208,9 @@ export function Header() {
                 <Link 
                   href="/user-profile" 
                   className="text-gray-700 font-medium block hover:text-green-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  Hi, {user.username}
+                  My Account
                 </Link>
                 <button 
                   onClick={handleLogout} 
