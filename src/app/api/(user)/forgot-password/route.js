@@ -82,6 +82,19 @@ async function sendResetEmail(to, token) {
         <p>This link expires in 30 minutes.</p>
       </div>
     `,
+        text: `
+Password Reset Request
+We received a request to reset your Lumora account password.
+
+Reset your password using this link:
+${resetLink}
+
+If you did not request this, you can ignore this email.
+
+This link expires in 15 minutes.
+`,
+
+
   }
 
   await transporter.sendMail(mailOptions)
