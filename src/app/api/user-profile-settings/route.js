@@ -1,41 +1,35 @@
-import { getUserById, deleteUser as deleteUserFromDB } from "@db/admin-db.js";
-import { adminAuth } from "../../../../firebaseAdmin.js";
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
-import { cookies } from "next/headers";
+import { getUserById, deleteUser } from '@/app/_db/admin-db.js';
+import {
+  accessForbiddenError,
+  badRequestError,
+  defineUserRoute,
+  internalServerError,
+  validateJsonBody,
+  verifyOwnership,
+} from '@/app/_lib/route';
+import { NextResponse } from 'next/server';
 
-export async function POST(req) {
+export const POST = defineUserRoute(async (req, session) => {
   try {
-    const { userId } = await req.json();
+    const { body, validationError } = await validateJsonBody(req);
+    if (validationError) return validationError;
+    const { userId } = body;
 
     if (!userId) {
-      return new Response(JSON.stringify({ error: "Missing userId" }), { status: 400 });
+      return badRequestError('Missing userId');
     }
 
-    const session = await SecurityHelper.verifyOwnership(req, userId);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+    if (!verifyOwnership(session, userId)) return accessForbiddenError();
 
     const user = await getUserById(userId);
-    if (!user) {
-      return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
-    }
+    if (!user)
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const firebaseUid = user.firebaseUid;
-    if (!firebaseUid) {
-      return new Response(JSON.stringify({ error: "Firebase UID not found" }), { status: 500 });
-    }
+    await deleteUser(userId);
 
-    // Delete user Firestore
-    await deleteUserFromDB(userId);
-
-    // Delete user from Firebase Auth
-    await adminAuth.deleteUser(firebaseUid);
-
-    const cookieStore = await cookies();
-    cookieStore.delete("auth-token");
-    
-    return new Response(JSON.stringify({ message: "Account deleted successfully" }), { status: 200 });
+    return NextResponse.json({ message: 'Account deleted successfully' });
   } catch (err) {
-    console.error("Error deleting account:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    console.error('Error deleting account:', err);
+    return internalServerError();
   }
-}
+});

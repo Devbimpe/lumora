@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import { FAVICON_URLS, getFaviconIdFromUrl } from "../../lib/favicons"
+import { FAVICON_URLS, getFaviconIdFromUrl } from "../../_lib/favicons"
 
 const FIRST_FAVICON_ID = Object.keys(FAVICON_URLS)[0]
 

@@ -4,16 +4,16 @@ import {
   createKnowledgeCheck,
   deleteKnowledgeCheck,
   updateKnowledgeCheck,
-} from "@db/admin-db.js";
+} from "@/app/_db/admin-db.js";
+import { defineAdminRoute, defineUserRoute } from "@/app/_lib/route";
 
 /**
  * GET handler: Retrieves knowledge checks for a module
  * Requires moduleId query parameter
  */
-export async function GET(request) {
+export const GET = defineUserRoute(async (request) => {
   try {
-    const url = new URL(request.url);
-    const moduleId = url.searchParams.get("moduleId");
+    const moduleId = request.nextUrl.searchParams.get("moduleId");
 
     if (!moduleId) {
       return NextResponse.json(
@@ -43,13 +43,13 @@ export async function GET(request) {
       { status: 500 },
     );
   }
-}
+});
 /**
  * POST handler: Creates a new knowledge check
  * Supports both multiple-choice and descriptive question types.
  * For descriptive questions, choices and answer can be empty.
  */
-export async function POST(request) {
+export const POST = defineAdminRoute(async (request) => {
   try {
     const body = await request.json();
     const {
@@ -90,13 +90,13 @@ export async function POST(request) {
       { status: 500 },
     );
   }
-}
+});
 
 /**
  * DELETE handler: Deletes a knowledge check
  * Expects a JSON body with 'knowledgeCheckId' and 'moduleID' fields
  */
-export async function DELETE(request) {
+export const DELETE = defineAdminRoute(async (request) => {
   try {
     const body = await request.json();
     const { knowledgeCheckId, moduleID } = body;
@@ -118,13 +118,13 @@ export async function DELETE(request) {
       { status: 500 },
     );
   }
-}
+});
 
 /**
  * PUT handler: Updates a knowledge check
  * Expects a JSON body with 'knowledgeCheckId', 'moduleID', 'question', 'choices', 'answer', and 'explain' fields
  */
-export async function PUT(request) {
+export const PUT = defineAdminRoute(async (request) => {
   try {
     const body = await request.json();
     const { knowledgeCheckId, moduleID, question, choices, answer, explain } =
@@ -152,4 +152,4 @@ export async function PUT(request) {
       { status: 500 },
     );
   }
-}
+});
