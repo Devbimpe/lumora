@@ -154,7 +154,7 @@ export default function Sidebar() {
     } 
     const confirmLogout = async () => {
       try {
-        await logoutAndBroadcast()
+        await signOut()
         router.push('/')
       } catch (error) {
         console.error("Logout failed:", error)
