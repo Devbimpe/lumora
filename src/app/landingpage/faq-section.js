@@ -4,6 +4,7 @@ import { useState } from "react"
 
 export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState(null)
+  const [showAll, setShowAll] = useState(false)
 
   const faqs = [
     {
@@ -67,7 +68,7 @@ export default function FAQSection() {
         </h2>
         
         <div className="space-y-0">
-          {faqs.map((faq, index) => (
+          {(showAll ? faqs : faqs.slice(0, 5)).map((faq, index) => (
             <div key={index} className="border-b border-gray-200">
               <button
                 onClick={() => toggleFAQ(index)}
@@ -104,6 +105,14 @@ export default function FAQSection() {
               </div>
             </div>
           ))}
+        </div>
+        <div className="text-center mt-8">
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
+          >
+            {showAll ? "Show Less" : "Show More"}
+          </button>
         </div>
       </div>
     </section>
