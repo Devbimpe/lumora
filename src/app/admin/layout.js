@@ -1,35 +1,18 @@
-import { cookies } from 'next/headers';
+'use client'
 import { redirect } from 'next/navigation';
-import jwt from 'jsonwebtoken';
-import Sidebar from './components/admin-sidebar';
+import { useEffect } from 'react';
+import { useAuth } from '@/app/components/AuthProvider';
+import Sidebar from '@/app/admin/components/admin-sidebar';
 
-export default async function AdminLayout({ children }) {
-  // Serverside auth check
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-
-  // No token then redirect to login
-  if (!token) {
-    console.log('Layout: No auth token, redirecting to login');
-    redirect('/login');
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    if (decoded.role !== 'Admin') {
-      console.log('Layout: User is not admin:', decoded.username);
+export default function AdminLayout({ children }) {
+  const { user, loading } = useAuth();
+  useEffect(() => {
+    if (!loading && user?.role !== 'Admin') {
+      console.warn('User is not admin:', user?.email);
       redirect('/');
     }
+  }, [user, loading]);
 
-    console.log('Layout: Admin access granted:', decoded.username);
-    
-  } catch (error) {
-    console.error('Layout: Token verification failed:', error.message);
-    redirect('/login');
-  }
-
-  // User is authenticated admin 
   return (
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar />

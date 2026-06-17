@@ -2,15 +2,18 @@
 import { useState } from "react";
 import { Trash2, AlertTriangle } from "lucide-react"; // Took the reference from https://lucide.dev/icons/
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/components/AuthProvider";
 
 export default function Settings({ userId }) {
   const [status, setStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const router = useRouter(); 
-  
+  const { user, signOut } = useAuth();
+
   const handleDelete = async () => {
-    if (!userId) {
+    if (!user) {
       setStatus("User not logged in.");
       setShowModal(false);
       return;
@@ -22,16 +25,15 @@ export default function Settings({ userId }) {
       const res = await fetch("/api/user-profile-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: user.uid }),
       });
 
       const data = await res.json();
       setShowModal(false);
       if (res.ok) {
         setStatus("Account deleted successfully.");
-        document.cookie = "auth-token=; Max-Age=0; path=/;";
-        window.dispatchEvent(new Event("auth-changed"));
-        router.push("/login");
+        await signOut();
+        router.push("/");
       } else {
         setStatus(`Error: ${data.error}`);
       }
