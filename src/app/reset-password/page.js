@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { api } from "@/app/_lib/api-client"
 import "../globals.css"
 import "../login/login.css"
+import { validatePasswordPolicy } from "@/src/app/lib/auth"
 
 function ResetPasswordContent() {
     const searchParams = useSearchParams()
@@ -28,6 +29,11 @@ function ResetPasswordContent() {
     
         if (!token) {
             setError("Invalid reset token.")
+            return
+        }
+
+        if (!validatePasswordPolicy(password)) {
+            setError("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.")
             return
         }
 

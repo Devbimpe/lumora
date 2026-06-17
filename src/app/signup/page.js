@@ -5,6 +5,7 @@ import { useAuth } from '@/app/components/AuthProvider';
 import '../globals.css';
 import '../login/login.css';
 import { api } from '@/app/_lib/api-client';
+import { validatePasswordPolicy } from '@/app/_lib/auth-helper';
 
 export default function Page() {
   const [form, setForm] = useState({
@@ -43,11 +44,6 @@ export default function Page() {
     return /\S+@\S+\.\S+/.test(email);
   }
 
-  function validatePassword(password) {
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return passwordRegex.test(password);
-  }
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.id]: e.target.value });
     setError(''); // Clear error on input change to avoid stale messages
@@ -71,8 +67,8 @@ export default function Page() {
       return;
     }
     // Prevent submission if password does not meet requirements
-    if (!validatePassword(form.password)) {
-      setError('Password does not meet requirements.');
+    if (!validatePasswordPolicy(form.password)) {
+      setError("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.");
       setIsLoading(false);
       return;
     }
@@ -212,9 +208,9 @@ export default function Page() {
                   aria-required="true"
                   aria-describedby={error && error.includes('Password') ? 'form-error' : undefined}
                 />
-                {!validatePassword(form.password) && form.password && (
+                {!validatePasswordPolicy(form.password) && form.password && (
                   <small style={{ color: "#dc2626" }}>
-                    Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @$!%*?&).
+                    Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.
                   </small>
                 )}
               </div>
