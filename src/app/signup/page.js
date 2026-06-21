@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import '../globals.css';
 import '../login/login.css';
+import { toast } from 'react-toastify';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Page() {
   const router = useRouter();
@@ -18,6 +21,7 @@ export default function Page() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const notifySuccess = () => toast.success('Check your email — we’ve sent you an activation link to complete your registration.');
 
   // Check if user is already authenticated and redirect if so
   useEffect(() => {
@@ -102,7 +106,8 @@ export default function Page() {
       });
 
       if (res.ok) {
-        setSuccess('Check your email — we’ve sent you an activation link to complete your registration.');
+        notifySuccess();
+        setSuccess('Success!');
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
       } else {
         const data = await res.json();
@@ -145,16 +150,6 @@ export default function Page() {
               onSubmit={handleSubmit}
               aria-describedby={error ? 'form-error' : undefined}
             >
-              {error && (
-                <div className="error-message" id="form-error" role="alert" aria-live="assertive">
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div className="success-message" id="form-success" role="alert" aria-live="assertive">
-                  {success}
-                </div>
-              )}
               <div className="info">
                 <label htmlFor="name">
                   Full Name
@@ -252,6 +247,17 @@ export default function Page() {
             <div className="register_link">
               Already have an account? <a href="/login">Login</a>
             </div>
+            <ToastContainer position="top-center" />
+              {error && (
+                <div className="error-message" id="form-error" role="alert" aria-live="assertive">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="success-message" id="form-success" role="alert" aria-live="assertive">
+                  {success}
+                </div>
+              )}
           </div>
         </div>
       </main>
