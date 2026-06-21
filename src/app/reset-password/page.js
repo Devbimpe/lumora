@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { api } from "@/app/_lib/api-client"
 import "../globals.css"
 import "../login/login.css"
-import { validatePasswordPolicy } from "@/src/app/lib/auth"
+import { validatePasswordPolicy } from "@/app/_lib/auth-helper"
 
 function ResetPasswordContent() {
     const searchParams = useSearchParams()
