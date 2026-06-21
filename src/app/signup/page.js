@@ -96,11 +96,8 @@ export default function Page() {
       const data = await res.json();
       if (res.ok) {
         notifySuccess();
-        setSuccess('Success!');
+        setSuccess('Sucess!');
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
-        setTimeout(() => {
-          router.push('/login');
-          }, 3000);
       } else {
         setError(data.error || 'Signup failed.');
       }
