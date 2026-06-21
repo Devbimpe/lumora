@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import db from "@/db/db";
+// import db from "@/db/db";
+// TODO: fetch from server instead
 
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState([]);

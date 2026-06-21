@@ -1,190 +1,239 @@
-import { db } from './firebase.js';
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  addDoc,
-  writeBatch,
-  Timestamp
-} from 'firebase/firestore';
+import 'server-only'
+import { cert as firebaseAdminCert, initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { COLLECTIONS } from '@/app/_db/common';
+import { performMigration } from '@/app/_db/admin-db-migration';
+import { getAuth } from 'firebase-admin/auth';
+/** @import { UserDoc } from '@/app/_db/common' */
 
-// Collection names
-export const COLLECTIONS = {
-  USERS: 'users',
-  MODULES: 'modules',
-  CONTENT: 'content',
-  KNOWLEDGE_CHECKS: 'knowledgeChecks',
-  STUDENT_SUBMISSIONS: 'studentSubmissions',
-  FEEDBACK: 'feedback',
-  USER_PROGRESS: 'userProgress'
-};
+/** @typedef {UserDoc & { uid: string }} UserDocWithId */
 
-// Tests the Firestore connection
-export async function testConnection() {
-  try {
-    // Try to access a collection to test the connection
-    const testRef = collection(db, '_connection_test');
-    console.log('Firestore connection successful!');
-    return true;
-  } catch (error) {
-    console.error('Firestore connection failed:', error.message);
-    throw error;
-  }
+// Re-export for the rest of the app
+export { Timestamp };
+
+if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVATE_KEY) {
+  throw new Error('Missing Firebase admin credentials in env');
 }
 
+if (!getApps().length) {
+  initializeApp({
+    credential: firebaseAdminCert({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY
+    })
+  });
+  await performMigration();
+}
+
+const db = getFirestore();
+const auth = getAuth();
+
 // ==================== USER OPERATIONS ====================
+
+export async function verifyIdToken(token) {
+  return await auth.verifyIdToken(token);
+}
+
+/** Get user by doc ID. Should be the same as Firebase User ID after migration.
+ * @returns {Promise<UserDocWithId | null>}
+*/
+export async function getUserById(uid) {
+  const usersRef = db.collection(COLLECTIONS.USERS);
+  let snapshot = await usersRef.doc(uid).get();
+
+  if (!snapshot.exists) {
+    // Legacy fallback
+    const queryResult = await usersRef.where('firebaseUid', '==', uid).get();
+    if (queryResult.empty) return null;
+    if (queryResult.size > 1) console.warn(`multiple user documents returned for ${uid}`);
+    snapshot = queryResult.docs[0];
+  }
+
+  if (!snapshot.exists) return null;
+
+  let warned = false;
+  return Object.freeze({
+    get id() {
+      if (!warned) {
+        warned = true;
+        console.warn('`id` property in user document is deprecated');
+      }
+      return uid;
+    },
+    ...snapshot.data(),
+    uid,
+  });
+}
 
 /**
  * Get user by email
  */
 export async function getUserByEmail(email) {
-  const usersRef = collection(db, COLLECTIONS.USERS);
-  const q = query(usersRef, where('email', '==', email));
-  const querySnapshot = await getDocs(q);
-
-  if (querySnapshot.empty) {
+  let uid;
+  try {
+    const userRecord = await auth.getUserByEmail(email);
+    uid = userRecord.uid;
+  } catch {
     return null;
   }
 
-  const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
+  return await getUserById(uid);
 }
 
 /**
  * Get user by Firebase UID
+ * @deprecated use `getUserById` instead
  */
 export async function getUserByFirebaseUid(firebaseUid) {
-  const usersRef = collection(db, COLLECTIONS.USERS);
-  const q = query(usersRef, where('firebaseUid', '==', firebaseUid));
-  const querySnapshot = await getDocs(q);
+  const usersRef = db.collection(COLLECTIONS.USERS);
+  const q = usersRef.where('firebaseUid', '==', firebaseUid);
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     return null;
   }
 
   const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
-}
-
-/**
- * Get user by username
- */
-export async function getUserByUsername(username) {
-  const usersRef = collection(db, COLLECTIONS.USERS);
-  const q = query(usersRef, where('username', '==', username));
-  const querySnapshot = await getDocs(q);
-
-  if (querySnapshot.empty) {
-    return null;
-  }
-
-  const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
-}
-
-/**
- * Get user by ID
- */
-export async function getUserById(userId) {
-  const userRef = doc(db, COLLECTIONS.USERS, userId);
-  const userDoc = await getDoc(userRef);
-
-  if (!userDoc.exists()) {
-    return null;
-  }
-
   return { id: userDoc.id, ...userDoc.data() };
 }
 
 /**
  * Get user by activation token
+ * @returns {Promise<UserDocWithId | null>}
  */
 export async function getUserByActivationToken(token) {
-  const usersRef = collection(db, COLLECTIONS.USERS);
-  const q = query(
-    usersRef,
-    where('activationToken', '==', token),
-    where('isActivated', '==', false)
-  );
-  const querySnapshot = await getDocs(q);
+  const usersRef = db.collection(COLLECTIONS.USERS);
+  const q = usersRef.where('activationToken', '==', token).limit(1);
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     return null;
   }
 
   const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
+  return { uid: userDoc.id, ...userDoc.data() };
+}
+
+/**
+ * Get user by password reset token
+ * @returns {Promise<UserDocWithId | null>}
+ */
+export async function getUserByResetToken(token) {
+  const usersRef = db.collection(COLLECTIONS.USERS);
+  const q = usersRef.where('resetToken', '==', token).limit(1);
+  const querySnapshot = await q.get();
+
+  if (querySnapshot.empty) {
+    return null;
+  }
+
+  const userDoc = querySnapshot.docs[0];
+  return { uid: userDoc.id, ...userDoc.data() };
 }
 
 /**
  * Get all users
  */
-export async function getAllUsers() {
-  const usersRef = collection(db, COLLECTIONS.USERS);
-  const querySnapshot = await getDocs(usersRef);
+export async function* getAllUsers() {
+  const usersRef = db.collection(COLLECTIONS.USERS);
+  const querySnapshot = await usersRef.get();
 
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  const chunkSize = 100; // Firebase Auth query limit
+  for (let i = 0; i < querySnapshot.docs.length; i += chunkSize) {
+    const chunk = querySnapshot.docs.slice(i, i + chunkSize);
+    const lookup = new Map();
+    for (const doc of chunk)
+      lookup.set(doc.id, doc);
+    
+    const { users: firebaseUsers } = await auth.getUsers(chunk.map(doc => ({ uid: doc.id })));
+    for (const firebaseUser of firebaseUsers) {
+      const doc = lookup.get(firebaseUser.uid);
+      if (doc)
+        yield {
+          account: firebaseUser,
+          doc: /** @type {UserDoc} */ (doc.data())
+        }
+    }
+  }
 }
 
 /**
- * Create a new user
+ * Create a new user account in Firebase Auth
+ * @param {import('firebase-admin/auth').CreateRequest} req 
  */
-export async function createUser(userData) {
-  const usersRef = collection(db, COLLECTIONS.USERS);
-  const docRef = await addDoc(usersRef, {
-    ...userData,
-    role: userData.role || 'Student',
-    percentModulesCompleted: userData.percentModulesCompleted || 0,
-    isActivated: userData.isActivated || false,
-    createdAt: Timestamp.now()
+export function createUserAccount(req) {
+  return auth.createUser(req);
+}
+
+/**
+ * Create a new user document
+ * @param {Partial<UserDoc>} userData 
+ */
+export async function createUserDoc(userData) {
+  const usersRef = db.collection(COLLECTIONS.USERS);
+  const newDocRef = usersRef.doc();
+
+  // Use transaction to prevent race condition with usernames
+  const error = await db.runTransaction(async t => {
+    if (userData.username) {
+      const existingUsername = await t.get(usersRef.where('username', '==', userData.username).limit(1));
+      if (!existingUsername.empty) return 'Username is already in use';
+    }
+
+    t.create(newDocRef, userData);
   });
 
-  return docRef.id;
+  return { uid: newDocRef.id, error };
 }
 
 /**
- * Update user
+ * Update user document
+ * @param {{ [K in keyof UserDoc]?: UserDoc[K] | null }} updates 
  */
 export async function updateUser(userId, updates) {
-  const userRef = doc(db, COLLECTIONS.USERS, userId);
-  await updateDoc(userRef, {
+  if ('role' in updates && updates.role !== 'Student') {
+    throw new Error("safe guard: cannot update user role using this function");
+  }
+
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  await userRef.update({
     ...updates,
     updatedAt: Timestamp.now()
   });
 }
 
 /**
+ * Update user account in Firebase Auth
+ * @param {string} uid 
+ * @param {import('firebase-admin/auth').UpdateRequest} updates 
+ */
+export function updateUserAccount(uid, updates) {
+  return auth.updateUser(uid, updates);
+}
+
+/**
  * Delete user and related data
  */
 export async function deleteUser(userId) {
-  const batch = writeBatch(db);
+  const batch = db.batch();
 
   // Delete user document
-  const userRef = doc(db, COLLECTIONS.USERS, userId);
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
   batch.delete(userRef);
 
   // Delete related student submissions
-  const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
-  const submissionsQuery = query(submissionsRef, where('studentId', '==', userId));
-  const submissionsSnapshot = await getDocs(submissionsQuery);
+  const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
+  const submissionsQuery = submissionsRef.where('studentId', '==', userId);
+  const submissionsSnapshot = await submissionsQuery.get();
 
   submissionsSnapshot.forEach((doc) => {
     batch.delete(doc.ref);
   });
 
+  await auth.deleteUser(userId);
   await batch.commit();
 }
-
 
 // ==================== MODULE OPERATIONS ====================
 
@@ -192,9 +241,9 @@ export async function deleteUser(userId) {
  * Get all modules
  */
 export async function getAllModules() {
-  const modulesRef = collection(db, COLLECTIONS.MODULES);
-  const q = query(modulesRef, orderBy('moduleId', 'asc'));
-  const querySnapshot = await getDocs(q);
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const q = modulesRef.orderBy('moduleId', 'asc');
+  const querySnapshot = await q.get();
 
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
@@ -203,11 +252,11 @@ export async function getAllModules() {
 }
 
 export async function getAllPublishedModules() {
-  const modulesRef = collection(db, COLLECTIONS.MODULES);
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
 
   try {
-    const q = query(modulesRef, where('published', '==', true), orderBy('moduleId', 'asc'));
-    const querySnapshot = await getDocs(q);
+    const q = modulesRef.where('published', '==', true).orderBy('moduleId', 'asc');
+    const querySnapshot = await q.get();
 
     let results = querySnapshot.docs.map(doc => ({
       id: doc.id,
@@ -230,9 +279,9 @@ export async function getAllPublishedModules() {
  * Get module by ID
  */
 export async function getModuleById(moduleId) {
-  const modulesRef = collection(db, COLLECTIONS.MODULES);
-  const q = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
-  const querySnapshot = await getDocs(q);
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const q = modulesRef.where('moduleId', '==', parseInt(moduleId));
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     return null;
@@ -246,7 +295,7 @@ export async function getModuleById(moduleId) {
  * Create a new module
  */
 export async function createModule(moduleData) {
-  const modulesRef = collection(db, COLLECTIONS.MODULES);
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
 
   // Get the highest moduleId
   const allModules = await getAllModules();
@@ -254,7 +303,7 @@ export async function createModule(moduleData) {
     ? Math.max(...allModules.map(m => m.moduleId || 0))
     : 0;
 
-  const docRef = await addDoc(modulesRef, {
+  const docRef = await modulesRef.add({
     moduleId: maxModuleId + 1,
     heading: moduleData.heading,
     subheading: moduleData.subheading || moduleData.subHeading,
@@ -269,16 +318,16 @@ export async function createModule(moduleData) {
  * Update module
  */
 export async function updateModule(moduleId, updates) {
-  const modulesRef = collection(db, COLLECTIONS.MODULES);
-  const q = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
-  const querySnapshot = await getDocs(q);
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const q = modulesRef.where('moduleId', '==', parseInt(moduleId));
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     throw new Error('Module not found');
   }
 
   const moduleDoc = querySnapshot.docs[0];
-  await updateDoc(moduleDoc.ref, {
+  await moduleDoc.ref.update({
     heading: updates.heading,
     subheading: updates.subheading || updates.subHeading,
     updatedAt: Timestamp.now(),
@@ -290,12 +339,12 @@ export async function updateModule(moduleId, updates) {
  * Delete module and related data
  */
 export async function deleteModule(moduleId) {
-  const batch = writeBatch(db);
+  const batch = db.batch();
 
   // Find and delete the module
-  const modulesRef = collection(db, COLLECTIONS.MODULES);
-  const moduleQuery = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
-  const moduleSnapshot = await getDocs(moduleQuery);
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const moduleQuery = modulesRef.where('moduleId', '==', parseInt(moduleId));
+  const moduleSnapshot = await moduleQuery.get();
 
   if (moduleSnapshot.empty) {
     throw new Error('Module not found');
@@ -306,9 +355,9 @@ export async function deleteModule(moduleId) {
   });
 
   // Delete related content
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
-  const contentQuery = query(contentRef, where('moduleId', '==', parseInt(moduleId)));
-  const contentSnapshot = await getDocs(contentQuery);
+  const contentRef = db.collection(COLLECTIONS.CONTENT);
+  const contentQuery = contentRef.where('moduleId', '==', parseInt(moduleId));
+  const contentSnapshot = await contentQuery.get();
 
   contentSnapshot.forEach(doc => {
     batch.delete(doc.ref);
@@ -317,9 +366,9 @@ export async function deleteModule(moduleId) {
   // Delete all knowledge checks for this module (by moduleID), including unassociated
   // checks with no contentId. Deleting only by contentId misses those and leaves stale
   // rows that collide when module ids are reused after reindexing.
-  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-  const moduleChecksQuery = query(checksRef, where('moduleID', '==', parseInt(moduleId)));
-  const moduleChecksSnapshot = await getDocs(moduleChecksQuery);
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const moduleChecksQuery = checksRef.where('moduleID', '==', parseInt(moduleId));
+  const moduleChecksSnapshot = await moduleChecksQuery.get();
 
   const checkIdsForSubmissions = moduleChecksSnapshot.docs.map(
     (d) => d.data().knowledgeCheckId
@@ -330,10 +379,10 @@ export async function deleteModule(moduleId) {
   });
 
   if (checkIdsForSubmissions.length > 0) {
-    const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
+    const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
     for (const checkId of checkIdsForSubmissions) {
-      const submissionsQuery = query(submissionsRef, where('knowledgeCheckId', '==', checkId));
-      const submissionsSnapshot = await getDocs(submissionsQuery);
+      const submissionsQuery = submissionsRef.where('knowledgeCheckId', '==', checkId);
+      const submissionsSnapshot = await submissionsQuery.get();
 
       submissionsSnapshot.forEach((subDoc) => {
         batch.delete(subDoc.ref);
@@ -345,18 +394,18 @@ export async function deleteModule(moduleId) {
 
   // Remove learner progress for this module id so a later module that reuses the same
   // numeric id (after reindex / new create) does not inherit viewed/completed state.
-  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-  const progressQuery = query(progressRef, where('moduleId', '==', parseInt(moduleId)));
-  const progressSnapshot = await getDocs(progressQuery);
+  const progressRef = db.collection(COLLECTIONS.USER_PROGRESS);
+  const progressQuery = progressRef.where('moduleId', '==', parseInt(moduleId));
+  const progressSnapshot = await progressQuery.get();
   if (!progressSnapshot.empty) {
-    let progressBatch = writeBatch(db);
+    let progressBatch = db.batch();
     let ops = 0;
     for (const progressDoc of progressSnapshot.docs) {
       progressBatch.delete(progressDoc.ref);
       ops++;
       if (ops >= 400) {
         await progressBatch.commit();
-        progressBatch = writeBatch(db);
+        progressBatch = db.batch();
         ops = 0;
       }
     }
@@ -374,52 +423,7 @@ export async function deleteModule(moduleId) {
  * Example: If modules are 1, 3, 4 -> becomes 1, 2, 3
  */
 async function reindexModules() {
-  // Get all modules sorted by their current number
-  const modules = await getAllModules();
-
-  for (let i = 0; i < modules.length; i++) {
-    const correctNumber = i + 1;
-    const currentNumber = modules[i].moduleId;
-
-    // Skip if already correct
-    if (currentNumber === correctNumber) {
-      continue;
-    }
-
-    // Update module number
-    const moduleRef = doc(db, COLLECTIONS.MODULES, modules[i].id);
-    await updateDoc(moduleRef, { moduleId: correctNumber });
-
-    // Update content that references this module
-    const contentRef = collection(db, COLLECTIONS.CONTENT);
-    const contentDocs = await getDocs(query(contentRef, where('moduleId', '==', currentNumber)));
-    for (const contentDoc of contentDocs.docs) {
-      await updateDoc(contentDoc.ref, { moduleId: correctNumber });
-    }
-
-    // Update user progress that references this module (rename doc IDs too)
-    const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-    const progressDocs = await getDocs(query(progressRef, where('moduleId', '==', currentNumber)));
-    for (const progressDoc of progressDocs.docs) {
-      const data = progressDoc.data();
-      const newDocId = `${data.userId}_${correctNumber}`;
-
-      if (progressDoc.id !== newDocId) {
-        const newDocRef = doc(db, COLLECTIONS.USER_PROGRESS, newDocId);
-        await setDoc(newDocRef, { ...data, moduleId: correctNumber }, { merge: true });
-        await deleteDoc(progressDoc.ref);
-      } else {
-        await updateDoc(progressDoc.ref, { moduleId: correctNumber });
-      }
-    }
-
-    // Update knowledge checks (note: uses moduleID with capital ID)
-    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-    const checksDocs = await getDocs(query(checksRef, where('moduleID', '==', currentNumber)));
-    for (const checkDoc of checksDocs.docs) {
-      await updateDoc(checkDoc.ref, { moduleID: correctNumber });
-    }
-  }
+  throw new Error("to be reworked")
 }
 
 /**
@@ -433,113 +437,23 @@ async function reindexModules() {
  * content, and knowledge checks in one batch.
  */
 export async function reorderModules(newOrder) {
-  // Build a map: oldModuleId -> newModuleId
-  // e.g. newOrder = [3, 1, 2] means: 3->1, 1->2, 2->3
-  const idMap = {};
-  for (let i = 0; i < newOrder.length; i++) {
-    idMap[newOrder[i]] = i + 1;
-  }
-
-  // Fetch everything we need in parallel (4 reads at once)
-  const [moduleDocs, contentDocs, progressDocs, checksDocs] = await Promise.all([
-    getDocs(collection(db, COLLECTIONS.MODULES)),
-    getDocs(collection(db, COLLECTIONS.CONTENT)),
-    getDocs(collection(db, COLLECTIONS.USER_PROGRESS)),
-    getDocs(collection(db, COLLECTIONS.KNOWLEDGE_CHECKS)),
-  ]);
-
-  // --- Phase 1: move each progress doc to a unique staging id (per user + old module id) ---
-  const stagingEntries = [];
-  {
-    let batch = writeBatch(db);
-    let ops = 0;
-    const maybeCommit = async () => {
-      if (ops >= 400) {
-        await batch.commit();
-        batch = writeBatch(db);
-        ops = 0;
-      }
-    };
-
-    for (const d of progressDocs.docs) {
-      const oldModuleId = d.data().moduleId;
-      if (idMap[oldModuleId] === undefined) continue;
-      const newModuleId = idMap[oldModuleId];
-      const userId = d.data().userId;
-      const stagingRef = doc(db, COLLECTIONS.USER_PROGRESS, `${userId}_stg_${oldModuleId}`);
-      const data = { ...d.data(), moduleId: newModuleId };
-      batch.set(stagingRef, data);
-      batch.delete(d.ref);
-      stagingEntries.push({ stagingRef, userId, newModuleId, data });
-      ops += 2;
-      await maybeCommit();
-    }
-    if (ops > 0) await batch.commit();
-  }
-
-  // --- Phase 2: staging -> final `${userId}_${newModuleId}` ---
-  {
-    let batch = writeBatch(db);
-    let ops = 0;
-    const maybeCommit = async () => {
-      if (ops >= 400) {
-        await batch.commit();
-        batch = writeBatch(db);
-        ops = 0;
-      }
-    };
-
-    for (const e of stagingEntries) {
-      const finalRef = doc(db, COLLECTIONS.USER_PROGRESS, `${e.userId}_${e.newModuleId}`);
-      batch.set(finalRef, e.data);
-      batch.delete(e.stagingRef);
-      ops += 2;
-      await maybeCommit();
-    }
-    if (ops > 0) await batch.commit();
-  }
-
-  // --- Modules, content, knowledge checks (single batch; progress already migrated) ---
-  const batch = writeBatch(db);
-
-  for (const d of moduleDocs.docs) {
-    const oldId = d.data().moduleId;
-    if (idMap[oldId] !== undefined) {
-      batch.update(d.ref, { moduleId: idMap[oldId] });
-    }
-  }
-
-  for (const d of contentDocs.docs) {
-    const oldId = d.data().moduleId;
-    if (idMap[oldId] !== undefined) {
-      batch.update(d.ref, { moduleId: idMap[oldId] });
-    }
-  }
-
-  for (const d of checksDocs.docs) {
-    const oldId = d.data().moduleID;
-    if (idMap[oldId] !== undefined) {
-      batch.update(d.ref, { moduleID: idMap[oldId] });
-    }
-  }
-
-  await batch.commit();
+  throw new Error("to be reworked")
 }
 
 /**
  * Toggle published status of a module
  */
 export async function updateModulePublished(moduleId, published) {
-  const modulesRef = collection(db, COLLECTIONS.MODULES);
-  const q = query(modulesRef, where('moduleId', '==', parseInt(moduleId)));
-  const querySnapshot = await getDocs(q);
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const q = modulesRef.where('moduleId', '==', parseInt(moduleId));
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     throw new Error('Module not found');
   }
 
   const moduleDoc = querySnapshot.docs[0];
-  await updateDoc(moduleDoc.ref, {
+  await moduleDoc.ref.update({
     published,
     updatedAt: Timestamp.now()
   });
@@ -551,13 +465,11 @@ export async function updateModulePublished(moduleId, published) {
  * Get content by module ID
  */
 export async function getContentByModuleId(moduleId) {
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
-  const q = query(
-    contentRef,
-    where('moduleId', '==', parseInt(moduleId)),
-    orderBy('contentId', 'asc')
-  );
-  const querySnapshot = await getDocs(q);
+  const contentRef = db.collection(COLLECTIONS.CONTENT);
+  const q = contentRef
+    .where('moduleId', '==', parseInt(moduleId))
+    .orderBy('contentId', 'asc');
+  const querySnapshot = await q.get();
 
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
@@ -569,11 +481,11 @@ export async function getContentByModuleId(moduleId) {
  * Get content by content ID
  */
 export async function getContentById(moduleId, contentId) {
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
-  const q = query(contentRef, 
-    where('contentId', '==', parseInt(contentId)), 
-    where('moduleId', '==', parseInt(moduleId)));
-  const querySnapshot = await getDocs(q);
+  const contentRef = db.collection(COLLECTIONS.CONTENT);
+  const q = contentRef
+    .where('contentId', '==', parseInt(contentId))
+    .where('moduleId', '==', parseInt(moduleId));
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     return null;
@@ -587,18 +499,18 @@ export async function getContentById(moduleId, contentId) {
  * Update content
  */
 export async function updateContent(moduleId, contentId, updates) {
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
-  const q = query(contentRef, 
-    where('contentId', '==', parseInt(contentId)), 
-    where('moduleId', '==', parseInt(moduleId)));
-  const querySnapshot = await getDocs(q);
+  const contentRef = db.collection(COLLECTIONS.CONTENT);
+  const q = contentRef
+    .where('contentId', '==', parseInt(contentId))
+    .where('moduleId', '==', parseInt(moduleId));
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     throw new Error('Content not found');
   }
 
   const contentDoc = querySnapshot.docs[0];
-  await updateDoc(contentDoc.ref, {
+  await contentDoc.ref.update({
     overview: updates.Overview ?? updates.overview ?? '',
     reading: updates.Reading ?? updates.reading ?? '',
     updatedAt: Timestamp.now(),
@@ -611,7 +523,7 @@ export async function updateContent(moduleId, contentId, updates) {
  * Create content
  */
 export async function createContent(contentData) {
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
+  const contentRef = db.collection(COLLECTIONS.CONTENT);
 
   // Get the highest contentId for this module
   const moduleContent = await getContentByModuleId(contentData.moduleId);
@@ -619,7 +531,7 @@ export async function createContent(contentData) {
     ? Math.max(...moduleContent.map(c => c.contentId || 0))
     : 0;
 
-  const docRef = await addDoc(contentRef, {
+  const docRef = await contentRef.add({
     contentId: maxContentId + 1,
     moduleId: parseInt(contentData.moduleId),
     overview: contentData.overview,
@@ -636,19 +548,17 @@ export async function createContent(contentData) {
  * Delete content by contentId and moduleId
  */
 export async function deleteContent(contentId, moduleId) {
-  const contentRef = collection(db, COLLECTIONS.CONTENT);
-  const q = query(
-    contentRef,
-    where('contentId', '==', parseInt(contentId)),
-    where('moduleId', '==', parseInt(moduleId))
-  );
-  const querySnapshot = await getDocs(q);
+  const contentRef = db.collection(COLLECTIONS.CONTENT);
+  const q = contentRef
+    .where('contentId', '==', parseInt(contentId))
+    .where('moduleId', '==', parseInt(moduleId));
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     throw new Error('Content not found');
   }
 
-  await deleteDoc(querySnapshot.docs[0].ref);
+  await querySnapshot.docs[0].ref.delete();
   return { deleted: true };
 }
 
@@ -658,9 +568,9 @@ export async function deleteContent(contentId, moduleId) {
  * Get knowledge checks by content ID
  */
 export async function getKnowledgeChecksByContentId(contentId) {
-  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-  const q = query(checksRef, where('contentId', '==', parseInt(contentId)));
-  const querySnapshot = await getDocs(q);
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = checksRef.where('contentId', '==', parseInt(contentId));
+  const querySnapshot = await q.get();
 
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
@@ -673,17 +583,15 @@ export async function getKnowledgeChecksByContentId(contentId) {
  */
 export async function getKnowledgeChecksByModuleId(moduleId) {
   try {
-    const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
+    const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
     const moduleIdNum = parseInt(moduleId);
 
     // Query without orderBy first to avoid index requirement
     // We'll sort in JavaScript instead
-    const q = query(
-      checksRef,
-      where('moduleID', '==', moduleIdNum)
-    );
+    const q = checksRef
+      .where('moduleID', '==', moduleIdNum);
 
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await q.get();
 
     let results = querySnapshot.docs.map(doc => ({
       id: doc.id,
@@ -726,8 +634,8 @@ export async function createKnowledgeCheck(data) {
     createdAt: Timestamp.now()
   };
 
-  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-  const docRef = await addDoc(checksRef, newCheck);
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const docRef = await checksRef.add(newCheck);
 
   return { id: docRef.id, ...newCheck };
 }
@@ -736,19 +644,17 @@ export async function createKnowledgeCheck(data) {
  * Delete a knowledge check by its knowledgeCheckId and moduleID
  */
 export async function deleteKnowledgeCheck(knowledgeCheckId, moduleID) {
-  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-  const q = query(
-    checksRef,
-    where('knowledgeCheckId', '==', parseInt(knowledgeCheckId)),
-    where('moduleID', '==', parseInt(moduleID))
-  );
-  const snapshot = await getDocs(q);
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = checksRef
+    .where('knowledgeCheckId', '==', parseInt(knowledgeCheckId))
+    .where('moduleID', '==', parseInt(moduleID));
+  const snapshot = await q.get();
 
   if (snapshot.empty) {
     throw new Error('Knowledge check not found');
   }
 
-  const batch = writeBatch(db);
+  const batch = db.batch();
   snapshot.docs.forEach(d => batch.delete(d.ref));
   await batch.commit();
 
@@ -759,20 +665,18 @@ export async function deleteKnowledgeCheck(knowledgeCheckId, moduleID) {
  * Update a knowledge check by its knowledgeCheckId and moduleID
  */
 export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) {
-  const checksRef = collection(db, COLLECTIONS.KNOWLEDGE_CHECKS);
-  const q = query(
-    checksRef,
-    where('knowledgeCheckId', '==', parseInt(knowledgeCheckId)),
-    where('moduleID', '==', parseInt(moduleID))
-  );
-  const snapshot = await getDocs(q);
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = checksRef
+    .where('knowledgeCheckId', '==', parseInt(knowledgeCheckId))
+    .where('moduleID', '==', parseInt(moduleID));
+  const snapshot = await q.get();
 
   if (snapshot.empty) {
     throw new Error('Knowledge check not found');
   }
 
   const docRef = snapshot.docs[0].ref;
-  await updateDoc(docRef, {
+  await docRef.update({
     ...updates,
     updatedAt: Timestamp.now()
   });
@@ -815,9 +719,9 @@ export async function getModuleWithContent(moduleId) {
  * Create a student submission
  */
 export async function createStudentSubmission(submissionData) {
-  const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
+  const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
 
-  const docRef = await addDoc(submissionsRef, {
+  const docRef = await submissionsRef.add({
     knowledgeCheckId: parseInt(submissionData.knowledgeCheckId),
     studentId: submissionData.studentId,
     submissionAnswer: submissionData.submissionAnswer,
@@ -828,18 +732,18 @@ export async function createStudentSubmission(submissionData) {
   return docRef.id;
 }
 
-// Fetch Feedback for Admin Dashboard 
+// Fetch Feedback for Admin Dashboard
 
 /**
  * Get all feedback with merged user details
  */
 export async function getAllFeedbackWithUsers() {
-  const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
-  const usersRef = collection(db, COLLECTIONS.USERS);
+  const feedbackRef = db.collection(COLLECTIONS.FEEDBACK);
+  const usersRef = db.collection(COLLECTIONS.USERS);
 
   const [feedbackSnap, usersSnap] = await Promise.all([
-    getDocs(feedbackRef),
-    getDocs(usersRef),
+    feedbackRef.get(),
+    usersRef.get(),
   ]);
 
   const usersMap = {};
@@ -867,19 +771,19 @@ export async function getAllFeedbackWithUsers() {
   });
 }
 
-// Fetch User-Progress for Admin Dashboard 
+// Fetch User-Progress for Admin Dashboard
 
 /**
  * Get all user module progress with merged user details
  * Uses stored percentage from userProgress docs
  */
 export async function getAllModuleProgressWithUsers() {
-  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-  const usersRef = collection(db, COLLECTIONS.USERS);
+  const progressRef = db.collection(COLLECTIONS.USER_PROGRESS);
+  const usersRef = db.collection(COLLECTIONS.USERS);
 
   const [progressSnap, usersSnap] = await Promise.all([
-    getDocs(progressRef),
-    getDocs(usersRef),
+    progressRef.get(),
+    usersRef.get(),
   ]);
 
   // Map users by id
@@ -921,9 +825,9 @@ export async function getAllModuleProgressWithUsers() {
  * Get submissions by student ID
  */
 export async function getSubmissionsByStudentId(studentId) {
-  const submissionsRef = collection(db, COLLECTIONS.STUDENT_SUBMISSIONS);
-  const q = query(submissionsRef, where('studentId', '==', studentId));
-  const querySnapshot = await getDocs(q);
+  const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
+  const q = submissionsRef.where('studentId', '==', studentId);
+  const querySnapshot = await q.get();
 
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
@@ -937,9 +841,9 @@ export async function getSubmissionsByStudentId(studentId) {
  * Get user progress for all modules
  */
 export async function getUserProgress(userId) {
-  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-  const q = query(progressRef, where('userId', '==', userId));
-  const querySnapshot = await getDocs(q);
+  const progressRef = db.collection(COLLECTIONS.USER_PROGRESS);
+  const q = progressRef.where('userId', '==', userId);
+  const querySnapshot = await q.get();
 
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
@@ -952,13 +856,11 @@ export async function getUserProgress(userId) {
  * Always includes percentage field
  */
 export async function getUserModuleProgress(userId, moduleId) {
-  const progressRef = collection(db, COLLECTIONS.USER_PROGRESS);
-  const q = query(
-    progressRef,
-    where('userId', '==', userId),
-    where('moduleId', '==', parseInt(moduleId))
-  );
-  const querySnapshot = await getDocs(q);
+  const progressRef = db.collection(COLLECTIONS.USER_PROGRESS);
+  const q = progressRef
+    .where('userId', '==', userId)
+    .where('moduleId', '==', parseInt(moduleId));
+  const querySnapshot = await q.get();
 
   if (querySnapshot.empty) {
     // Return default progress with 0% if no progress exists
@@ -1005,7 +907,7 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
   const moduleIdNum = parseInt(moduleId);
 
   const progressDocId = `${userId}_${moduleIdNum}`;
-  const progressDocRef = doc(db, COLLECTIONS.USER_PROGRESS, progressDocId);
+  const progressDocRef = db.collection(COLLECTIONS.USER_PROGRESS).doc(progressDocId);
 
   const payload = {
     ...progressData,
@@ -1016,7 +918,7 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
 
   // This will create it if missing, or update if it exists
   console.log('Setting doc:', progressDocId, payload);
-  await setDoc(progressDocRef, payload, { merge: true });
+  await progressDocRef.set(payload, { merge: true });
 
   return progressDocId;
 }
@@ -1027,7 +929,7 @@ export async function updateUserModuleProgress(userId, moduleId, progressData) {
 export async function resetUserModuleProgress(userId, moduleId) {
   const moduleIdNum = parseInt(moduleId);
   const progressDocId = `${userId}_${moduleIdNum}`;
-  const progressDocRef = doc(db, COLLECTIONS.USER_PROGRESS, progressDocId);
+  const progressDocRef = db.collection(COLLECTIONS.USER_PROGRESS).doc(progressDocId);
 
   const resetPayload = {
     userId,
@@ -1041,8 +943,8 @@ export async function resetUserModuleProgress(userId, moduleId) {
     updatedAt: Timestamp.now(),
   };
 
-  await setDoc(progressDocRef, resetPayload); // No merge — full overwrite
-  
+  await progressDocRef.set(resetPayload); // No merge — full overwrite
+
   return progressDocId;
 }
 
@@ -1180,9 +1082,9 @@ export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { 
  * Create a feedback entry
  */
 export async function createFeedback(feedbackData) {
-  const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
+  const feedbackRef = db.collection(COLLECTIONS.FEEDBACK);
 
-  const docRef = await addDoc(feedbackRef, {
+  const docRef = await feedbackRef.add({
     userId: feedbackData.userId,
     message: feedbackData.message,
     type: feedbackData.type, // 'General' (string) or module ID (number/string)
@@ -1196,9 +1098,9 @@ export async function createFeedback(feedbackData) {
  * Get feedback by user ID
  */
 export async function getFeedbackByUserId(userId) {
-  const feedbackRef = collection(db, COLLECTIONS.FEEDBACK);
-  const q = query(feedbackRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
+  const feedbackRef = db.collection(COLLECTIONS.FEEDBACK);
+  const q = feedbackRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
+  const querySnapshot = await q.get();
 
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
@@ -1208,12 +1110,6 @@ export async function getFeedbackByUserId(userId) {
 
 // For backward compatibility with existing code
 export default {
-  testConnection,
-  getUserByEmail,
-  getUserByUsername,
-  getUserById,
-  getUserByActivationToken,
-  createUser,
   updateUser,
   deleteUser,
   getAllUsers,
@@ -1240,6 +1136,7 @@ export default {
   getUserProgress,
   getUserModuleProgress,
   updateUserModuleProgress,
+  resetUserModuleProgress,
   markContentViewed,
   markContentCompleted,
   updateModulePublished,

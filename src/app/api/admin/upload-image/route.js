@@ -4,7 +4,11 @@
 
 import { NextResponse } from 'next/server';
 import imageHosting from '@/image-hosting/imageHosting.js';
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import {
+  badRequestError,
+  defineAdminRoute,
+  internalServerError,
+} from '@/app/_lib/route';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -71,11 +75,8 @@ async function validateImageURL(url) {
  * @param {Request} request 
  * @returns {NextResponse} URL of the uploaded image or an error message if the upload fails.
  */
-export async function POST(request) {
+export const POST = defineAdminRoute(async (request) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(request);
-    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
-
     const formData = await request.formData();
     const file = formData.get('file');
 
@@ -126,7 +127,7 @@ export async function POST(request) {
       { status: isBadRequest ? 400 : 500 }
     );
   }
-}
+});
 
 
 
@@ -136,11 +137,8 @@ export async function POST(request) {
  * @param {Request} request 
  * @returns {NextResponse} success message or error details if deletion fails.
  */
-export async function DELETE(request) {
+export const DELETE = defineAdminRoute(async (request) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(request);
-    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
-
     // Support imageUrl in query string (simple curl) or in form body
     let imageUrl = request.nextUrl.searchParams.get('imageUrl');
     if (!imageUrl) {
@@ -164,4 +162,4 @@ export async function DELETE(request) {
       { status: err.message?.includes('Missing') ? 400 : 500 }
     );
   }
-}
+});

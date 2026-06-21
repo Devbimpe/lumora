@@ -1,3 +1,4 @@
+import Link from "next/link"
 export default function HowItWorksSection() {
   const steps = [
     {
@@ -41,10 +42,9 @@ export default function HowItWorksSection() {
           <div className="hidden md:block absolute top-20 left-0 right-0 h-1.5 bg-gradient-to-r from-green-500 via-orange-400 to-green-500 opacity-60"></div>
           
           {steps.map((step, index) => (
-            <div
-              key={index}
-              className="relative bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100"
-            >
+            <Link key={index} href="/training-module">
+            <div className="relative bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100">
+
               {/* Icon container */}
               <div className="w-20 h-20 border-2 border-green-700 rounded-full flex items-center justify-center mx-auto mb-6 bg-gradient-to-br from-orange-50 to-green-50">
                 <span className="text-3xl">{step.icon}</span>
@@ -54,6 +54,7 @@ export default function HowItWorksSection() {
               <h3 className="text-xl font-bold text-green-700 mb-3">{step.title}</h3>
               <p className="text-gray-700 leading-relaxed">{step.description}</p>
             </div>
+            </Link>
           ))}
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuth } from "@/app/components/AuthProvider";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref className="h-full block">
@@ -36,6 +37,7 @@ const ModuleWrapper = ({ children, component: Component = 'div', ...props }) => 
 );
 
 const TrainingModule = () => {
+  const { user } = useAuth();
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,8 +73,8 @@ const TrainingModule = () => {
       }
     }
     
-    fetchModules();
-  }, []);
+    if (user) fetchModules();
+  }, [user]);
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">

@@ -1,20 +1,12 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "types": [],
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@admin-app/*": [
-        "src/app/admin/*"
-      ],
-      "@admin-api/*": [
-        "src/app/api/admin/*"
-      ],
-      "@db/*": [
-        "db/*"
-      ]
-    }
+      "@/ai/*": ["./ai/*"],
+      "@/image-hosting/*": ["./image-hosting/*"],
+      "@/*": ["./src/*"],
+    },
+    "lib": ["ESNext"],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler"
   }
 }

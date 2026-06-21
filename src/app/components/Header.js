@@ -1,13 +1,12 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { logoutAndBroadcast } from "../lib/auth"
+import { useAuth } from "@/app/components/AuthProvider"
 
 export function Header() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading, signOut } = useAuth()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -15,47 +14,10 @@ export function Header() {
   const isModulePage = pathname?.startsWith('/modules/')
   const isAdminPage = pathname?.startsWith('/admin')
 
-  useEffect(() => {
-    checkAuthStatus()
-    
-    function refreshAuth() {
-      checkAuthStatus()
-    }
-  
-    window.addEventListener("auth-changed", refreshAuth)
-  
-    return () => window.removeEventListener("auth-changed", refreshAuth)
-  }, [])
-
-  // Extra safety: refresh auth when route changes (prevents stale UI if an event is missed)
-  useEffect(() => {
-    checkAuthStatus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/check-auth")
-      const data = await response.json()
-      if (data.authenticated) {
-        setUser(data.user)
-        console.log("User loaded in header:", data.user.username, "| Role:", data.user.role)
-      } else {
-        setUser(null)  
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error)
-      setUser(null)  
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleLogout = async () => {
     try {
-      await logoutAndBroadcast()
-      setUser(null)
-      window.location.href = "/" 
+      await signOut()
+      window.location.href = "/"
     } catch (error) {
       console.error("Logout failed:", error)
     }
@@ -73,7 +35,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
             <Image 
-              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772421438/Lumoralogo.jpg" 
+              src="https://res.cloudinary.com/du6yiw4it/image/upload/v1772421438/Lumoralogo.jpg" 
               alt="LumoraLogo" 
               width={180} 
               height={72} 
@@ -99,7 +61,7 @@ export function Header() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
             <Link 
-              href="/" 
+              href="/#top" 
               className="text-gray-700 hover:text-green-600 font-medium transition-colors"
             >
               Home
@@ -164,7 +126,7 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden mt-4 pb-4 border-t border-gray-100 pt-4 space-y-3">
             <Link 
-              href="/" 
+              href="/#top" 
               className="block text-gray-700 hover:text-green-600 font-medium transition-colors py-2"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -208,8 +170,9 @@ export function Header() {
                 <Link 
                   href="/user-profile" 
                   className="text-gray-700 font-medium block hover:text-green-600 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  Hi, {user.username}
+                  My Account
                 </Link>
                 <button 
                   onClick={handleLogout} 

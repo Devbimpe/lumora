@@ -1,25 +1,21 @@
 import { NextResponse } from 'next/server';
-import { getAllUsers } from "@db/admin-db.js";
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import { deleteUser as _deleteUser, getAllUsers, getUserById, updateUserAccount } from "@/app/_db/admin-db.js";
+import { defineAdminRoute } from '@/app/_lib/route';
 
 // Retrieves all users from the database
 // Returns a JSON response with user data
 async function getUsers() {
   try {
-    console.log('✅ Database connected');
-
-    const users = await getAllUsers();
+    const users = await Array.fromAsync(getAllUsers());
 
     // Transform to match expected format with SQL-style field names
     const formattedUsers = users.map(user => ({
-      UserID: user.id,
-      Username: user.username,
-      Email: user.email,
-      Role: user.role,
-      PercentModulesCompleted: user.percentModulesCompleted || 0,
-      isActivated: user.isActivated,
-      activationToken: user.activationToken,
-      activationTokenExpires: user.activationTokenExpires
+      UserID: user.account.uid,
+      Username: user.doc.username,
+      Email: user.account.email,
+      Role: user.doc.role,
+      PercentModulesCompleted: user.doc.percentModulesCompleted || 0,
+      isActivated: user.account.emailVerified,
     }));
 
     console.log(`📊 Found ${users.length} users`);
@@ -48,7 +44,7 @@ async function deleteUser(userId) {
     console.log(`🗑️ Starting deletion for user ID: ${userId}`);
 
     // This function handles deletion of user and related submissions
-    await (await import("@db/admin-db.js")).deleteUser(userId);
+    await _deleteUser(userId);
 
     console.log(`User ${userId} deleted successfully`);
     return { success: true };
@@ -69,8 +65,6 @@ async function deleteUser(userId) {
 // Expects a user ID and new activation status (boolean)
 async function toggleUserActivation(userId, newStatus) {
   try {
-    const { getUserById, updateUser } = await import("@db/admin-db.js");
-
     // Check if user exists
     const user = await getUserById(userId);
 
@@ -79,7 +73,7 @@ async function toggleUserActivation(userId, newStatus) {
     }
 
     // Update activation status
-    await updateUser(userId, { isActivated: newStatus });
+    await updateUserAccount(userId, { emailVerified: !!newStatus });
 
   } catch (error) {
     throw error;
@@ -87,11 +81,8 @@ async function toggleUserActivation(userId, newStatus) {
 }
 
 // GET handler: Retrieves all users
-export async function GET(req) {
+export const GET = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
-
     return await getUsers();
   } catch (error) {
     console.error('API error:', error);
@@ -100,15 +91,12 @@ export async function GET(req) {
       { status: 500 }
     );
   }
-}
+});
 
 // DELETE handler: Deletes a user by ID
 // Expects a JSON body with an 'id' field
-export async function DELETE(req) {
+export const DELETE = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
-
     const { id } = await req.json();
 
     if (!id) {
@@ -125,15 +113,12 @@ export async function DELETE(req) {
       status: 500,
     });
   }
-}
+});
 
 // PUT handler: Toggles a user's activation status
 // Expects a JSON body with 'userId' and 'isActivated' fields
-export async function PUT(req) {
+export const PUT = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
-
     const { userId, isActivated } = await req.json();
 
     if (!userId || isActivated === undefined) {
@@ -158,4 +143,4 @@ export async function PUT(req) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
-}
+});

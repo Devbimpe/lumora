@@ -3,6 +3,7 @@ import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'rea
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../Module.css';
+import { useAuth } from '@/app/components/AuthProvider';
 import { parseChoices, findFirstIncompleteItem, isDescriptiveKCComplete } from './utils';
 import ModuleMobileHeader from './components/ModuleMobileHeader';
 import ModuleSidebar from './components/ModuleSidebar';
@@ -21,7 +22,7 @@ function ModulePageContent() {
   const [moduleHeading, setModuleHeading] = useState('');
   const [moduleSubheading, setModuleSubheading] = useState('');
   const [allModules, setAllModules] = useState([]);
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
@@ -73,25 +74,6 @@ function ModulePageContent() {
     
     fetchAllModules();
   }, []); // Only run once on mount
-
-  // Check auth status only once, or if user is not set
-  useEffect(() => {
-    if (user) return; // Skip if user is already set
-    
-    async function checkAuthStatus() {
-      try {
-        const response = await fetch("/api/check-auth");
-        const data = await response.json();
-        if (data.authenticated) {
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-      }
-    }
-    
-    checkAuthStatus();
-  }, [user]); // Only check if user is not set
 
   // Load content and knowledge checks when moduleId changes
   useEffect(() => {
@@ -239,7 +221,7 @@ function ModulePageContent() {
     setPersistedViewedContent([]);
     (async () => {
       try {
-        const res = await fetch(`/api/progress?userId=${user.id}&moduleId=${moduleNum}`);
+        const res = await fetch(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`);
         if (!res.ok || cancelled) return;
         const progress = await res.json();
         if (!cancelled) {
@@ -359,7 +341,7 @@ function ModulePageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user.uid,
           moduleId: moduleId.replace('module', ''),
           action: 'view',
           contentId: contentId
@@ -395,7 +377,7 @@ function ModulePageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user.uid,
           moduleId: moduleId.replace('module', ''),
           action: 'complete',
           contentId: `kc-${knowledgeCheckId}`
@@ -422,7 +404,7 @@ function ModulePageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user.uid,
           moduleId: moduleId.replace('module', ''),
           action: 'completeModule'
         })
@@ -523,7 +505,7 @@ function ModulePageContent() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId: user.id,
+              userId: user.uid,
               moduleId: moduleId.replace('module', ''),
               action: 'saveKnowledgeCheckFeedback',
               contentId: knowledgeCheckId,

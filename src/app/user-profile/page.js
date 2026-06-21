@@ -6,34 +6,15 @@ import Demographics from "./Demographics";
 import Portfolio from "./Portfolio";
 import Settings from "./Settings";
 import InfoSummary from "./personal-info-page/InfoSummary";
+import { useAuth } from "@/app/components/AuthProvider";
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState("Personal Info");
   const tabs = ["Personal Info", "Demographics", "Portfolio", "Settings"];
-  const [userId, setUserId] = useState(null);
+  const { user } = useAuth();
+  const userId = user?.uid ?? null;
 
   const [personalInfoData, setPersonalInfoData] = useState(null);
-
-  useEffect(() => {
-    async function loadUser() {
-      const res = await fetch("/api/check-auth");
-      const data = await res.json();
-
-      if (data.authenticated) {
-        setUserId(data.user.id);
-
-        const infoRes = await fetch(`/api/user-profile-personal-info?userId=${data.user.id}`);
-        if (infoRes.ok) {
-          const infoData = await infoRes.json();
-            setPersonalInfoData(infoData.user.personalInfo);
-        }
-        else {
-          console.log("User not logged in");
-        }
-      }
-    }
-    loadUser();
-  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -43,7 +24,7 @@ export default function Page() {
       if (!res.ok) return;
 
       const data = await res.json();
-      
+
       const mergedPersonalInfo = {
         ...(data.user.personalInfo || {}),
         name: data.user.name || data.user.personalInfo?.fullName || "",
