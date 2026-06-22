@@ -6,6 +6,9 @@ import '../globals.css';
 import '../login/login.css';
 import { api } from '@/app/_lib/api-client';
 import { validatePasswordPolicy } from '@/app/_lib/auth-helper';
+import { toast } from 'react-toastify';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Page() {
   const [form, setForm] = useState({
@@ -21,6 +24,7 @@ export default function Page() {
 
   const router = useRouter();
   const { user: currentUser, loading: checkingAuth, signUp } = useAuth();
+  const notifySuccess = () => toast.success('Check your email — we’ve sent you an activation link to complete your registration.');
 
   // Check if user is already authenticated and redirect if so
   useEffect(() => {
@@ -91,11 +95,9 @@ export default function Page() {
 
       const data = await res.json();
       if (res.ok) {
-        setSuccess(data.message);
+        notifySuccess();
+        setSuccess('Sucess!');
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
-        setTimeout(() => {
-          router.push('/login');
-          }, 3000);
       } else {
         setError(data.error || 'Signup failed.');
       }
@@ -136,16 +138,6 @@ export default function Page() {
               onSubmit={handleSubmit}
               aria-describedby={error ? 'form-error' : undefined}
             >
-              {error && (
-                <div className="error-message" id="form-error" role="alert" aria-live="assertive">
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div className="success-message" id="form-success" role="alert" aria-live="assertive">
-                  {success}
-                </div>
-              )}
               <div className="info">
                 <label htmlFor="name">
                   Full Name
@@ -248,6 +240,17 @@ export default function Page() {
             <div className="register_link">
               Already have an account? <a href="/login">Login</a>
             </div>
+            <ToastContainer position="top-center" />
+              {error && (
+                <div className="error-message" id="form-error" role="alert" aria-live="assertive">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="success-message" id="form-success" role="alert" aria-live="assertive">
+                  {success}
+                </div>
+              )}
           </div>
         </div>
       </main>
