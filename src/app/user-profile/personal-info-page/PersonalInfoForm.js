@@ -131,6 +131,7 @@ export default function PersonalInfo({ userId, personalInfo: personalInfo, onSav
             type="text"
             className="w-full p-3 bg-gray-100 rounded-lg"
             value={userName}
+            disabled
             onChange={e => setUsername(e.target.value)}
           />
         </div>
@@ -142,6 +143,7 @@ export default function PersonalInfo({ userId, personalInfo: personalInfo, onSav
             type="text"
             className="w-full p-3 bg-gray-100 rounded-lg"
             value={email}
+            disabled
             onChange={e => setEmail(e.target.value)}
           />
         </div>

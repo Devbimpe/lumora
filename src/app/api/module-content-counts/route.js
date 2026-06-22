@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getAllModules, getContentByModuleId, getKnowledgeChecksByModuleId } from '@db/admin-db.js';
+import { getAllModules, getContentByModuleId, getKnowledgeChecksByModuleId } from '@/app/_db/admin-db.js';
+import { defineUserRoute } from '@/app/_lib/route';
 
-export async function GET(request) {
+export const GET = defineUserRoute(async (request) => {
   try {
-    const url = new URL(request.url);
-    const moduleIds = url.searchParams.get('moduleIds');
+    const moduleIds = request.nextUrl.searchParams.get('moduleIds');
 
     let modulesToProcess = [];
     
@@ -42,5 +42,5 @@ export async function GET(request) {
       { status: 500 }
     );
   }
-}
+});
 

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getModuleWithContent } from '@db/admin-db.js';
+import { getModuleWithContent } from '@/app/_db/admin-db.js';
+import { defineUserRoute } from '@/app/_lib/route';
 
 // GET: Get the actual count of displayable content sections (sidebar items) for a module
-export async function GET(request) {
+export const GET = defineUserRoute(async (request) => {
   try {
-    const url = new URL(request.url);
-    const moduleId = url.searchParams.get('moduleId');
+    const moduleId = request.nextUrl.searchParams.get('moduleId');
 
     if (!moduleId) {
       return NextResponse.json(
@@ -69,5 +69,5 @@ export async function GET(request) {
       { status: 500 }
     );
   }
-}
+});
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { getFaviconUrl } from "../lib/favicons"
+import { getFaviconUrl } from "../_lib/favicons"
 
 export default function TrainingModulesSection() {
   const [modules, setModules] = useState([])

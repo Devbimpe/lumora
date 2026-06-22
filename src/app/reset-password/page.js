@@ -2,8 +2,10 @@
 
 import { Suspense, useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
+import { api } from "@/app/_lib/api-client"
 import "../globals.css"
 import "../login/login.css"
+import { validatePasswordPolicy } from "@/app/_lib/auth-helper"
 
 function ResetPasswordContent() {
     const searchParams = useSearchParams()
@@ -30,6 +32,11 @@ function ResetPasswordContent() {
             return
         }
 
+        if (!validatePasswordPolicy(password)) {
+            setError("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.")
+            return
+        }
+
         if (password !== confirmPassword) {
             setError("Passwords do not match.")
             return
@@ -38,17 +45,15 @@ function ResetPasswordContent() {
         setLoading(true)
 
         try {
-            const response = await fetch("/api/reset-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token, password }),
-            })
+            const data = await api.post("/api/reset-password", {
+                throwHttpErrors: true,
+                json: { token, password },
+            }).json()
     
-            const data = await response.json()
-            if (data.success) {
-                setMessage("Password reset successful! You can now log in.")
+            if (data.error) {
+                setError(data.error)
             } else {
-                setError(data.message)
+                setMessage(data.message)
             }
         } catch (err) {
             console.error(err)
@@ -85,6 +90,7 @@ function ResetPasswordContent() {
                                     type="password" 
                                     id="password" 
                                     required 
+                                    autoComplete="new-password"
                                     value={password} 
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Enter new password"
@@ -97,6 +103,7 @@ function ResetPasswordContent() {
                                     type="password" 
                                     id="confirmPassword" 
                                     required 
+                                    autoComplete="new-password"
                                     value={confirmPassword} 
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     placeholder="Confirm new password"

@@ -42,7 +42,7 @@ export default function Footer() {
           {/* Links */}
           <nav className="flex flex-wrap justify-center md:justify-start gap-6 md:gap-8">
             <a 
-              href="#" 
+              href="https://www.dal.ca/faculty/computerscience.html" target="_blank" rel="noopener noreferrer" 
               className="text-gray-600 hover:text-green-700 transition-colors duration-200 text-sm md:text-base"
             >
               Info about Dalhousie SE Lab

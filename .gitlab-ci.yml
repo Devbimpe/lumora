@@ -7,7 +7,7 @@ variables:
 
 deploy_staging:
   stage: deploy
-  image: node:20
+  image: node:24
   script:
     - npm install -g vercel
     # Pull the Vercel Preview environment configuration and secrets
@@ -27,7 +27,7 @@ deploy_staging:
 
 deploy_production:
   stage: deploy
-  image: node:20
+  image: node:24
   script:
     - npm install -g vercel
     # Pull the Vercel Production environment configuration and secrets

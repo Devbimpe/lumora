@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useAuth } from "@/app/components/AuthProvider"
 import { 
   Trophy, 
   Zap, 
@@ -20,27 +21,15 @@ import {
   MessageSquare
 } from "lucide-react"
 
-export default function Dashboard({ user: userProp }) {
+export default function Dashboard() {
   const [message, setMessage] = useState("")
   const [selectedModule, setSelectedModule] = useState("")
   const [modules, setModules] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [moduleLoading, setModuleLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState(null) // 'success' or 'error'
-  const [user, setUser] = useState(userProp || null)
+  const { user } = useAuth()
   const fetchingRef = useRef(false) // Prevent duplicate calls
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/check-auth")
-      const data = await response.json()
-      if (data.authenticated) {
-        setUser(data.user)
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error)
-    }
-  }
 
   const fetchModules = useCallback(async () => {
     // Prevent duplicate calls
@@ -53,13 +42,13 @@ export default function Dashboard({ user: userProp }) {
     }
 
     fetchingRef.current = true
-    setLoading(true)
+    setModuleLoading(true)
     
     try {
       // Batch all API calls together
       const [modulesResponse, progressResponse, contentCountsResponse] = await Promise.all([
         fetch("/api/modules"),
-        fetch(`/api/progress?userId=${user.id}`),
+        fetch(`/api/progress?userId=${user.uid}`),
         fetch("/api/module-content-counts") // Get all counts in one call
       ])
       
@@ -128,24 +117,10 @@ export default function Dashboard({ user: userProp }) {
       // Keep empty array on error
       setModules([])
     } finally {
-      setLoading(false)
+      setModuleLoading(false)
       fetchingRef.current = false
     }
   }, [user])
-
-  // Update user if prop changes
-  useEffect(() => {
-    if (userProp) {
-      setUser(userProp)
-    }
-  }, [userProp])
-
-  // Only check auth if user prop not provided (for direct dashboard access)
-  useEffect(() => {
-    if (!userProp) {
-      checkAuthStatus()
-    }
-  }, [userProp])
 
   useEffect(() => {
     if (user && !fetchingRef.current) {
@@ -155,7 +130,7 @@ export default function Dashboard({ user: userProp }) {
 
   // Handle hash navigation to scroll to course-modules section
   useEffect(() => {
-    if (!loading) {
+    if (!moduleLoading) {
       const hash = window.location.hash
       if (hash === '#course-modules') {
         setTimeout(() => {
@@ -166,7 +141,7 @@ export default function Dashboard({ user: userProp }) {
         }, 300)
       }
     }
-  }, [loading])
+  }, [moduleLoading])
 
   const completedCount = modules.filter(m => m.status === "completed").length
   const notCompletedCount = modules.filter(m => m.status === "not-started").length
@@ -463,7 +438,7 @@ export default function Dashboard({ user: userProp }) {
           </h2>
           
           <div className="space-y-2 sm:space-y-3">
-            {loading ? (
+            {moduleLoading ? (
               <div className="text-center py-6 sm:py-8 text-gray-600 text-sm">
                 Loading modules...
               </div>

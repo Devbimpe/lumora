@@ -1,11 +1,12 @@
-import { getModuleWithContent, getAllModules, getContentByModuleId, getKnowledgeChecksByContentId } from '@db/admin-db.js';
+import { NextResponse } from 'next/server';
+import { getModuleWithContent, getAllModules, getContentByModuleId, getKnowledgeChecksByContentId } from '@/app/_db/admin-db.js';
+import { defineUserRoute, internalServerError } from '@/app/_lib/route';
 
 // GET handler: Retrieves module details, associated content, and knowledge checks
 // Supports optional filtering by moduleId via query parameter
-export async function GET(request) {
+export const GET = defineUserRoute(async (request) => {
   try {
-    const url = new URL(request.url);
-    const moduleId = url.searchParams.get('moduleId');
+    const moduleId = request.nextUrl.searchParams.get('moduleId');
 
     let results = [];
 
@@ -14,10 +15,7 @@ export async function GET(request) {
       const module = await getModuleWithContent(moduleId);
       
       if (!module) {
-        return new Response(JSON.stringify([]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return NextResponse.json([]);
       }
       
       // Flatten the data structure to match SQL format
@@ -89,15 +87,9 @@ export async function GET(request) {
       }
     }
 
-    return new Response(JSON.stringify(results), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json(results);
   } catch (error) {
     console.error('API GET error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch module content' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return internalServerError('Failed to fetch module content');
   }
-}
+});

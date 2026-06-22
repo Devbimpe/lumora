@@ -1,46 +1,24 @@
 import { NextResponse } from 'next/server';
-import { getUserByFirebaseUid } from '@db/admin-db.js';
-import jwt from 'jsonwebtoken';
+import { getUserById } from '@/app/_db/admin-db.js';
+import {
+  badRequestError,
+  defineUserRoute,
+  internalServerError,
+  validateJsonBody,
+} from '@/app/_lib/route';
 
-export async function POST(request) {
+export const POST = defineUserRoute(async (request, session) => {
   try {
-    // Get the auth token from cookies
-    const cookieHeader = request.headers.get('cookie');
-    if (!cookieHeader) {
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated' },
-        { status: 401 }
-      );
+    const { requestBody, validationError } = await validateJsonBody(request);
+    if (validationError) return validationError;
+    const { message, type } = requestBody;
+
+    // Validate input
+    if (!message || !type) {
+      return badRequestError('Message and type are required');
     }
 
-    // Extract the auth-token from cookies
-    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-      const [key, value] = cookie.trim().split('=');
-      acc[key] = value;
-      return acc;
-    }, {});
-
-    const token = cookies['auth-token'];
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    // Verify the JWT token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (jwtError) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    // Get user data from Firestore
-    const user = await getUserByFirebaseUid(decoded.firebaseUid || decoded.userId);
+    const user = await getUserById(session.uid);
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
@@ -48,16 +26,6 @@ export async function POST(request) {
       );
     }
 
-    // Get feedback data from request body
-    const { message, type } = await request.json();
-
-    // Validate input
-    if (!message || !type) {
-      return NextResponse.json(
-        { success: false, message: 'Message and type are required' },
-        { status: 400 }
-      );
-    }
 
     // Format feedback type for display
     const feedbackTypeDisplay = type === 'General' || type === 'general' 
@@ -75,7 +43,7 @@ USER INFORMATION
 Name: ${user.name || 'N/A'}
 Username: ${user.username || 'N/A'}
 Email: ${user.email || 'N/A'}
-User ID: ${user.id}
+User ID: ${user.uid}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FEEDBACK DETAILS
@@ -114,10 +82,6 @@ ${user.name || user.username || 'User'}`;
     });
   } catch (error) {
     console.error('Feedback submission error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Failed to submit feedback' },
-      { status: 500 }
-    );
+    return internalServerError('Failed to submit feedback');
   }
-}
-
+});

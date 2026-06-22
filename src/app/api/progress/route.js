@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@db/admin-db.js';
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@/app/_db/admin-db.js';
+import { defineUserRoute, validateJsonBody, verifyOwnership } from '@/app/_lib/route';
 
 // GET: Retrieve user progress
-export async function GET(request) {
+export const GET = defineUserRoute(async (request, session) => {
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
-    const moduleId = url.searchParams.get('moduleId');
+    const userId = request.nextUrl.searchParams.get('userId');
+    const moduleId = request.nextUrl.searchParams.get('moduleId');
 
     if (!userId) {
       return NextResponse.json(
@@ -16,8 +15,8 @@ export async function GET(request) {
       );
     }
 
-    const session = await SecurityHelper.verifyOwnership(request, userId);
-    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
+    if (!verifyOwnership(session, userId))
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     if (moduleId) {
       // Get progress for specific module
@@ -49,12 +48,13 @@ export async function GET(request) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST: Update user progress
-export async function POST(request) {
+export const POST = defineUserRoute(async (request, session) => {
   try {
-    const body = await request.json();
+    const { body, validationError } = await validateJsonBody(request);
+    if (validationError) return validationError;
     const { userId, moduleId, action, contentId, userAnswer, grade, feedback } = body;
 
     if (!userId || !moduleId) {
@@ -64,8 +64,8 @@ export async function POST(request) {
       );
     }
 
-    const session = await SecurityHelper.verifyOwnership(request, userId);
-    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 403 });
+    if (!verifyOwnership(session, userId))
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     let result;
 
@@ -133,5 +133,4 @@ export async function POST(request) {
       { status: 500 }
     );
   }
-}
-
+});

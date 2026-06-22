@@ -1,266 +1,167 @@
 import { NextResponse } from 'next/server';
-import { getAllModules } from "@db/admin-db.js";
-import { SecurityHelper } from "@/src/app/lib/enforce-security.js";
+import {
+  getAllModules,
+  createModule,
+  deleteModule as _deleteModule,
+  updateModule as _updateModule,
+  reorderModules,
+  updateModulePublished,
+  getContentByModuleId,
+} from '@/app/_db/admin-db.js';
+import {
+  badRequestError,
+  defineAdminRoute,
+  internalServerError,
+  validateJsonBody,
+} from '@/app/_lib/route';
 
 // Retrieves all modules from the database
 // Returns a JSON response with formatted module data
 async function getModules() {
-  try {
-    console.log('✅ Database connected');
+  const modules = await getAllModules();
 
-    const modules = await getAllModules();
+  // Transform to match expected format
+  const formattedModules = modules.map(module => ({
+    id: module.moduleId,
+    Heading: module.heading,
+    SubHeading: module.subheading,
+    published: module.published ?? false,
+    faviconURL: module.faviconURL || null
+  }));
 
-    // Transform to match expected format
-    const formattedModules = modules.map(module => ({
-      id: module.moduleId,
-      Heading: module.heading,
-      SubHeading: module.subheading,
-      published: module.published ?? false,
-      faviconURL: module.faviconURL || null
-    }));
-
-    console.log(`📊 Found ${modules.length} modules`);
-
-    return new Response(JSON.stringify(formattedModules), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    console.error('❌ Database error:', error);
-    return new Response(JSON.stringify({
-      error: 'Failed to fetch modules',
-      details: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
+  return NextResponse.json(formattedModules);
 }
 
 // Adds a new module to the database
 // Expects an object with 'heading' and 'subHeading' properties
 // Returns the inserted module's ID on success
 async function addModule({ heading, subHeading, faviconURL }) {
-  try {
-    console.log('📥 Inserting new module...');
-
-    const { createModule } = await import("@db/admin-db.js");
-
-    // Create new module in Firestore
-    const result = await createModule({ heading, subheading: subHeading, faviconURL});
-
-    console.log(`✅ Inserted with ID: ${result.moduleId}`);
-
-    return {
-      success: true,
-      id: result.moduleId,
-    };
-  } catch (error) {
-    console.error('❌ Insert failed:', error);
-    throw error;
-  }
+  const result = await createModule({ heading, subheading: subHeading, faviconURL});
+  return { success: true, id: result.moduleId };
 }
 
 // Deletes a module and its related data (submissions, knowledge checks, content)
 // Expects a module ID as input
-// Uses Firestore batch operations to ensure data consistency
 async function deleteModule(id) {
-  try {
-    console.log(`🗑️ Starting deletion for module ID: ${id}`);
-
-    // This function handles deletion of module and all related data
-    await (await import("@db/admin-db.js")).deleteModule(id);
-
-    console.log(`✅ Module ${id} deleted successfully`);
-    return { success: true };
-  } catch (error) {
-    console.error(`❌ Module deletion failed: ${error.message}`);
-    throw error;
-  }
+  await _deleteModule(id);
+  return { success: true };
 }
 
 // Updates an existing module's heading and subheading
-// Expects an object with 'id', 'heading', and 'subHeading' properties
-// Returns success status and module ID on success
 async function updateModule({ id, heading, subHeading, faviconURL }) {
-  try {
-    const dbModule = await import("@db/admin-db.js");
-
-    await dbModule.updateModule(id, {
-      heading,
-      subheading: subHeading,
-      faviconURL: faviconURL || null
-    });
-
-    return { success: true, id };
-  } catch (error) {
-    throw error;
-  }
+  await _updateModule(id, {
+    heading,
+    subheading: subHeading,
+    faviconURL: faviconURL || null
+  });
+  return { success: true, id };
 }
 
 // Reorders modules based on admin's drag-and-drop arrangement
-// Expects { order: [3, 1, 2] } where the array is moduleIds in the new order
 async function reorderModulesHandler({ order }) {
-  try {
-    console.log('Reordering Modules...', order);
-
-    const { reorderModules } = await import("@db/admin-db.js");
-    await reorderModules(order);
-
-    console.log('Modules reordered successfully');
-    return { success: true };
-  } catch (error) {
-    console.error('Reorder failed:', error.message);
-    throw error;
-  }
+  await reorderModules(order);
+  return { success: true };
 }
 
 // GET handler: Retrieves all modules
-// Calls the getModules function and returns its result
-export async function GET(req) {
+export const GET = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
-
     return await getModules();
   } catch (error) {
     console.error('API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return internalServerError();
   }
-}
+});
 
 // POST handler: Creates a new module
-// Expects a JSON body with 'heading' and 'subHeading' fields
-export async function POST(req) {
+export const POST = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
-
-    const { heading, subHeading, faviconURL } = await req.json();
+    const { body, validationError } = await validateJsonBody(req);
+    if (validationError) return validationError;
+    const { heading, subHeading, faviconURL } = body;
 
     if (!heading || !subHeading) {
-      return new Response(JSON.stringify({ error: 'Missing heading or sub-heading' }), {
-        status: 400,
-      });
+      return badRequestError('Missing heading or sub-heading');
     }
 
     const result = await addModule({ heading, subHeading, faviconURL });
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('❌ Route error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to add module' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return internalServerError('Failed to add module');
   }
-}
+});
 
 // DELETE handler: Deletes a module by ID
-// Expects a JSON body with an 'id' field
-export async function DELETE(req) {
+export const DELETE = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
-
-    const { id } = await req.json();
+    const { body, validationError } = await validateJsonBody(req);
+    if (validationError) return validationError;
+    const { id } = body;
 
     if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing ID' }), {
-        status: 400,
-      });
+      return badRequestError('Missing ID');
     }
 
     const result = await deleteModule(id);
-
-    return new Response(JSON.stringify(result), { status: 200 });
+    return NextResponse.json(result);
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Failed to delete module' }), {
-      status: 500,
-    });
+    return internalServerError('Failed to delete module');
   }
-}
+});
 
 // PUT handler: Updates a module's heading and subheading
-// Expects a JSON body with 'id', 'heading', and 'subHeading' fields
-export async function PUT(req) {
+export const PUT = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
+    const { body, validationError } = await validateJsonBody(req);
+    if (validationError) return validationError;
+    const { id, heading, subHeading, faviconURL } = body;
 
-    const { id, heading, subHeading, faviconURL } = await req.json();
-
-    // Validate all required fields
     if (!id || !heading || !subHeading) {
-      return new Response(JSON.stringify({
-        error: 'Missing module ID, heading, or sub-heading'
-      }), { status: 400 });
+      return badRequestError('Missing module ID, heading, or sub-heading');
     }
 
     const result = await updateModule({ id, heading, subHeading, faviconURL });
-    return new Response(JSON.stringify(result), { status: 200 });
+    return NextResponse.json(result);
   } catch (error) {
-    return new Response(JSON.stringify({
-      error: error.message || 'Failed to update module'
-    }), { status: 500 });
+    return internalServerError(error.message || 'Failed to update module');
   }
-}
+});
 
 // PATCH handler: Handles both reordering and publish toggling
-// For reorder: expects { order: [3, 1, 2] }
-// For publish: expects { id: "moduleId", published: true/false }
-export async function PATCH(req) {
+export const PATCH = defineAdminRoute(async (req) => {
   try {
-    const session = await SecurityHelper.verifyAdmin(req);
-    if (!session.valid) return new Response(JSON.stringify({ error: session.error }), { status: 403 });
-
-    const body = await req.json();
+    const { body, validationError } = await validateJsonBody(req);
+    if (validationError) return validationError;
     const { order, id, published } = body;
 
     // Handle reorder request
     if (order) {
       if (!Array.isArray(order) || order.length === 0) {
-        return new Response(JSON.stringify({ error: 'Invalid order array' }), {
-          status: 400,
-        });
+        return badRequestError('Invalid order array');
       }
       const result = await reorderModulesHandler({ order });
-      return new Response(JSON.stringify(result), { status: 200 });
+      return NextResponse.json(result);
     }
 
     // Handle publish toggle request
     if (id !== undefined && published !== undefined) {
-      const { updateModulePublished, getContentByModuleId } = await import("@db/admin-db.js");
-
       // Prevent publishing a module with no content
       if (published === true) {
         const content = await getContentByModuleId(id);
         if (content.length === 0) {
-          return new Response(JSON.stringify({
-            error: "This module cannot be published because it has no content. Please add content before publishing."
-          }), { status: 400 });
+          return badRequestError("This module cannot be published because it has no content. Please add content before publishing.");
         }
       }
 
       await updateModulePublished(id, published);
-      return new Response(JSON.stringify({ success: true }), { status: 200 });
+      return NextResponse.json({ success: true });
     }
 
     // Neither reorder nor publish
-    return new Response(JSON.stringify({ error: 'Invalid PATCH request' }), {
-      status: 400,
-    });
-
+    return badRequestError('Invalid PATCH request');
   } catch (error) {
     console.error('❌ PATCH route error:', error);
-    return new Response(JSON.stringify({
-      error: error.message || 'Failed to process request'
-    }), { status: 500 });
+    return internalServerError(error.message || 'Failed to process request');
   }
-}
+});

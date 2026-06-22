@@ -35,7 +35,7 @@ export default function WhyThisMattersSection() {
           {/* Content side */}
           <div className="space-y-8 order-1 lg:order-2">
             {/* Main description */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100 hover:shadow-xl hover:border-green-300 hover:scale-105 transition-all duration-300">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +52,7 @@ export default function WhyThisMattersSection() {
             </div>
             
             {/* Solution */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100/50 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-200">
+            <div className="bg-gradient-to-br from-green-50 to-green-100/50 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-200 hover:shadow-xl hover:border-green-400 hover:scale-105 transition-all duration-300">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,15 +70,15 @@ export default function WhyThisMattersSection() {
             
             {/* Stats or key points */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center shadow-md">
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center shadow-md hover:shadow-lg hover:scale-105 hover:bg-white transition-all duration-300">
                 <div className="text-3xl font-bold text-green-600 mb-1">Build</div>
                 <div className="text-sm text-gray-600">Awareness</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center shadow-md">
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center shadow-md hover:shadow-lg hover:scale-105 hover:bg-white transition-all duration-300">
                 <div className="text-3xl font-bold text-green-600 mb-1">Learn</div>
                 <div className="text-sm text-gray-600">Strategies</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center shadow-md">
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center shadow-md hover:shadow-lg hover:scale-105 hover:bg-white transition-all duration-300">
                 <div className="text-3xl font-bold text-green-600 mb-1">Create</div>
                 <div className="text-sm text-gray-600">Impact</div>
               </div>

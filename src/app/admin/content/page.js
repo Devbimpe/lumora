@@ -1,7 +1,7 @@
 'use client';
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getFaviconUrl, getDefaultFaviconUrl } from '../../lib/favicons';
+import { getFaviconUrl, getDefaultFaviconUrl } from '@/app/_lib/favicons';
 
 import EditModule from '../components/EditModule';
 import NewContentPageForm from '../components/NewContentPageForm';
