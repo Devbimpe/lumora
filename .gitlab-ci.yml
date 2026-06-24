@@ -11,16 +11,15 @@ deploy_staging:
   script:
     - npm install -g vercel
     # Pull the Vercel Preview environment configuration and secrets
-    - vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+    - vercel pull --yes --environment=preview
     # Build the project for the Preview environment
-    - vercel build --token=$VERCEL_TOKEN
+    - vercel build
     # Deploy to Vercel (Staging/Preview)
-    - vercel deploy --prebuilt --token=$VERCEL_TOKEN
 
-    - DEPLOY_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - DEPLOY_URL=$(vercel deploy --prebuilt 2>/dev/null | tail -1)
     - echo "Deployed to $DEPLOY_URL"
     # Pin it to a stable alias
-    - vercel alias set $DEPLOY_URL lumora-staging.vercel.app --token=$VERCEL_TOKEN
+    - vercel alias set $DEPLOY_URL lumora-staging.vercel.app
 
   only:
     - dev
@@ -31,13 +30,13 @@ deploy_production:
   script:
     - npm install -g vercel
     # Pull the Vercel Production environment configuration and secrets
-    - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+    - vercel pull --yes --environment=production
     # Build the project for the Production environment
-    - vercel build --prod --token=$VERCEL_TOKEN
+    - vercel build --prod
     # Deploy to Vercel (Production)
-    - DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - DEPLOY_URL=$(vercel deploy --prebuilt --prod 2>/dev/null | tail -1)
     - echo "Deployed to $DEPLOY_URL"
     # Pin it to a stable alias
-    - vercel alias set $DEPLOY_URL lumora-app.vercel.app --token=$VERCEL_TOKEN
+    - vercel alias set $DEPLOY_URL lumora-app.vercel.app
   only:
     - main
