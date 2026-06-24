@@ -12,6 +12,7 @@ if (typeof location !== 'undefined') {
       typeof input === 'string' || input instanceof URL ? input : input.url;
 
     if (isSameOrigin(url)) {
+      await auth.authStateReady();
       const token = await auth.currentUser?.getIdToken(); // auto-refreshes
       if (token) {
         const headers = new Headers(init.headers);
@@ -33,7 +34,12 @@ export const api = ky.extend({
   hooks: {
     beforeRequest: [
       async ({ request }) => {
-        if (isSameOrigin(request.url) && auth.currentUser) {
+        if (!isSameOrigin(request.url)) return;
+
+        // Ensure auth state is fully loaded before making requests
+        await auth.authStateReady();
+
+        if (auth.currentUser) {
           const token = await auth.currentUser.getIdToken();
           request.headers.set('Authorization', `Bearer ${token}`);
         }
