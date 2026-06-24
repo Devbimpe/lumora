@@ -23,7 +23,7 @@ deploy_staging:
     - vercel alias set $DEPLOY_URL lumora-staging.vercel.app --token=$VERCEL_TOKEN
 
   only:
-    - Development
+    - dev
 
 deploy_production:
   stage: deploy
