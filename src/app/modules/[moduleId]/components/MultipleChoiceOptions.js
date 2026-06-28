@@ -1,13 +1,16 @@
 'use client';
 
-export default function MultipleChoiceOptions({ choices, selectedAnswer, correctAnswer, onSelect }) {
-  const showFeedback = selectedAnswer !== undefined;
+// choices is a plain string[]; the letter is display-only (A = index 0).
+// selectedIndex / correctIndex are 0-based indices into choices.
+export default function MultipleChoiceOptions({ choices, selectedIndex, correctIndex, onSelect }) {
+  const showFeedback = selectedIndex !== undefined;
 
   return (
     <ul className="space-y-2 sm:space-y-3">
-      {choices.map((option, idx) => {
-        const isSelected = selectedAnswer === option.letter;
-        const isCorrect = correctAnswer === option.letter;
+      {choices.map((text, idx) => {
+        const letter = String.fromCharCode(65 + idx);
+        const isSelected = selectedIndex === idx;
+        const isCorrect = correctIndex === idx;
         return (
           <li
             key={idx}
@@ -20,7 +23,7 @@ export default function MultipleChoiceOptions({ choices, selectedAnswer, correct
                 ? 'border-red-500 bg-red-50'
                 : 'border-gray-300 bg-white opacity-60'
             }`}
-            onClick={() => onSelect(option.letter)}
+            onClick={() => onSelect(idx)}
           >
             <div className="flex items-start">
               {showFeedback && isCorrect && (
@@ -30,9 +33,9 @@ export default function MultipleChoiceOptions({ choices, selectedAnswer, correct
                 <span className="text-red-600 mr-2 sm:mr-3 text-lg sm:text-xl flex-shrink-0">✗</span>
               )}
               <span className="font-semibold text-gray-800 mr-2">
-                {option.letter}:
+                {letter}:
               </span>
-              <span className="text-sm sm:text-base text-gray-800">{option.text}</span>
+              <span className="text-sm sm:text-base text-gray-800">{text}</span>
             </div>
           </li>
         );

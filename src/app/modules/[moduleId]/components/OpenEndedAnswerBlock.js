@@ -2,7 +2,7 @@
 
 import AIFeedbackCard from './AIFeedbackCard';
 
-export default function DescriptiveAnswerBlock({ userAnswer, aiFeedback, animate }) {
+export default function OpenEndedAnswerBlock({ userAnswer, aiFeedback, animate }) {
   return (
     <div
       className={`transition-all duration-300 ease-out ${

@@ -4,7 +4,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
 import { performMigration } from '@/app/_db/admin-db-migration';
 import { getAuth } from 'firebase-admin/auth';
-/** @import { UserDoc } from '@/app/_db/common' */
+/** @import { UserDoc, KnowledgeCheck } from '@/app/_db/common' */
 
 /** @typedef {UserDoc & { uid: string }} UserDocWithId */
 
@@ -614,30 +614,59 @@ export async function getKnowledgeChecksByModuleId(moduleId) {
 }
 
 /**
- * Create a new knowledge check for a module
+ * Build a Firestore KC document for a given type.
+ * @param {KnowledgeCheck} fields
+ * @returns {KnowledgeCheck}
+ */
+function buildKnowledgeCheckDoc(fields) {
+  return /** @type {KnowledgeCheck} */ ({
+    knowledgeCheckId: fields.knowledgeCheckId,
+    moduleID: fields.moduleID,
+    contentId: fields.contentId ?? null,
+    type: fields.type,
+    question: fields.question,
+    explanation: fields.explanation || '',
+    createdAt: fields.createdAt,
+    ...(fields.type === 'multiple-choice'
+      ? { choices: fields.choices || [], correctAnswer: fields.correctAnswer ?? 0 }
+      : { sampleAnswer: fields.sampleAnswer || '' }),
+  });
+}
+
+/**
+ * Create a new knowledge check for a module.
+ * @param {Omit<KnowledgeCheck, 'knowledgeCheckId' | 'createdAt' | 'updatedAt'>} data
+ * @returns {Promise<KnowledgeCheck & { id: string }>}
  */
 export async function createKnowledgeCheck(data) {
-  const { moduleID, contentId, question, choices, answer, explain, allowance } = data;
-
-  const existing = await getKnowledgeChecksByModuleId(moduleID);
-  const maxId = existing.reduce((max, c) => Math.max(max, c.knowledgeCheckId || 0), 0);
-
-  const newCheck = {
-    knowledgeCheckId: maxId + 1,
-    moduleID: parseInt(moduleID),
-    contentId: contentId ? parseInt(contentId) : null,
-    question,
-    choices,
-    answer,
-    explain: explain || '',
-    allowance: allowance || '',
-    createdAt: Timestamp.now()
-  };
-
+  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, sampleAnswer } = data;
+  const moduleIdNum = parseInt(moduleID);
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
-  const docRef = await checksRef.add(newCheck);
 
-  return { id: docRef.id, ...newCheck };
+  const { ref, newCheck } = await db.runTransaction(async (t) => {
+    // Query within the transaction so the max id we compute is consistent with the write.
+    const snap = await t.get(checksRef.where('moduleID', '==', moduleIdNum));
+    const maxId = snap.docs.reduce((max, d) => Math.max(max, d.data().knowledgeCheckId || 0), 0);
+    const ref = checksRef.doc();
+
+    const newCheck = buildKnowledgeCheckDoc({
+      knowledgeCheckId: maxId + 1,
+      moduleID: moduleIdNum,
+      contentId: contentId ? parseInt(contentId) : null,
+      type,
+      question,
+      explanation,
+      createdAt: Timestamp.now(),
+      choices,
+      correctAnswer,
+      sampleAnswer,
+    });
+
+    t.create(ref, newCheck);
+    return { ref, newCheck };
+  });
+
+  return { id: ref.id, ...newCheck };
 }
 
 /**
@@ -662,7 +691,10 @@ export async function deleteKnowledgeCheck(knowledgeCheckId, moduleID) {
 }
 
 /**
- * Update a knowledge check by its knowledgeCheckId and moduleID
+ * Update a knowledge check by its knowledgeCheckId and moduleID.
+ * @param {number} knowledgeCheckId
+ * @param {number} moduleID
+ * @param {Partial<Omit<KnowledgeCheck, 'knowledgeCheckId' | 'moduleID' | 'contentId' | 'createdAt' | 'updatedAt'>>} updates
  */
 export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) {
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
@@ -675,12 +707,26 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
     throw new Error('Knowledge check not found');
   }
 
-  const docRef = snapshot.docs[0].ref;
-  await docRef.update({
-    ...updates,
-    updatedAt: Timestamp.now()
+  const existing = snapshot.docs[0].data();
+  const type = updates.type;
+  if (type !== 'multiple-choice' && type !== 'open-ended') {
+    throw new Error('Invalid knowledge check type');
+  }
+
+  const doc = buildKnowledgeCheckDoc({
+    knowledgeCheckId: existing.knowledgeCheckId,
+    moduleID: existing.moduleID,
+    contentId: existing.contentId,
+    type,
+    question: updates.question,
+    explanation: updates.explanation,
+    createdAt: existing.createdAt,
+    choices: updates.choices,
+    correctAnswer: updates.correctAnswer,
+    sampleAnswer: updates.sampleAnswer,
   });
 
+  await snapshot.docs[0].ref.set({ ...doc, updatedAt: Timestamp.now() });
   return { updated: true };
 }
 

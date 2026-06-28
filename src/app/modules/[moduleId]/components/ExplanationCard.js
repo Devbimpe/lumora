@@ -1,6 +1,6 @@
 'use client';
 
-export default function ExplanationCard({ explain }) {
+export default function ExplanationCard({ explanation }) {
   return (
     <div className="mt-6 rounded-2xl bg-gradient-to-r from-green-50 to-white border border-green-200 shadow-sm p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-2">
@@ -22,7 +22,7 @@ export default function ExplanationCard({ explain }) {
         </h4>
       </div>
       <p className="text-sm sm:text-base text-green-800 whitespace-pre-wrap w-full">
-        {explain}
+        {explanation}
       </p>
     </div>
   );

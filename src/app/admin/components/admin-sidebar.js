@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/components/AuthProvider';
+import { api } from '@/app/_lib/api-client';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -36,19 +37,18 @@ export default function Sidebar() {
     async function fetchContentPages() {
       setContentLoading(true);
       try {
-        const [contentRes, modulesRes, kcRes] = await Promise.all([
-          fetch(`/api/content?moduleId=${moduleId}`),
-          fetch('/api/admin/modules'),
-          fetch(`/api/knowledge-checks?moduleId=${moduleId}`)
+        const [contentResult, modulesResult, kcResult] = await Promise.allSettled([
+          api.get(`/api/content?moduleId=${moduleId}`).json(),
+          api.get('/api/admin/modules').json(),
+          api.get(`/api/knowledge-checks?moduleId=${moduleId}`).json(),
         ]);
 
-        if (contentRes.ok) {
-          const data = await contentRes.json();
-          setContentPages(data);
+        if (contentResult.status === 'fulfilled') {
+          setContentPages(contentResult.value);
         }
 
-        if (modulesRes.ok) {
-          const modules = await modulesRes.json();
+        if (modulesResult.status === 'fulfilled') {
+          const modules = modulesResult.value;
           const moduleIdNum = Number(moduleId);
           const currentModule = modules.find((m) => Number(m.id) === moduleIdNum);
           if (currentModule) {
@@ -56,9 +56,8 @@ export default function Sidebar() {
           }
         }
 
-        if (kcRes.ok) {
-          const kcData = await kcRes.json();
-          setKnowledgeChecks(Array.isArray(kcData) ? kcData : []);
+        if (kcResult.status === 'fulfilled') {
+          setKnowledgeChecks(Array.isArray(kcResult.value) ? kcResult.value : []);
         }
       } catch (err) {
         console.error('Failed to fetch content for sidebar:', err);
@@ -260,7 +259,7 @@ export default function Sidebar() {
                       <>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pt-3 pb-1">Knowledge Checks</p>
                         {knowledgeChecks.map((kc, index) => {
-                          const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
+                          const isMultipleChoice = kc.type === 'multiple-choice';
                           return (
                             <button
                               key={`kc-${kc.knowledgeCheckId}`}
@@ -276,7 +275,7 @@ export default function Sidebar() {
                                 </span>
                                 <span className="text-sm truncate flex-1">{kc.question || `Knowledge Check ${index + 1}`}</span>
                                 <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${isMultipleChoice ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                                  {isMultipleChoice ? 'MC' : 'DESC'}
+                                  {isMultipleChoice ? 'MC' : 'OE'}
                                 </span>
                               </div>
                             </button>
@@ -389,7 +388,7 @@ export default function Sidebar() {
                 )}
 
                 {knowledgeChecks.map((kc, index) => {
-                  const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
+                  const isMultipleChoice = kc.type === 'multiple-choice';
                   return (
                     <button
                       key={`kc-${kc.knowledgeCheckId}`}
@@ -405,7 +404,7 @@ export default function Sidebar() {
                         </span>
                         <span className="text-sm truncate flex-1">{kc.question || `Knowledge Check ${index + 1}`}</span>
                         <span className={`ml-2 text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${isMultipleChoice ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                          {isMultipleChoice ? 'MC' : 'DESC'}
+                          {isMultipleChoice ? 'MC' : 'OE'}
                         </span>
                       </div>
                     </button>

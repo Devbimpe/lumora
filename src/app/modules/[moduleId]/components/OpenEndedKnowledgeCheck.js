@@ -1,23 +1,23 @@
 'use client';
 
-import DescriptiveAnswerBlock from './DescriptiveAnswerBlock';
+import OpenEndedAnswerBlock from './OpenEndedAnswerBlock';
 import SavedProgressBlock from './SavedProgressBlock';
 
-export default function DescriptiveKnowledgeCheck({
+export default function OpenEndedKnowledgeCheck({
   knowledgeCheckId,
   isSubmitted,
-  descriptiveAnswer,
+  openEndedAnswer,
   savedSubmission,
   aiFeedback,
   submittedViewAnimate,
   onAnswerChange,
   onSubmit,
 }) {
-  const displayAnswer = descriptiveAnswer ?? savedSubmission?.userAnswer ?? '';
+  const displayAnswer = openEndedAnswer ?? savedSubmission?.userAnswer ?? '';
 
   if (isSubmitted) {
     return (
-      <DescriptiveAnswerBlock
+      <OpenEndedAnswerBlock
         userAnswer={displayAnswer}
         aiFeedback={aiFeedback}
         animate={submittedViewAnimate}
