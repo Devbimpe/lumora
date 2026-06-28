@@ -33,7 +33,6 @@ export const COLLECTIONS = {
  * @property {number | null} contentId Optional association to a content page.
  * @property {'multiple-choice' | 'open-ended'} type Discriminator.
  * @property {string} question
- * @property {string} explanation Shared notes / context, shown to students for MC, grader context for open-ended.
  * @property {Timestamp} createdAt
  * @property {Timestamp | undefined} updatedAt
  */
@@ -42,12 +41,14 @@ export const COLLECTIONS = {
  *   type: 'multiple-choice',
  *   choices: string[],
  *   correctAnswer: number,  // 0-based index into choices; the letter is display-only
+ *   explanation: string,   // student-facing reveal shown after submission
  * }} MultipleChoiceKnowledgeCheck
  */
 /**
  * @typedef {KnowledgeCheckBase & {
  *   type: 'open-ended',
- *   sampleAnswer: string,  // rubric for the AI grader
+ *   rubric: string,
+ *   gradingContext: string, // (may be empty)
  * }} OpenEndedKnowledgeCheck
  */
 /** @typedef {MultipleChoiceKnowledgeCheck | OpenEndedKnowledgeCheck} KnowledgeCheck */

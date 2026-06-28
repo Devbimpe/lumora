@@ -614,6 +614,21 @@ export async function getKnowledgeChecksByModuleId(moduleId) {
 }
 
 /**
+ * Get a single knowledge check by (moduleId, knowledgeCheckId).
+ * @returns {Promise<(KnowledgeCheck & { id: string }) | null>}
+ */
+export async function getKnowledgeCheck(knowledgeCheckId, moduleID) {
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = checksRef
+    .where('knowledgeCheckId', '==', parseInt(knowledgeCheckId))
+    .where('moduleID', '==', parseInt(moduleID));
+  const snapshot = await q.get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() };
+}
+
+/**
  * Build a Firestore KC document for a given type.
  * @param {KnowledgeCheck} fields
  * @returns {KnowledgeCheck}
@@ -625,11 +640,17 @@ function buildKnowledgeCheckDoc(fields) {
     contentId: fields.contentId ?? null,
     type: fields.type,
     question: fields.question,
-    explanation: fields.explanation || '',
     createdAt: fields.createdAt,
     ...(fields.type === 'multiple-choice'
-      ? { choices: fields.choices || [], correctAnswer: fields.correctAnswer ?? 0 }
-      : { sampleAnswer: fields.sampleAnswer || '' }),
+      ? {
+          choices: fields.choices || [],
+          correctAnswer: fields.correctAnswer ?? 0,
+          explanation: fields.explanation || '',
+        }
+      : {
+          rubric: fields.rubric || '',
+          gradingContext: fields.gradingContext || '',
+        }),
   });
 }
 
@@ -639,7 +660,7 @@ function buildKnowledgeCheckDoc(fields) {
  * @returns {Promise<KnowledgeCheck & { id: string }>}
  */
 export async function createKnowledgeCheck(data) {
-  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, sampleAnswer } = data;
+  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, rubric, gradingContext } = data;
   const moduleIdNum = parseInt(moduleID);
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
 
@@ -659,7 +680,8 @@ export async function createKnowledgeCheck(data) {
       createdAt: Timestamp.now(),
       choices,
       correctAnswer,
-      sampleAnswer,
+      rubric,
+      gradingContext,
     });
 
     t.create(ref, newCheck);
@@ -723,7 +745,8 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
     createdAt: existing.createdAt,
     choices: updates.choices,
     correctAnswer: updates.correctAnswer,
-    sampleAnswer: updates.sampleAnswer,
+    rubric: updates.rubric,
+    gradingContext: updates.gradingContext,
   });
 
   await snapshot.docs[0].ref.set({ ...doc, updatedAt: Timestamp.now() });
@@ -1102,7 +1125,9 @@ export async function markModuleCompleted(userId, moduleId) {
  * Save user answer and AI feedback for a knowledge check to module progress.
  * Overwrites any previous submission for the same contentId (reattempt).
  */
-export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { userAnswer, grade, feedback }) {
+export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
+  userAnswer, grade, feedback, maxGrade, model, graderReasoning,
+}) {
   const progress = await getUserModuleProgress(userId, moduleId);
   const existing = progress?.knowledgeCheckSubmissions || {};
   const contentIdStr = String(contentId);
@@ -1113,6 +1138,9 @@ export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { 
       userAnswer: userAnswer ?? '',
       grade: grade ?? null,
       feedback: feedback ?? '',
+      maxGrade: maxGrade ?? null,
+      model: model ?? null,
+      graderReasoning: graderReasoning ?? null,
       updatedAt: Timestamp.now()
     }
   };
@@ -1153,39 +1181,3 @@ export async function getFeedbackByUserId(userId) {
     ...doc.data()
   }));
 }
-
-// For backward compatibility with existing code
-export default {
-  updateUser,
-  deleteUser,
-  getAllUsers,
-  getAllModules,
-  getAllPublishedModules,
-  getModuleById,
-  createModule,
-  updateModule,
-  deleteModule,
-  getContentByModuleId,
-  getContentById,
-  updateContent,
-  createContent,
-  deleteContent,
-  getKnowledgeChecksByContentId,
-  getKnowledgeChecksByModuleId,
-  getModuleWithContent,
-  createStudentSubmission,
-  getSubmissionsByStudentId,
-  getAllModuleProgressWithUsers,
-  getAllFeedbackWithUsers,
-  createFeedback,
-  getFeedbackByUserId,
-  getUserProgress,
-  getUserModuleProgress,
-  updateUserModuleProgress,
-  resetUserModuleProgress,
-  markContentViewed,
-  markContentCompleted,
-  updateModulePublished,
-  markModuleCompleted,
-  saveKnowledgeCheckFeedback
-};

@@ -20,11 +20,19 @@ export default function KCReadView({ kc, index }) {
       </div>
 
       {kc.type === 'open-ended' ? (
-        <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-purple-400">
-          <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Sample Answer:</h4>
-          <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
-            {kc.sampleAnswer || <span className="italic text-gray-400">No sample answer provided</span>}
-          </p>
+        <div className="space-y-3">
+          {kc.gradingContext ? (
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-gray-300">
+              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Grading context:</h4>
+              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">{kc.gradingContext}</p>
+            </div>
+          ) : null}
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-purple-400">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Grading rubric:</h4>
+            <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
+              {kc.rubric || <span className="italic text-gray-400">No rubric provided</span>}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-blue-400">

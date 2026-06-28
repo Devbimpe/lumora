@@ -11,6 +11,8 @@ export function validateKC(form) {
     if (!Number.isInteger(idx) || idx < 0 || idx >= filled.length) {
       return 'Please select the correct answer';
     }
+  } else if (!form.rubric || !form.rubric.trim()) {
+    return 'A grading rubric is required for open-ended questions';
   }
   return null;
 }
@@ -19,11 +21,10 @@ export function buildKCPayload(form) {
   const base = {
     type: form.type,
     question: form.question,
-    explanation: form.explanation || '',
   };
   if (form.type === 'multiple-choice') {
     const filled = (form.choices || []).filter((c) => typeof c === 'string' && c.trim());
-    return { ...base, choices: filled, correctAnswer: Number(form.correctAnswer) };
+    return { ...base, choices: filled, correctAnswer: Number(form.correctAnswer), explanation: form.explanation || '' };
   }
-  return { ...base, sampleAnswer: form.sampleAnswer || '' };
+  return { ...base, rubric: form.rubric || '', gradingContext: form.gradingContext || '' };
 }

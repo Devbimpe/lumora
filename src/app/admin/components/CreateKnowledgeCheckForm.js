@@ -5,7 +5,7 @@ import KCTabSwitcher from './kc/KCTabSwitcher';
 import ChoicesEditor from './kc/ChoicesEditor';
 import CorrectAnswerSelect from './kc/CorrectAnswerSelect';
 import KCPreview from './kc/KCPreview';
-import { QuestionInput, SampleAnswerInput, ExplanationInput } from './kc/KCFields';
+import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput } from './kc/KCFields';
 import { validateKC, buildKCPayload } from './kc/validateKC';
 
 export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCreated, onError }) {
@@ -14,7 +14,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [explanation, setExplanation] = useState('');
   const [tab, setTab] = useState('multiple-choice');
-  const [sampleAnswer, setSampleAnswer] = useState('');
+  const [rubric, setRubric] = useState('');
+  const [gradingContext, setGradingContext] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,7 +25,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
     setCorrectAnswer('');
     setExplanation('');
     setTab('multiple-choice');
-    setSampleAnswer('');
+    setRubric('');
+    setGradingContext('');
     setShowPreview(false);
   };
 
@@ -34,7 +36,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
     explanation,
     choices,
     correctAnswer,
-    sampleAnswer,
+    rubric,
+    gradingContext,
   });
 
   const createNewKnowledgeCheck = async () => {
@@ -84,6 +87,10 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
       <KCTabSwitcher tab={tab} onChange={setTab} />
 
       <div className="space-y-4">
+        {tab === 'open-ended' && (
+          <GradingContextInput value={gradingContext} onChange={setGradingContext} />
+        )}
+
         <QuestionInput value={question} onChange={setQuestion} />
 
         {tab === 'multiple-choice' && (
@@ -94,10 +101,12 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
         )}
 
         {tab === 'open-ended' && (
-          <SampleAnswerInput value={sampleAnswer} onChange={setSampleAnswer} />
+          <RubricInput value={rubric} onChange={setRubric} />
         )}
 
-        <ExplanationInput type={tab} value={explanation} onChange={setExplanation} />
+        {tab === 'multiple-choice' && (
+          <ExplanationInput value={explanation} onChange={setExplanation} />
+        )}
 
         <div className="flex flex-col sm:flex-row gap-2">
           <button
@@ -127,7 +136,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
             type={tab}
             choices={choices}
             correctAnswer={correctAnswer}
-            sampleAnswer={sampleAnswer}
+            rubric={rubric}
+            gradingContext={gradingContext}
             explanation={explanation}
           />
         )}

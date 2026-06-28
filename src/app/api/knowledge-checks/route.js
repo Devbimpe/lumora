@@ -13,7 +13,7 @@ import {
   validateJsonBody,
 } from "@/app/_lib/route";
 
-function normalizeKcFields(type, { choices, correctAnswer, sampleAnswer } = {}) {
+function normalizeKcFields(type, { choices, correctAnswer, rubric, gradingContext } = {}) {
   if (type === "multiple-choice") {
     const filled = (choices || []).filter((c) => typeof c === "string" && c.trim());
     if (filled.length < 2) {
@@ -25,7 +25,10 @@ function normalizeKcFields(type, { choices, correctAnswer, sampleAnswer } = {}) 
     }
     return { fields: { choices: filled, correctAnswer: idx } };
   }
-  return { fields: { sampleAnswer: sampleAnswer || "" } };
+  if (!rubric || !String(rubric).trim()) {
+    return { error: "rubric is required for open-ended knowledge checks" };
+  }
+  return { fields: { rubric: String(rubric), gradingContext: gradingContext || "" } };
 }
 
 /**
