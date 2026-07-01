@@ -23,6 +23,7 @@ cache:
   - .cache
 
 deploy_staging:
+  tags: [ugrad]
   stage: deploy
   image: node:24
   script:
@@ -42,6 +43,7 @@ deploy_staging:
     - dev
 
 deploy_production:
+  tags: [ugrad]
   stage: deploy
   image: node:24
   script:
