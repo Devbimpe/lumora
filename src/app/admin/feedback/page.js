@@ -1,21 +1,45 @@
 "use client";
 import { useEffect, useState } from "react";
-// import db from "@/db/db";
-// TODO: fetch from server instead
+import { useAuth } from "@/app/components/AuthProvider";
+
 
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const {user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
 
+    if (authLoading) {
+      return;
+    }
+
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const fetchFeedback = async () => {
       try {
-        const data = await db.getAllFeedbackWithUsers();
+        const token = await user.account.getIdToken();
+
+        const res = await fetch('/api/admin/feedback', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Failed to fetch feedback: ${res.status} ${errorText}`);
+        }
+
+        const data = await res.json();
+
         if (isMounted) {
-          setFeedback(data);
+          setFeedback(data.feedback || []);
         }
       } catch (err) {
         if (isMounted) {
@@ -33,7 +57,7 @@ export default function FeedbackPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [authLoading, user]);
 
   // Get  feedback types
   const feedbackTypes = [...new Set(feedback.map((f) => f.displayType))];

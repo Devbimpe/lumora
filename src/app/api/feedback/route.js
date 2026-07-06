@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserById } from '@/app/_db/admin-db.js';
+import { createFeedback, getUserById } from '@/app/_db/admin-db.js';
 import {
   badRequestError,
   defineUserRoute,
@@ -9,7 +9,7 @@ import {
 
 export const POST = defineUserRoute(async (request, session) => {
   try {
-    const { requestBody, validationError } = await validateJsonBody(request);
+    const { body: requestBody, validationError } = await validateJsonBody(request);
     if (validationError) return validationError;
     const { message, type } = requestBody;
 
@@ -25,6 +25,12 @@ export const POST = defineUserRoute(async (request, session) => {
         { status: 404 }
       );
     }
+
+    const feedbackId = await createFeedback ({
+      userId: session.uid,
+      message: message.trim(),
+      type,
+    })
 
 
     // Format feedback type for display
@@ -77,8 +83,9 @@ ${user.name || user.username || 'User'}`;
 
     return NextResponse.json({
       success: true,
-      message: 'Feedback ready to send',
-      mailtoUrl: mailtoUrl
+      message: 'Feedback submitted successfully',
+      feedbackId,
+      mailtoUrl,
     });
   } catch (error) {
     console.error('Feedback submission error:', error);

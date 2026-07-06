@@ -220,11 +220,14 @@ export default function Dashboard() {
     try {
       // Convert "general" to "General", otherwise use the module ID as-is
       const feedbackType = selectedModule === "general" ? "General" : selectedModule
+
+      const token = await user.account.getIdToken();
       
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           message: message.trim(),
