@@ -3,30 +3,26 @@ stages:
 
 variables:
   VERCEL_TELEMETRY_DISABLED: 1
-  NPM_CONFIG_PREFIX: "${CI_PROJECT_DIR}/.local"
-  FIREBASE_BINARY: "${CI_PROJECT_DIR}/.local/bin/firebase"
 
 before_script:
-  # 1. Install NVM (Node Version Manager) on the fly
+  # 1. Clear out any lingering university server environment variables
+  - unset NPM_CONFIG_PREFIX
+  
+  # 2. Install NVM (Node Version Manager) on the fly
   - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
   - export NVM_DIR="$HOME/.nvm"
   - \. "$NVM_DIR/nvm.sh"
   
-  # 2. Install and use Node.js (v20 is stable)
+  # 3. Install and use Node.js (v20 is stable)
   - nvm install 20
   - nvm use 20
   
-  # 3. Proceed with the rest of your original script
-  - export PATH="${CI_PROJECT_DIR}/.local/bin:${PATH}"
+  # 4. Install Vercel and Firebase CLI cleanly into our fresh Node environment
   - npm config set cache "${CI_PROJECT_DIR}/.cache/npm" --global
-  - npm cache verify
-  - npm install -g vercel
-  - npx vercel@latest --version
-  - '[ -x "${FIREBASE_BINARY}" ] && firebase -V || curl -sL https://firebase.tools | upgrade=true bash'
+  - npm install -g vercel firebase-tools
 
 cache:
   paths:
-  - .local
   - .cache
 
 deploy_staging:
