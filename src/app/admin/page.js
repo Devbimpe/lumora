@@ -31,7 +31,7 @@ export default function Dashboard() {
   return (
     <div className="w-full max-w-6xl mx-auto">
       {/* Welcome Header */}
-      <div className="border-l-4 border-green-600 pl-4 mb-6">
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border-l-4 border-green-600">
         <h1 className="text-2xl font-semibold text-gray-800">
           Welcome Admin!
         </h1>
@@ -59,7 +59,7 @@ export default function Dashboard() {
             </svg>
 
           </div>
-          <p className="text-sm sm:text-base opacity-70 font-medium">300</p>
+          <p className="text-sm sm:text-base opacity-70 font-medium">### users.</p>
         </a>
 
         <a 
@@ -67,7 +67,7 @@ export default function Dashboard() {
           className="bg-white rounded-lg sm:rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 lg:p-6 text-gray-800 hover:shadow-xl transition-all duration-300 cursor-pointer"
         >
           <div className="flex items-center justify-between mb-1 sm:mb-2">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Modules</h3>
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold">Modules</h3>
             
             <svg 
               className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-orange-600" 
@@ -86,7 +86,7 @@ export default function Dashboard() {
           className="bg-white rounded-lg sm:rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 lg:p-6 text-gray-800 hover:shadow-xl transition-all duration-300 cursor-pointer"
         >
           <div className="flex items-center justify-between mb-1 sm:mb-2">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Progress</h3>
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold">Progress</h3>
             
             <svg 
               className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-purple-600" 
@@ -105,7 +105,7 @@ export default function Dashboard() {
           className="bg-white rounded-lg sm:rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 lg:p-6 text-gray-800 hover:shadow-xl transition-all duration-300 cursor-pointer"
         >
           <div className="flex items-center justify-between mb-1 sm:mb-2">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Feedback</h3>
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold">Feedback</h3>
             
             <svg 
               className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-green-600" 
