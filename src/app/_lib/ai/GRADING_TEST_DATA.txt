@@ -70,7 +70,7 @@ What specific harms is this feature causing to the community? Identify as many a
 Racial profiling: Black teenagers are reported as "suspicious" just for walking through the neighborhood, reinforcing racist assumptions and making Black youth unsafe in public. Criminalization of poverty/unhoused people: unhoused residents are tracked and reported, pushing them out of public spaces — vulnerable people lose the ability to exist in public. Outsider exclusion: newcomers are filmed and labeled "strangers," which discourages new residents and breeds hostility toward anyone who looks unfamiliar. Retaliation against whistleblowers: users who call out profiling face harassment, doxxing, and false reports, which silences the people trying to fix the harm and chills speech in the community.
 
 --- SAMPLE ANSWER B — expected score: 2 ---
-People are reporting Black teens as suspicious which is racist, and unhoused people are being tracked. The app is making the neighborhood less safe for some groups.
+People are reporting Black teens as suspicious which is racist. The app is making the neighborhood less safe for some groups.
 
 --- SAMPLE ANSWER C — expected score: 1 ---
 The app is causing discrimination and making people feel unsafe. They should probably moderate the reports better.

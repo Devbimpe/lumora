@@ -13,7 +13,7 @@ import {
   validateJsonBody,
 } from "@/app/_lib/route";
 
-function normalizeKcFields(type, { choices, correctAnswer, rubric, gradingContext } = {}) {
+function normalizeKcFields(type, { choices, correctAnswer, rubric, gradingContext, explanation, aiGradingEnabled } = {}) {
   if (type === "multiple-choice") {
     const filled = (choices || []).filter((c) => typeof c === "string" && c.trim());
     if (filled.length < 2) {
@@ -23,12 +23,15 @@ function normalizeKcFields(type, { choices, correctAnswer, rubric, gradingContex
     if (!Number.isInteger(idx) || idx < 0 || idx >= filled.length) {
       return { error: "correctAnswer must be a valid choice index" };
     }
-    return { fields: { choices: filled, correctAnswer: idx } };
+    return { fields: { choices: filled, correctAnswer: idx, explanation: explanation || '' } };
   }
-  if (!rubric || !String(rubric).trim()) {
-    return { error: "rubric is required for open-ended knowledge checks" };
+  if (aiGradingEnabled && (!rubric || !String(rubric).trim())) {
+    return { error: "rubric is required for AI-graded open-ended knowledge checks" };
   }
-  return { fields: { rubric: String(rubric), gradingContext: gradingContext || "" } };
+  if (!aiGradingEnabled && (!explanation || !String(explanation).trim())) {
+    return { error: "explanation is required when AI grading is disabled" };
+  }
+  return { fields: { rubric: String(rubric || ''), gradingContext: gradingContext || '', aiGradingEnabled: !!aiGradingEnabled, explanation: explanation || '' } };
 }
 
 /**
@@ -58,7 +61,7 @@ export const POST = defineAdminRoute(async (request) => {
     const { body, validationError } = await validateJsonBody(request);
     if (validationError) return validationError;
 
-    const { moduleID, contentId, type, question, explanation, ...rest } = body;
+    const { moduleID, contentId, type, question, ...rest } = body;
     if (!moduleID || !question) {
       return badRequestError("moduleID and question are required");
     }
@@ -74,7 +77,6 @@ export const POST = defineAdminRoute(async (request) => {
       contentId,
       type,
       question,
-      explanation,
       ...result.fields,
     });
 
@@ -115,7 +117,7 @@ export const PUT = defineAdminRoute(async (request) => {
     const { body, validationError } = await validateJsonBody(request);
     if (validationError) return validationError;
 
-    const { knowledgeCheckId, moduleID, type, question, explanation, ...rest } = body;
+    const { knowledgeCheckId, moduleID, type, question, ...rest } = body;
     if (!knowledgeCheckId || !moduleID) {
       return badRequestError("knowledgeCheckId and moduleID are required");
     }
@@ -132,7 +134,6 @@ export const PUT = defineAdminRoute(async (request) => {
     await updateKnowledgeCheck(knowledgeCheckId, moduleID, {
       type,
       question,
-      explanation,
       ...result.fields,
     });
 

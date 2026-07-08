@@ -650,6 +650,8 @@ function buildKnowledgeCheckDoc(fields) {
       : {
           rubric: fields.rubric || '',
           gradingContext: fields.gradingContext || '',
+          aiGradingEnabled: !!fields.aiGradingEnabled,
+          explanation: fields.explanation || '',
         }),
   });
 }
@@ -660,7 +662,7 @@ function buildKnowledgeCheckDoc(fields) {
  * @returns {Promise<KnowledgeCheck & { id: string }>}
  */
 export async function createKnowledgeCheck(data) {
-  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, rubric, gradingContext } = data;
+  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, rubric, gradingContext, aiGradingEnabled } = data;
   const moduleIdNum = parseInt(moduleID);
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
 
@@ -682,6 +684,7 @@ export async function createKnowledgeCheck(data) {
       correctAnswer,
       rubric,
       gradingContext,
+      aiGradingEnabled,
     });
 
     t.create(ref, newCheck);
@@ -747,6 +750,7 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
     correctAnswer: updates.correctAnswer,
     rubric: updates.rubric,
     gradingContext: updates.gradingContext,
+    aiGradingEnabled: updates.aiGradingEnabled,
   });
 
   await snapshot.docs[0].ref.set({ ...doc, updatedAt: Timestamp.now() });
@@ -1126,7 +1130,7 @@ export async function markModuleCompleted(userId, moduleId) {
  * Overwrites any previous submission for the same contentId (reattempt).
  */
 export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
-  userAnswer, grade, feedback, maxGrade, model, graderReasoning,
+  userAnswer, grade, feedback, maxGrade, model, graderReasoning, aiGradingEnabled,
 }) {
   const progress = await getUserModuleProgress(userId, moduleId);
   const existing = progress?.knowledgeCheckSubmissions || {};
@@ -1141,6 +1145,7 @@ export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
       maxGrade: maxGrade ?? null,
       model: model ?? null,
       graderReasoning: graderReasoning ?? null,
+      aiGradingEnabled: aiGradingEnabled ?? null,
       updatedAt: Timestamp.now()
     }
   };
