@@ -55,7 +55,7 @@ export const POST = defineUserRoute(async (request, session) => {
   try {
     const { body, validationError } = await validateJsonBody(request);
     if (validationError) return validationError;
-    const { userId, moduleId, action, contentId, userAnswer, grade, feedback } = body;
+    const { userId, moduleId, action, contentId, userAnswer, grade, feedback, maxGrade, model, graderReasoning } = body;
 
     if (!userId || !moduleId) {
       return NextResponse.json(
@@ -104,7 +104,10 @@ export const POST = defineUserRoute(async (request, session) => {
         result = await saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
           userAnswer: userAnswer ?? '',
           grade: grade ?? null,
-          feedback: feedback ?? ''
+          feedback: feedback ?? '',
+          maxGrade: maxGrade ?? null,
+          model: model ?? null,
+          graderReasoning: graderReasoning ?? null,
         });
         break;
 

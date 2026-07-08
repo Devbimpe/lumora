@@ -91,9 +91,10 @@ function ModulePageContent() {
           question: check.question,
           explanation: check.explanation,
           contentId: check.contentId,
+          moduleID: check.moduleID,
           ...(check.type === 'multiple-choice'
             ? { choices: Array.isArray(check.choices) ? check.choices : [], correctAnswer: check.correctAnswer }
-            : { sampleAnswer: check.sampleAnswer }),
+            : { rubric: check.rubric, gradingContext: check.gradingContext }),
         });
         
         // Fetch content, knowledge checks, and module details in parallel. Content and
@@ -450,12 +451,16 @@ function ModulePageContent() {
 
       const data = await api.post('/api/grade-knowledge-check', {
         json: {
-          question: item.question,
+          moduleID: item.moduleID,
+          knowledgeCheckId: item.knowledgeCheckId,
           userAnswer: answerText,
-          sampleAnswer: item.sampleAnswer || '',
-          explanation: item.explanation || ''
         }
       }).json();
+
+      // Display/storage uses a 0-100 percentage for now (matches the existing feedback
+      // card and progress dashboard); the grader emits a raw 0..maxGrade integer, so
+      // normalize here. maxGrade is also stored so a future switch to raw scores is easy.
+      const pct = data.maxGrade > 0 ? Math.round((data.score / data.maxGrade) * 100) : 0;
 
       setAiFeedbackByCheck(prev => ({
         ...prev,
@@ -463,8 +468,9 @@ function ModulePageContent() {
           ...(prev[knowledgeCheckId] || {}),
           loading: false,
           error: null,
-          Grade: data.Grade ?? null,
-          Feedback: data.Feedback ?? ''
+          Grade: pct,
+          Feedback: data.feedback,
+          maxGrade: data.maxGrade,
         }
       }));
 
@@ -478,16 +484,19 @@ function ModulePageContent() {
               action: 'saveKnowledgeCheckFeedback',
               contentId: knowledgeCheckId,
               userAnswer: answerText,
-              grade: data.Grade ?? null,
-              feedback: data.Feedback ?? ''
+              grade: pct,
+              feedback: data.feedback,
+              maxGrade: data.maxGrade,
+              model: data.model,
             }
           });
           setSavedKnowledgeCheckSubmissions(prev => ({
             ...prev,
             [knowledgeCheckId]: {
               userAnswer: answerText,
-              grade: data.Grade ?? null,
-              feedback: data.Feedback ?? ''
+              grade: pct,
+              feedback: data.feedback,
+              maxGrade: data.maxGrade,
             }
           }));
         } catch (saveErr) {

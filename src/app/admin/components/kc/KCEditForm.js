@@ -5,7 +5,7 @@ import KCTabSwitcher from './KCTabSwitcher';
 import ChoicesEditor from './ChoicesEditor';
 import CorrectAnswerSelect from './CorrectAnswerSelect';
 import KCPreview from './KCPreview';
-import { QuestionInput, SampleAnswerInput, ExplanationInput } from './KCFields';
+import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput } from './KCFields';
 import { validateKC, buildKCPayload } from './validateKC';
 
 export default function KCEditForm({ kc, index, selectedModule, onCancel, onSaved }) {
@@ -18,9 +18,10 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
   const [correctAnswer, setCorrectAnswer] = useState(
     typeof kc.correctAnswer === 'number' ? String(kc.correctAnswer) : ''
   );
-  const [explanation, setExplanation] = useState(kc.explanation || '');
+  const [explanation, setExplanation] = useState(kc.type === 'multiple-choice' ? kc.explanation || '' : '');
   const [tab, setTab] = useState(kc.type === 'open-ended' ? 'open-ended' : 'multiple-choice');
-  const [sampleAnswer, setSampleAnswer] = useState(kc.type === 'open-ended' ? kc.sampleAnswer || '' : '');
+  const [rubric, setRubric] = useState(kc.type === 'open-ended' ? kc.rubric || '' : '');
+  const [gradingContext, setGradingContext] = useState(kc.type === 'open-ended' ? kc.gradingContext || '' : '');
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,7 +31,8 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
     explanation,
     choices,
     correctAnswer,
-    sampleAnswer,
+    rubric,
+    gradingContext,
   });
 
   const save = async () => {
@@ -82,6 +84,10 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
       <KCTabSwitcher tab={tab} onChange={setTab} />
 
       <div className="space-y-4">
+        {tab === 'open-ended' && (
+          <GradingContextInput value={gradingContext} onChange={setGradingContext} />
+        )}
+
         <QuestionInput value={question} onChange={setQuestion} />
 
         {tab === 'multiple-choice' && (
@@ -92,10 +98,12 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
         )}
 
         {tab === 'open-ended' && (
-          <SampleAnswerInput value={sampleAnswer} onChange={setSampleAnswer} />
+          <RubricInput value={rubric} onChange={setRubric} />
         )}
 
-        <ExplanationInput type={tab} value={explanation} onChange={setExplanation} />
+        {tab === 'multiple-choice' && (
+          <ExplanationInput value={explanation} onChange={setExplanation} />
+        )}
 
         <div className="flex flex-col sm:flex-row gap-2">
           <button onClick={() => setShowPreview((prev) => !prev)} className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base">
@@ -115,7 +123,8 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
             type={tab}
             choices={choices}
             correctAnswer={correctAnswer}
-            sampleAnswer={sampleAnswer}
+            rubric={rubric}
+            gradingContext={gradingContext}
             explanation={explanation}
           />
         )}

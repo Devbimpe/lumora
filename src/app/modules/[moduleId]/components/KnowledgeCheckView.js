@@ -51,7 +51,7 @@ export default function KnowledgeCheckView({
         </div>
       )}
 
-      {/* Explanation is MC-only: for open-ended, `explanation` is grader context, not student-facing. */}
+      {/* Explanation is MC-only (student-facing reveal). Open-ended feedback comes from the AI grader. */}
       {hasAnswered && isMultipleChoice && item.explanation && (
         <ExplanationCard explanation={item.explanation} />
       )}
