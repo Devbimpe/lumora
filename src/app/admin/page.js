@@ -1,8 +1,24 @@
 'use client';
 import { useAuth } from '@/app/components/AuthProvider';
+import {useState, useEffect} from 'react';
+import {api} from '@/app/_lib/api-client';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
+  const [userCount, setUserCount] = useState(null);
+
+  useEffect(() => {
+    async function loadUserCount() {
+      try {
+        const data = await api.get('/api/admin/users').json();
+        setUserCount(data.length);
+      } catch (error) {
+        console.error('Failed to load user count', error);
+        setUserCount(null);
+      }
+    }
+    loadUserCount();
+  }, []);
 
   const formatLoginTime = (timeString) => {
     if (!timeString) return 'N/A';
@@ -59,7 +75,7 @@ export default function Dashboard() {
             </svg>
 
           </div>
-          <p className="text-sm sm:text-base opacity-70 font-medium">### users.</p>
+          <p className="text-sm sm:text-base opacity-70 font-medium">{userCount !== null ? `${userCount} total` : 'Loading...'}</p>
         </a>
 
         <a 
