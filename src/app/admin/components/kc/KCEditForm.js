@@ -5,7 +5,8 @@ import KCTabSwitcher from './KCTabSwitcher';
 import ChoicesEditor from './ChoicesEditor';
 import CorrectAnswerSelect from './CorrectAnswerSelect';
 import KCPreview from './KCPreview';
-import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput } from './KCFields';
+import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput, OpenEndedExplanationInput } from './KCFields';
+import AIGradingToggle from './AIGradingToggle';
 import { validateKC, buildKCPayload } from './validateKC';
 
 export default function KCEditForm({ kc, index, selectedModule, onCancel, onSaved }) {
@@ -18,7 +19,8 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
   const [correctAnswer, setCorrectAnswer] = useState(
     typeof kc.correctAnswer === 'number' ? String(kc.correctAnswer) : ''
   );
-  const [explanation, setExplanation] = useState(kc.type === 'multiple-choice' ? kc.explanation || '' : '');
+  const [explanation, setExplanation] = useState(kc.explanation || '');
+  const [aiGradingEnabled, setAIGradingEnabled] = useState(kc.type === 'open-ended' ? kc.aiGradingEnabled : true);
   const [tab, setTab] = useState(kc.type === 'open-ended' ? 'open-ended' : 'multiple-choice');
   const [rubric, setRubric] = useState(kc.type === 'open-ended' ? kc.rubric || '' : '');
   const [gradingContext, setGradingContext] = useState(kc.type === 'open-ended' ? kc.gradingContext || '' : '');
@@ -33,6 +35,7 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
     correctAnswer,
     rubric,
     gradingContext,
+    aiGradingEnabled,
   });
 
   const save = async () => {
@@ -85,6 +88,10 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
 
       <div className="space-y-4">
         {tab === 'open-ended' && (
+          <AIGradingToggle enabled={aiGradingEnabled} onChange={setAIGradingEnabled} />
+        )}
+
+        {tab === 'open-ended' && aiGradingEnabled && (
           <GradingContextInput value={gradingContext} onChange={setGradingContext} />
         )}
 
@@ -97,8 +104,12 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
           </>
         )}
 
-        {tab === 'open-ended' && (
+        {tab === 'open-ended' && aiGradingEnabled && (
           <RubricInput value={rubric} onChange={setRubric} />
+        )}
+
+        {tab === 'open-ended' && !aiGradingEnabled && (
+          <OpenEndedExplanationInput value={explanation} onChange={setExplanation} />
         )}
 
         {tab === 'multiple-choice' && (
@@ -126,6 +137,7 @@ export default function KCEditForm({ kc, index, selectedModule, onCancel, onSave
             rubric={rubric}
             gradingContext={gradingContext}
             explanation={explanation}
+            aiGradingEnabled={aiGradingEnabled}
           />
         )}
       </div>

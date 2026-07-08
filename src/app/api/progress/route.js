@@ -55,7 +55,7 @@ export const POST = defineUserRoute(async (request, session) => {
   try {
     const { body, validationError } = await validateJsonBody(request);
     if (validationError) return validationError;
-    const { userId, moduleId, action, contentId, userAnswer, grade, feedback, maxGrade, model, graderReasoning } = body;
+    const { userId, moduleId, action, contentId, userAnswer, grade, feedback, maxGrade, model, graderReasoning, aiGradingEnabled } = body;
 
     if (!userId || !moduleId) {
       return NextResponse.json(
@@ -108,6 +108,7 @@ export const POST = defineUserRoute(async (request, session) => {
           maxGrade: maxGrade ?? null,
           model: model ?? null,
           graderReasoning: graderReasoning ?? null,
+          aiGradingEnabled: aiGradingEnabled ?? null,
         });
         break;
 

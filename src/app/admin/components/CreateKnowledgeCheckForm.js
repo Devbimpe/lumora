@@ -5,7 +5,8 @@ import KCTabSwitcher from './kc/KCTabSwitcher';
 import ChoicesEditor from './kc/ChoicesEditor';
 import CorrectAnswerSelect from './kc/CorrectAnswerSelect';
 import KCPreview from './kc/KCPreview';
-import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput } from './kc/KCFields';
+import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput, OpenEndedExplanationInput } from './kc/KCFields';
+import AIGradingToggle from './kc/AIGradingToggle';
 import { validateKC, buildKCPayload } from './kc/validateKC';
 
 export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCreated, onError }) {
@@ -16,6 +17,7 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
   const [tab, setTab] = useState('multiple-choice');
   const [rubric, setRubric] = useState('');
   const [gradingContext, setGradingContext] = useState('');
+  const [aiGradingEnabled, setAIGradingEnabled] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,6 +29,7 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
     setTab('multiple-choice');
     setRubric('');
     setGradingContext('');
+    setAIGradingEnabled(true);
     setShowPreview(false);
   };
 
@@ -38,6 +41,7 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
     correctAnswer,
     rubric,
     gradingContext,
+    aiGradingEnabled,
   });
 
   const createNewKnowledgeCheck = async () => {
@@ -88,6 +92,10 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
 
       <div className="space-y-4">
         {tab === 'open-ended' && (
+          <AIGradingToggle enabled={aiGradingEnabled} onChange={setAIGradingEnabled} />
+        )}
+
+        {tab === 'open-ended' && aiGradingEnabled && (
           <GradingContextInput value={gradingContext} onChange={setGradingContext} />
         )}
 
@@ -100,8 +108,12 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
           </>
         )}
 
-        {tab === 'open-ended' && (
+        {tab === 'open-ended' && aiGradingEnabled && (
           <RubricInput value={rubric} onChange={setRubric} />
+        )}
+
+        {tab === 'open-ended' && !aiGradingEnabled && (
+          <OpenEndedExplanationInput value={explanation} onChange={setExplanation} />
         )}
 
         {tab === 'multiple-choice' && (
@@ -139,6 +151,7 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
             rubric={rubric}
             gradingContext={gradingContext}
             explanation={explanation}
+            aiGradingEnabled={aiGradingEnabled}
           />
         )}
       </div>

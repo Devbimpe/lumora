@@ -49,6 +49,8 @@ export const COLLECTIONS = {
  *   type: 'open-ended',
  *   rubric: string,
  *   gradingContext: string, // (may be empty)
+ *   aiGradingEnabled: boolean, // when false, explanation is shown instead of AI grading
+ *   explanation: string, // student-facing reveal shown after submission when AI grading is disabled
  * }} OpenEndedKnowledgeCheck
  */
 /** @typedef {MultipleChoiceKnowledgeCheck | OpenEndedKnowledgeCheck} KnowledgeCheck */

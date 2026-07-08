@@ -1,6 +1,6 @@
 'use client';
 
-export default function KCPreview({ question, type, choices, correctAnswer, rubric, gradingContext, explanation }) {
+export default function KCPreview({ question, type, choices, correctAnswer, rubric, gradingContext, explanation, aiGradingEnabled }) {
   return (
     <div className="bg-white rounded-lg p-4 border border-gray-200 mt-4">
       <h4 className="text-sm font-semibold text-gray-600 mb-2">Preview</h4>
@@ -39,20 +39,31 @@ export default function KCPreview({ question, type, choices, correctAnswer, rubr
         </div>
       ) : (
         <>
-          {gradingContext ? (
+          {aiGradingEnabled ? (
+            <>
+              {gradingContext ? (
+                <div className="mb-3">
+                  <p className="text-sm font-medium text-gray-600 mb-1">Grading context:</p>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
+                    {gradingContext}
+                  </div>
+                </div>
+              ) : null}
+              <div className="mb-3">
+                <p className="text-sm font-medium text-gray-600 mb-1">Grading rubric:</p>
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
+                  {rubric || <span className="italic text-gray-400">No rubric entered</span>}
+                </div>
+              </div>
+            </>
+          ) : (
             <div className="mb-3">
-              <p className="text-sm font-medium text-gray-600 mb-1">Grading context:</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
-                {gradingContext}
+                {explanation || <span className="italic text-gray-400">No explanation entered</span>}
               </div>
             </div>
-          ) : null}
-          <div className="mb-3">
-            <p className="text-sm font-medium text-gray-600 mb-1">Grading rubric:</p>
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
-              {rubric || <span className="italic text-gray-400">No rubric entered</span>}
-            </div>
-          </div>
+          )}
         </>
       )}
 

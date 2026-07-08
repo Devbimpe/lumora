@@ -92,6 +92,7 @@ function ModulePageContent() {
           explanation: check.explanation,
           contentId: check.contentId,
           moduleID: check.moduleID,
+          aiGradingEnabled: check.aiGradingEnabled,
           ...(check.type === 'multiple-choice'
             ? { choices: Array.isArray(check.choices) ? check.choices : [], correctAnswer: check.correctAnswer }
             : { rubric: check.rubric, gradingContext: check.gradingContext }),
@@ -435,6 +436,45 @@ function ModulePageContent() {
     }
 
     if (!item) {
+      return;
+    }
+
+    // Non-AI-graded: skip the grader, save answer-only, show explanation.
+    if (!item.aiGradingEnabled) {
+      setAiFeedbackByCheck(prev => ({
+        ...prev,
+        [knowledgeCheckId]: {
+          loading: false,
+          error: null,
+          aiGradingEnabled: false,
+        }
+      }));
+
+      if (user) {
+        try {
+          await api.post('/api/progress', {
+            json: {
+              userId: user.uid,
+              moduleId: moduleId.replace('module', ''),
+              action: 'saveKnowledgeCheckFeedback',
+              contentId: knowledgeCheckId,
+              userAnswer: answerText,
+              aiGradingEnabled: false,
+            }
+          });
+          setSavedKnowledgeCheckSubmissions(prev => ({
+            ...prev,
+            [knowledgeCheckId]: {
+              userAnswer: answerText,
+              grade: null,
+              feedback: null,
+              aiGradingEnabled: false,
+            }
+          }));
+        } catch (saveErr) {
+          console.error('Failed to save knowledge check submission to progress:', saveErr);
+        }
+      }
       return;
     }
 

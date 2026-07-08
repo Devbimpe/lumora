@@ -44,6 +44,8 @@ export default function KnowledgeCheckView({
             openEndedAnswer={openEndedAnswers[knowledgeCheckId]}
             savedSubmission={savedKnowledgeCheckSubmissions[knowledgeCheckId]}
             aiFeedback={aiFeedbackByCheck[knowledgeCheckId]}
+            explanation={item.explanation}
+            aiGradingEnabled={item.aiGradingEnabled}
             submittedViewAnimate={submittedViewAnimate}
             onAnswerChange={(value) => onOpenEndedAnswerChange(knowledgeCheckId, value)}
             onSubmit={(answerText) => onOpenEndedSubmit(knowledgeCheckId, answerText)}

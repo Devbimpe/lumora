@@ -9,6 +9,8 @@ export default function OpenEndedKnowledgeCheck({
   openEndedAnswer,
   savedSubmission,
   aiFeedback,
+  explanation,
+  aiGradingEnabled,
   submittedViewAnimate,
   onAnswerChange,
   onSubmit,
@@ -20,6 +22,8 @@ export default function OpenEndedKnowledgeCheck({
       <OpenEndedAnswerBlock
         userAnswer={displayAnswer}
         aiFeedback={aiFeedback}
+        explanation={explanation}
+        aiGradingEnabled={aiGradingEnabled}
         animate={submittedViewAnimate}
       />
     );
@@ -27,7 +31,13 @@ export default function OpenEndedKnowledgeCheck({
 
   return (
     <>
-      {savedSubmission && <SavedProgressBlock savedSubmission={savedSubmission} />}
+      {savedSubmission && (
+        <SavedProgressBlock
+          savedSubmission={savedSubmission}
+          explanation={explanation}
+          aiGradingEnabled={aiGradingEnabled}
+        />
+      )}
       <textarea
         value={displayAnswer}
         onChange={(e) => onAnswerChange(e.target.value)}

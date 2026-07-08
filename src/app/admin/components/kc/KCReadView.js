@@ -21,18 +21,32 @@ export default function KCReadView({ kc, index }) {
 
       {kc.type === 'open-ended' ? (
         <div className="space-y-3">
-          {kc.gradingContext ? (
-            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-gray-300">
-              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Grading context:</h4>
-              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">{kc.gradingContext}</p>
+          <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${kc.aiGradingEnabled ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'}`}>
+            {kc.aiGradingEnabled ? 'AI-graded' : 'Not AI-graded'}
+          </span>
+          {kc.aiGradingEnabled ? (
+            <>
+              {kc.gradingContext ? (
+                <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-gray-300">
+                  <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Grading context:</h4>
+                  <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">{kc.gradingContext}</p>
+                </div>
+              ) : null}
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-purple-400">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Grading rubric:</h4>
+                <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
+                  {kc.rubric || <span className="italic text-gray-400">No rubric provided</span>}
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-orange-400">
+              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Explanation:</h4>
+              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
+                {kc.explanation || <span className="italic text-gray-400">No explanation provided</span>}
+              </p>
             </div>
-          ) : null}
-          <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-purple-400">
-            <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Grading rubric:</h4>
-            <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
-              {kc.rubric || <span className="italic text-gray-400">No rubric provided</span>}
-            </p>
-          </div>
+          )}
         </div>
       ) : (
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-blue-400">

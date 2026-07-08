@@ -21,6 +21,9 @@ export const POST = defineUserRoute(async (req) => {
     if (kc.type !== 'open-ended') {
       return badRequestError('Only open-ended knowledge checks can be AI-graded');
     }
+    if (!kc.aiGradingEnabled) {
+      return badRequestError('AI grading is disabled for this knowledge check');
+    }
 
     const result = await gradeOpenEndedAnswer({
       scenario: kc.gradingContext || '',
