@@ -25,3 +25,29 @@ export const COLLECTIONS = {
  * @property {string | undefined} resetToken
  * @property {Timestamp | undefined} resetTokenExpires
  */
+
+/**
+ * @typedef {Object} KnowledgeCheckBase
+ * @property {number} knowledgeCheckId Per-module sequence id.
+ * @property {number} moduleID
+ * @property {number | null} contentId Optional association to a content page.
+ * @property {'multiple-choice' | 'open-ended'} type Discriminator.
+ * @property {string} question
+ * @property {string} explanation Shared notes / context, shown to students for MC, grader context for open-ended.
+ * @property {Timestamp} createdAt
+ * @property {Timestamp | undefined} updatedAt
+ */
+/**
+ * @typedef {KnowledgeCheckBase & {
+ *   type: 'multiple-choice',
+ *   choices: string[],
+ *   correctAnswer: number,  // 0-based index into choices; the letter is display-only
+ * }} MultipleChoiceKnowledgeCheck
+ */
+/**
+ * @typedef {KnowledgeCheckBase & {
+ *   type: 'open-ended',
+ *   sampleAnswer: string,  // rubric for the AI grader
+ * }} OpenEndedKnowledgeCheck
+ */
+/** @typedef {MultipleChoiceKnowledgeCheck | OpenEndedKnowledgeCheck} KnowledgeCheck */
