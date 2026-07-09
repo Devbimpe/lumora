@@ -5,7 +5,34 @@ import {
   deleteKnowledgeCheck,
   updateKnowledgeCheck,
 } from "@/app/_db/admin-db.js";
-import { defineAdminRoute, defineUserRoute } from "@/app/_lib/route";
+import {
+  defineAdminRoute,
+  defineUserRoute,
+  badRequestError,
+  internalServerError,
+  validateJsonBody,
+} from "@/app/_lib/route";
+
+function normalizeKcFields(type, { choices, correctAnswer, rubric, gradingContext, explanation, aiGradingEnabled } = {}) {
+  if (type === "multiple-choice") {
+    const filled = (choices || []).filter((c) => typeof c === "string" && c.trim());
+    if (filled.length < 2) {
+      return { error: "At least 2 non-empty choices are required for multiple-choice" };
+    }
+    const idx = Number(correctAnswer);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= filled.length) {
+      return { error: "correctAnswer must be a valid choice index" };
+    }
+    return { fields: { choices: filled, correctAnswer: idx, explanation: explanation || '' } };
+  }
+  if (aiGradingEnabled && (!rubric || !String(rubric).trim())) {
+    return { error: "rubric is required for AI-graded open-ended knowledge checks" };
+  }
+  if (!aiGradingEnabled && (!explanation || !String(explanation).trim())) {
+    return { error: "explanation is required when AI grading is disabled" };
+  }
+  return { fields: { rubric: String(rubric || ''), gradingContext: gradingContext || '', aiGradingEnabled: !!aiGradingEnabled, explanation: explanation || '' } };
+}
 
 /**
  * GET handler: Retrieves knowledge checks for a module
@@ -14,81 +41,49 @@ import { defineAdminRoute, defineUserRoute } from "@/app/_lib/route";
 export const GET = defineUserRoute(async (request) => {
   try {
     const moduleId = request.nextUrl.searchParams.get("moduleId");
-
     if (!moduleId) {
-      return NextResponse.json(
-        { error: "moduleId query parameter is required" },
-        { status: 400 },
-      );
+      return badRequestError("moduleId query parameter is required");
     }
 
-    console.log("Fetching knowledge checks for moduleId:", moduleId);
     const knowledgeChecks = await getKnowledgeChecksByModuleId(moduleId);
-    console.log(
-      `Found ${knowledgeChecks.length} knowledge checks for module ${moduleId}`,
-    );
-
-    return NextResponse.json(knowledgeChecks, {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(knowledgeChecks);
   } catch (error) {
     console.error("API GET error:", error);
-    console.error("Error details:", error.message, error.stack);
-    return NextResponse.json(
-      {
-        error: "Failed to fetch knowledge checks",
-        details: error.message,
-      },
-      { status: 500 },
-    );
+    return internalServerError("Failed to fetch knowledge checks");
   }
 });
+
 /**
- * POST handler: Creates a new knowledge check
- * Supports both multiple-choice and descriptive question types.
- * For descriptive questions, choices and answer can be empty.
+ * POST handler: Creates a new knowledge check.
  */
 export const POST = defineAdminRoute(async (request) => {
   try {
-    const body = await request.json();
-    const {
-      moduleID,
-      contentId,
-      question,
-      choices,
-      answer,
-      explain,
-      allowance,
-    } = body;
+    const { body, validationError } = await validateJsonBody(request);
+    if (validationError) return validationError;
 
-    // only moduleID and question are required — descriptive questions
-    // won't have choices or a correct answer
+    const { moduleID, contentId, type, question, ...rest } = body;
     if (!moduleID || !question) {
-      return NextResponse.json(
-        { error: "moduleID and question are required" },
-        { status: 400 },
-      );
+      return badRequestError("moduleID and question are required");
+    }
+    if (type !== "multiple-choice" && type !== "open-ended") {
+      return badRequestError("type must be 'multiple-choice' or 'open-ended'");
     }
 
-    // default to empty choices/answer for descriptive questions
-    const result = await createKnowledgeCheck({
+    const result = normalizeKcFields(type, rest);
+    if (result.error) return badRequestError(result.error);
+
+    const created = await createKnowledgeCheck({
       moduleID,
       contentId,
+      type,
       question,
-      choices: choices || [],
-      answer: answer || "",
-      explain,
-      allowance,
+      ...result.fields,
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error("API POST error:", error);
-    return NextResponse.json(
-      { error: "Failed to create knowledge check", details: error.message },
-      { status: 500 },
-    );
+    return internalServerError("Failed to create knowledge check");
   }
 });
 
@@ -98,58 +93,53 @@ export const POST = defineAdminRoute(async (request) => {
  */
 export const DELETE = defineAdminRoute(async (request) => {
   try {
-    const body = await request.json();
-    const { knowledgeCheckId, moduleID } = body;
+    const { body, validationError } = await validateJsonBody(request);
+    if (validationError) return validationError;
 
+    const { knowledgeCheckId, moduleID } = body;
     if (!knowledgeCheckId || !moduleID) {
-      return NextResponse.json(
-        { error: "knowledgeCheckId and moduleID are required" },
-        { status: 400 },
-      );
+      return badRequestError("knowledgeCheckId and moduleID are required");
     }
 
     await deleteKnowledgeCheck(knowledgeCheckId, moduleID);
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("API DELETE error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete knowledge check", details: error.message },
-      { status: 500 },
-    );
+    return internalServerError("Failed to delete knowledge check");
   }
 });
 
 /**
- * PUT handler: Updates a knowledge check
- * Expects a JSON body with 'knowledgeCheckId', 'moduleID', 'question', 'choices', 'answer', and 'explain' fields
+ * PUT handler: Updates a knowledge check.
  */
 export const PUT = defineAdminRoute(async (request) => {
   try {
-    const body = await request.json();
-    const { knowledgeCheckId, moduleID, question, choices, answer, explain } =
-      body;
+    const { body, validationError } = await validateJsonBody(request);
+    if (validationError) return validationError;
 
+    const { knowledgeCheckId, moduleID, type, question, ...rest } = body;
     if (!knowledgeCheckId || !moduleID) {
-      return NextResponse.json(
-        { error: "knowledgeCheckId and moduleID are required" },
-        { status: 400 },
-      );
+      return badRequestError("knowledgeCheckId and moduleID are required");
+    }
+    if (type !== "multiple-choice" && type !== "open-ended") {
+      return badRequestError("type must be 'multiple-choice' or 'open-ended'");
+    }
+    if (!question) {
+      return badRequestError("question is required");
     }
 
+    const result = normalizeKcFields(type, rest);
+    if (result.error) return badRequestError(result.error);
+
     await updateKnowledgeCheck(knowledgeCheckId, moduleID, {
+      type,
       question,
-      choices,
-      answer,
-      explain: explain || "",
+      ...result.fields,
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("API PUT error:", error);
-    return NextResponse.json(
-      { error: "Failed to update knowledge check", details: error.message },
-      { status: 500 },
-    );
+    return internalServerError("Failed to update knowledge check");
   }
 });

@@ -61,24 +61,27 @@ export default function FAQSection() {
     <section id="faq" className="py-20 bg-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2
-          className="text-5xl font-bold text-center text-green-700 mb-16"
+          className="text-5xl font-bold text-center mb-16"
           style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: "bold", textAlign: "center", color: "#16803D", marginBottom: "4rem" }}
         >
           Frequently asked questions
         </h2>
-        
-        <div className="space-y-0">
+
+        <div className="space-y-3">
           {(showAll ? faqs : faqs.slice(0, 5)).map((faq, index) => (
-            <div key={index} className="border-b border-gray-200">
+            <div
+              key={index}
+              className="border border-gray-200 rounded-xl overflow-hidden hover:border-green-300 transition-colors duration-200"
+            >
               <button
                 onClick={() => toggleFAQ(index)}
-                className="w-full py-6 text-left flex items-center justify-between group hover:text-green-700 transition-colors duration-200"
+                className="w-full px-6 py-5 text-left flex items-center justify-between group transition-colors duration-200"
               >
-                <span className="text-lg font-medium text-gray-900 group-hover:text-green-700 pr-8">
+                <span className="text-base font-medium text-gray-900 group-hover:text-green-700 pr-8">
                   {faq.question}
                 </span>
                 <svg
-                  className={`w-5 h-5 text-gray-500 flex-shrink-0 transition-transform duration-300 ${
+                  className={`w-5 h-5 text-green-700 flex-shrink-0 transition-transform duration-300 ${
                     openIndex === index ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -93,29 +96,37 @@ export default function FAQSection() {
                   />
                 </svg>
               </button>
-              
+
               <div
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
                   openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className="pb-6 text-gray-600 leading-relaxed">
+                <div className="px-6 pb-5 text-gray-600 leading-relaxed text-sm">
                   {faq.answer}
                 </div>
               </div>
             </div>
           ))}
         </div>
+
         <div className="text-center mt-8">
           <button
             onClick={() => setShowAll(!showAll)}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
+            className="inline-flex items-center gap-1.5 text-green-700 font-medium hover:text-green-800 transition-colors duration-200"
           >
-            {showAll ? "Show Less" : "Show More"}
+            <span>{showAll ? "Show Less" : "See more FAQs"}</span>
+            <svg
+              className={`w-4 h-4 transition-transform duration-300 ${showAll ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
         </div>
       </div>
     </section>
   )
 }
-
