@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import InfoSummary from "./InfoSummary";
 import PersonalInfo from "./PersonalInfo";
+import { api } from "@/app/_lib/api-client";
 
 // Page to show personal info summary and editable form
 export default function PersonalInfoPage({ userId }) {
@@ -12,21 +13,19 @@ export default function PersonalInfoPage({ userId }) {
   async function loadPersonalInfo() {
     if (!userId) return;
 
-    const res = await fetch(`/api/user-profile-personal-info?userId=${userId}`);
-    if (!res.ok) return;
+    try {
+      const data = await api.get("/api/user-profile-personal-info", { searchParams: { userId } }).json();
 
-    const data = await res.json();
-
-    // Merge root-level and personalInfo fields
-    setPersonalInfo({
+      // Merge root-level and personalInfo fields
+      setPersonalInfo({
         name: data.user.name || "",
         username: data.user.username || "",
         email: data.user.email || "",
         pronouns: data.user.personalInfo.pronouns || "",
         headline: data.user.personalInfo.headline || "",
         bio: data.user.personalInfo.bio || "",
-    });
-
+      });
+    } catch { /* ignore load errors */ }
   }
 
   useEffect(() => {

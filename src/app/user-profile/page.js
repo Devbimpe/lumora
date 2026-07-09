@@ -7,6 +7,7 @@ import Portfolio from "./Portfolio";
 import Settings from "./Settings";
 import InfoSummary from "./personal-info-page/InfoSummary";
 import { useAuth } from "@/app/components/AuthProvider";
+import { api } from "@/app/_lib/api-client";
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState("Personal Info");
@@ -20,12 +21,9 @@ export default function Page() {
     if (!userId) return;
 
     async function fetchPersonalInfo() {
-      const res = await fetch(`/api/user-profile-personal-info?userId=${userId}`);
-      if (!res.ok) return;
+      const data = await api.get("/api/user-profile-personal-info", { searchParams: { userId } }).json();
 
-      const data = await res.json();
-
-      const mergedPersonalInfo = {
+      setPersonalInfoData({
         ...(data.user.personalInfo || {}),
         name: data.user.name || data.user.personalInfo?.fullName || "",
         username: data.user.username || data.user.personalInfo?.userName || "",
@@ -33,11 +31,12 @@ export default function Page() {
         pronouns: data.user.personalInfo?.pronouns || "",
         headline: data.user.personalInfo?.headline || "",
         bio: data.user.personalInfo?.bio || "",
-      };
-      setPersonalInfoData(mergedPersonalInfo);
+      });
     }
 
-    fetchPersonalInfo();
+    try {
+      fetchPersonalInfo();
+    } catch { /* ignore load errors */ }
   }, [userId]);
 
   return (

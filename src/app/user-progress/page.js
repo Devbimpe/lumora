@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from '@/app/components/AuthProvider';
+import { api } from '@/app/_lib/api-client';
 
 function UserProgressContent() {
   const { user } = useAuth();
@@ -22,8 +23,7 @@ function UserProgressContent() {
 
   const fetchModules = async () => {
     try {
-      const res = await fetch("/api/modules");
-      const data = await res.json();
+      const data = await api.get("/api/modules").json();
       console.log("Modules", data);
       setModules(data);
       return data;
@@ -34,9 +34,9 @@ function UserProgressContent() {
   };
 
   const fetchUserProgress = async () => {
+    if (!user) return;
     try {
-      const response = await fetch(`/api/progress?userId=${user?.uid}`);
-      const data = await response.json();
+      const data = await api.get("/api/progress", { searchParams: { userId: user.uid } }).json();
       console.log("Progress", data);
       if(Array.isArray(data)) {
         setModuleProgress(data);
@@ -88,8 +88,7 @@ useEffect(() => {
 
   (async () => {
     try {
-      const res = await fetch(`/api/knowledge-checks?moduleId=${modId}`);
-      const data = await res.json();
+      const data = await api.get("/api/knowledge-checks", { searchParams: { moduleId: modId } }).json();
       if (!Array.isArray(data)) return;
       const map = {};
       for (const kc of data) {
@@ -166,14 +165,12 @@ const filteredModules = baseList.filter((mod) => {
   const moduleId = selectedModule.ModuleID ?? selectedModule.moduleId;
 
   try {
-    await fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    await api.post('/api/progress', {
+      json: {
         userId: user.uid,
         moduleId,
         action: 'resetUserProgress'
-      })
+      }
     });
     router.push(`/modules/module${moduleId}`);
     setSelectedModule(null);

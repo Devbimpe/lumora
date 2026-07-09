@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Trash2, AlertTriangle } from "lucide-react"; // Took the reference from https://lucide.dev/icons/
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthProvider";
+import { api, apiErrorMessage } from "@/app/_lib/api-client";
 
 export default function Settings({ userId }) {
   const [status, setStatus] = useState("");
@@ -22,28 +23,23 @@ export default function Settings({ userId }) {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/user-profile-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.uid }),
+      await api.post("/api/user-profile-settings", {
+        json: { userId: user.uid }
       });
-
-      const data = await res.json();
-      setShowModal(false);
-      if (res.ok) {
-        setStatus("Account deleted successfully.");
-        await signOut();
-        router.push("/");
-      } else {
-        setStatus(`Error: ${data.error}`);
-      }
     } catch (err) {
       console.error(err);
-      setStatus("Error deleting account.");
+      const msg = await apiErrorMessage(err, "Error deleting account.");
+      setStatus(msg);
       setShowModal(false);
-    } finally {
       setLoading(false);
+      return;
     }
+
+    setShowModal(false);
+    setStatus("Account deleted successfully.");
+    await signOut();
+    router.push("/");
+    setLoading(false);
   };
 
   return (
