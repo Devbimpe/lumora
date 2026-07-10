@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Globe, Linkedin, Github} from "lucide-react"; // Took the reference from https://lucide.dev/icons/
+import { api, apiErrorMessage } from "@/app/_lib/api-client";
 
 export default function Portfolio({ userId }) {
   const [linkedIn, setLinkedIn] = useState("");
@@ -42,20 +43,17 @@ export default function Portfolio({ userId }) {
   useEffect(() => {
     async function loadData() {
       if (!userId) return;
-  
-      const res = await fetch(`/api/user-profile-portfolio?userId=${userId}`);
-      if (!res.ok) return;
-  
-      const data = await res.json();
-      const portfolio = data.user.portfolio || {};
-  
-      setLinkedIn(portfolio.linkedIn || "");
-      setGithub(portfolio.github || "");
-      setWebsite(portfolio.website || "");
+      try {
+        const data = await api.get("/api/user-profile-portfolio", { searchParams: { userId } }).json();
+        const portfolio = data.user.portfolio || {};
+        setLinkedIn(portfolio.linkedIn || "");
+        setGithub(portfolio.github || "");
+        setWebsite(portfolio.website || "");
+      } catch { /* ignore errors loading portfolio */ }
     }
-  
+
     loadData();
-  }, [userId]);  
+  }, [userId]);
 
   const handleSave = async () => {
     if (!userId) {
@@ -71,30 +69,20 @@ export default function Portfolio({ userId }) {
     }
 
     try {
-      const res = await fetch("/api/user-profile-portfolio", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      await api.post("/api/user-profile-portfolio", {
+        json: {
           userId,
           linkedIn,
           github,
           website,
-        }),
+        },
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        setSave("Saved Successfully!");
-        setSaveError("green");
-      } else {
-        setSave(`Error: ${data.error}`);
-        setSaveError("red");
-      }
+      setSave("Saved Successfully!");
+      setSaveError("green");
     } catch (error) {
       console.error(error);
-      setSave("Error saving links.");
+      const msg = await apiErrorMessage(error, "Error saving links.");
+      setSave(msg);
       setSaveError("red");
     }
   };

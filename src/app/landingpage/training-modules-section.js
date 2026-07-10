@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { getFaviconUrl } from "../_lib/favicons"
+import { api } from "@/app/_lib/api-client"
 
 export default function TrainingModulesSection() {
   const [modules, setModules] = useState([])
@@ -18,11 +19,7 @@ export default function TrainingModulesSection() {
   useEffect(() => {
     async function fetchModules() {
       try {
-        const response = await fetch("/api/modules")
-        if (!response.ok) {
-          throw new Error("Failed to fetch modules")
-        }
-        const data = await response.json()
+        const data = await api.get("/api/modules").json()
 
         // Map API data to component format
         const formattedModules = data.map((module) => ({
