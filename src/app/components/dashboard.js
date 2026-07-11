@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "@/app/components/AuthProvider"
+import { api } from "@/app/_lib/api-client"
 import { 
   Trophy, 
   Zap, 
@@ -46,16 +47,11 @@ export default function Dashboard() {
     
     try {
       // Batch all API calls together
-      const [modulesResponse, progressResponse, contentCountsResponse] = await Promise.all([
-        fetch("/api/modules"),
+      const [modulesData, progressResponse, contentCountsResponse] = await Promise.all([
+        api.get("/api/modules").json(),
         fetch(`/api/progress?userId=${user.uid}`),
-        fetch("/api/module-content-counts") // Get all counts in one call
+        fetch("/api/module-content-counts")
       ])
-      
-      if (!modulesResponse.ok) {
-        throw new Error("Failed to fetch modules")
-      }
-      const modulesData = await modulesResponse.json()
       
       let progressData = []
       if (progressResponse && progressResponse.ok) {
@@ -238,8 +234,7 @@ export default function Dashboard() {
       const data = await response.json()
 
       if (data.success) {
-        // Open the default email client (Outlook, Gmail, etc.) with pre-filled email
-        window.location.href = data.mailtoUrl
+        
         setSubmitStatus("success")
         setMessage("")
         setSelectedModule("")

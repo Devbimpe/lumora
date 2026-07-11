@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/app/components/AuthProvider";
+import { api } from "@/app/_lib/api-client";
 
 
 export default function FeedbackPage() {
@@ -23,29 +24,18 @@ export default function FeedbackPage() {
 
     const fetchFeedback = async () => {
       try {
-        const token = await user.account.getIdToken();
-
-        const res = await fetch('/api/admin/feedback', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Failed to fetch feedback: ${res.status} ${errorText}`);
-        }
-
-        const data = await res.json();
+        const data = await api.get('/api/admin/feedback').json();
 
         if (isMounted) {
           setFeedback(data.feedback || []);
         }
-      } catch (err) {
+      } 
+      catch (err) {
         if (isMounted) {
           console.error("Error fetching feedback:", err);
         }
-      } finally {
+      } 
+      finally {
         if (isMounted) {
           setLoading(false);
         }

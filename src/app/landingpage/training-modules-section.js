@@ -1,12 +1,8 @@
 "use client"
 
-import Link from "next/link"
-import { useState, useEffect } from "react"
-import { getFaviconUrl } from "../_lib/favicons"
 
 export default function TrainingModulesSection() {
-  const [modules, setModules] = useState([])
-  const [loading, setLoading] = useState(true)
+ 
 
   const learningPoints = [
     "Social sustainability in software development",
@@ -15,34 +11,6 @@ export default function TrainingModulesSection() {
     "Handling algorithmic bias and inclusive design challenges",
   ]
 
-  useEffect(() => {
-    async function fetchModules() {
-      try {
-        const response = await fetch("/api/modules")
-        if (!response.ok) {
-          throw new Error("Failed to fetch modules")
-        }
-        const data = await response.json()
-
-        // Map API data to component format
-        const formattedModules = data.map((module) => ({
-          id: module.ModuleID,
-          title: module.Heading,
-          description: module.Subheading || "",
-          image: module.faviconURL
-        }))
-
-        setModules(formattedModules)
-      } catch (error) {
-        console.error("Error fetching modules:", error)
-        setModules([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchModules()
-  }, [])
 
   return (
     <section id="training-modules" className="py-20 bg-white">
@@ -70,47 +38,6 @@ export default function TrainingModulesSection() {
             </div>
           ))}
         </div>
-
-        {loading ? (
-          <div className="text-center py-8 text-gray-600">
-            Loading modules...
-          </div>
-        ) : modules.length === 0 ? (
-          <div className="text-center py-8 text-gray-600">
-            No modules available
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
-            {modules.slice(0, 5).map((module) => (
-              <Link key={module.id} href={`/modules/module${module.id}`} className="block h-full">
-                <div
-                  className="rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-green-100 h-full min-h-[280px] flex flex-col"
-                  style={{ backgroundColor: "#eafcf1" }}
-                >
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 overflow-hidden bg-white border-2" style={{ borderColor: "#15803D" }}>
-                    <img
-                      src={module.image || "/placeholder.svg"}
-                      alt={module.title}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </div>
-                  <h3 className="text-lg font-bold mb-2" style={{ color: "#15803D" }}>{module.title}</h3>
-                  <p
-                    className="text-gray-600 text-sm leading-relaxed flex-1"
-                    style={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden"
-                    }}
-                  >
-                    {module.description}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
       </div>
     </section>
   )
