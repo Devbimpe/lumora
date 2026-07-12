@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/components/AuthProvider';
+import { FiHome, FiUsers, FiBookOpen, FiBarChart2, FiMessageSquare } from 'react-icons/fi';
 import { api } from '@/app/_lib/api-client';
 
 export default function Sidebar() {
@@ -128,11 +129,11 @@ export default function Sidebar() {
 
   // ─── DEFAULT ADMIN SIDEBAR SECTIONS ───
   const sections = [
-    { id: 'dashboard', label: 'Dashboard', path: '/admin' },
-    { id: 'user-management', label: 'User Management', path: '/admin/user-management' },
-    { id: 'feedback', label: 'Feedback', path: '/admin/feedback' },
-    { id: 'progress', label: 'Module Progress', path: '/admin/module-progress' },
-    { id: 'management', label: 'Module Management', path: '/admin/module-management' },
+    { id: 'dashboard', label: 'Dashboard', path: '/admin', icon: <FiHome/> },
+    { id: 'user-management', label: 'Users', path: '/admin/user-management', icon: <FiUsers/> },
+    { id: 'management', label: 'Module Management', path: '/admin/module-management', icon: <FiBookOpen/>},
+    { id: 'progress', label: 'Progress', path: '/admin/module-progress', icon: <FiBarChart2/> },
+    { id: 'feedback', label: 'Feedback', path: '/admin/feedback', icon: <FiMessageSquare/> },
     { id: 'training-module', label: 'Training Module', path: '/training-module' },
   ];
 
@@ -169,7 +170,7 @@ export default function Sidebar() {
     return (
       <>
         {/* Mobile Header */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm bg-white">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3 min-w-0">
               <button
@@ -308,7 +309,7 @@ export default function Sidebar() {
         </div>
 
         {/* Desktop Content Sidebar */}
-        <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+        <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm bg-white">
           {/* Header */}
           <div className="p-4 border-b border-gray-200">
             <Link
@@ -449,7 +450,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm bg-white">
         <div className="flex items-center justify-between p-4">
           <Link href="/" className="flex items-center">
             <Image
@@ -483,11 +484,13 @@ export default function Sidebar() {
                   key={section.id}
                   href={section.path}
                   onClick={closeMobileMenu}
-                  className={`block text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200 ${activeSection === section.id
-                    ? 'bg-green-50 text-green-700 border-l-3 border-green-600'
-                    : 'text-gray-700 hover:bg-gray-50'
+                  className={`flex items-center gap-3 text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200
+                    ${activeSection === section.id
+                      ? 'bg-green-50 text-green-700 border-l-4 border-green-600'
+                      : 'text-gray-700 hover:bg-gray-50'
                     }`}
                 >
+                  <span className="text-gray-600">{section.icon}</span>
                   {section.label}
                 </Link>
               ))}
@@ -508,7 +511,8 @@ export default function Sidebar() {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+      <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm bg-white">
+        
         {/* Logo Section */}
         <div className="p-6 border-b border-gray-200">
           <Link href="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
@@ -528,11 +532,17 @@ export default function Sidebar() {
             <Link
               key={section.id}
               href={section.path}
-              className={`block text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200 ${activeSection === section.id
-                ? 'bg-green-50 text-green-700 border-l-3 border-green-600'
-                : 'text-gray-700 hover:bg-gray-50'
+              className={`flex items-center gap-3 text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200
+                ${activeSection === section.id
+                  ? 'bg-green-50 text-green-700 border-l-4 border-green-600'
+                  : 'text-gray-700 hover:bg-white/60'
                 }`}
             >
+              {/* Icon */}
+              <span className="text-gray-600">
+                {section.icon}
+              </span>
+
               {section.label}
             </Link>
           ))}
