@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { api, apiErrorMessage } from "@/app/_lib/api-client";
 
 export default function Demograhics({ userId }) {
   // Local state for demographic fields
@@ -17,17 +18,16 @@ export default function Demograhics({ userId }) {
     async function loadData() {
       if (!userId) return;
 
-      const res = await fetch(`/api/user-profile-demographics?userId=${userId}`);
-      if (!res.ok) return;
+      try {
+        const data = await api.get("/api/user-profile-demographics", { searchParams: { userId } }).json();
+        const demographics = data.user.demographics || {};
 
-      const data = await res.json();
-      const demographics = data.user.demographics || {};
-
-      setAge(demographics.age || "");
-      setLocation(demographics.location || "");
-      setJobStatus(demographics.jobStatus);
-      setJobTitle(demographics.jobTitle || "");
-      setEducation(demographics.education || "");
+        setAge(demographics.age || "");
+        setLocation(demographics.location || "");
+        setJobStatus(demographics.jobStatus);
+        setJobTitle(demographics.jobTitle || "");
+        setEducation(demographics.education || "");
+      } catch { /* ignore load errors */ }
     }
 
     loadData();
@@ -42,31 +42,22 @@ export default function Demograhics({ userId }) {
     }
 
     try {
-      const res = await fetch("/api/user-profile-demographics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await api.post("/api/user-profile-demographics", {
+        json: {
           userId,
           age,
           location,
           jobStatus,
           jobTitle,
           education,
-        }),
+        },
       });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setSave("Saved Successfully!");
-        setSaveError("green");
-      } else {
-        setSave(`Error: ${data.error}`);
-        setSaveError("red");
-      }
+      setSave("Saved Successfully!");
+      setSaveError("green");
     } catch (error) {
       console.error(error);
-      setSave("Error saving demograhic information.");
+      const msg = await apiErrorMessage(error, "Error saving demographic information.");
+      setSave(msg);
       setSaveError("red");
     }
   };

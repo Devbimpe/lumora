@@ -47,21 +47,19 @@ export default function Dashboard() {
     
     try {
       // Batch all API calls together
-      const [modulesData, progressResponse, contentCountsResponse] = await Promise.all([
+      const [modulesResult, progressResult, contentCountsResult] = await Promise.allSettled([
         api.get("/api/modules").json(),
-        fetch(`/api/progress?userId=${user.uid}`),
-        fetch("/api/module-content-counts")
+        api.get("/api/progress", { searchParams: { userId: user.uid } }).json(),
+        api.get("/api/module-content-counts").json(),
       ])
-      
-      let progressData = []
-      if (progressResponse && progressResponse.ok) {
-        progressData = await progressResponse.json()
+
+      if (modulesResult.status !== 'fulfilled') {
+        throw new Error("Failed to fetch modules")
       }
-      
-      let contentCounts = {}
-      if (contentCountsResponse && contentCountsResponse.ok) {
-        contentCounts = await contentCountsResponse.json()
-      }
+      const modulesData = modulesResult.value
+
+      const progressData = progressResult.status === 'fulfilled' ? progressResult.value : []
+      const contentCounts = contentCountsResult.status === 'fulfilled' ? contentCountsResult.value : {}
       
       // Create a map of module progress for quick lookup
       const progressMap = {}
@@ -219,19 +217,12 @@ export default function Dashboard() {
 
       const token = await user.account.getIdToken();
       
-      const response = await fetch("/api/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const data = await api.post("/api/feedback", {
+        json: {
           message: message.trim(),
           type: feedbackType
-        })
-      })
-
-      const data = await response.json()
+        }
+      }).json()
 
       if (data.success) {
         

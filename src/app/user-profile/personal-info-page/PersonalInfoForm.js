@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { api, apiErrorMessage } from "@/app/_lib/api-client";
 
 export default function PersonalInfo({ userId, personalInfo: personalInfo, onSaved }) {
   // Form fields
@@ -23,24 +24,23 @@ export default function PersonalInfo({ userId, personalInfo: personalInfo, onSav
     async function loadData() {
       if (!userId) return;
 
-      const res = await fetch(`/api/user-profile-personal-info?userId=${userId}`);
-      if (!res.ok) return;
+      try {
+        const data = await api.get("/api/user-profile-personal-info", { searchParams: { userId } }).json();
+        const personalInfo = data.user.personalInfo || {};
 
-      const data = await res.json();
-      const personalInfo = data.user.personalInfo || {};
+        setFullName(data.user.name || "");
+        setUsername(data.user.username || "");
+        setEmail(data.user.email || personalInfo.email || "");
+        setPronouns(personalInfo.pronouns || "");
+        setHeadline(personalInfo.headline || "");
+        setBio(personalInfo.bio || "");
 
-      setFullName(data.user.name || "");
-      setUsername(data.user.username || "");
-      setEmail(data.user.email || personalInfo.email || "");
-      setPronouns(personalInfo.pronouns || "");
-      setHeadline(personalInfo.headline || "");
-      setBio(personalInfo.bio || "");
-
-      // Handle custom pronouns if not in options
-      if (personalInfo.pronouns && !PRONOUN_OPTIONS.includes(personalInfo.pronouns)) {
-        setPronouns("Other");
-        setCustomPronouns(personalInfo.pronouns);
-      }
+        // Handle custom pronouns if not in options
+        if (personalInfo.pronouns && !PRONOUN_OPTIONS.includes(personalInfo.pronouns)) {
+          setPronouns("Other");
+          setCustomPronouns(personalInfo.pronouns);
+        }
+      } catch { /* ignore load errors */ }
     }
 
     loadData();
@@ -63,10 +63,8 @@ export default function PersonalInfo({ userId, personalInfo: personalInfo, onSav
     }
 
     try {
-      const res = await fetch("/api/user-profile-personal-info", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await api.post("/api/user-profile-personal-info", {
+        json: {
           userId,
           fullName,
           userName,
@@ -74,32 +72,26 @@ export default function PersonalInfo({ userId, personalInfo: personalInfo, onSav
           pronouns: pronounsToSave,
           headline,
           bio,
-        }),
+        },
       });
 
-      const data = await res.json();
+      setSave("Saved Successfully!");
+      setSaveError("green");
 
-      if (res.ok) {
-        setSave("Saved Successfully!");
-        setSaveError("green");
-
-        // Trigger callback after successful save
-        if (onSaved) {
-          onSaved({
-            name: fullName,
-            username: userName,
-            email,
-            pronouns: pronounsToSave,
-            headline,
-            bio,
-          });
-        }
-      } else {
-        setSave(`Error: ${data.error}`);
-        setSaveError("red");
+      // Trigger callback after successful save
+      if (onSaved) {
+        onSaved({
+          name: fullName,
+          username: userName,
+          email,
+          pronouns: pronounsToSave,
+          headline,
+          bio,
+        });
       }
     } catch (error) {
-      setSave("Error saving personal information.");
+      const msg = await apiErrorMessage(error, "Error saving personal information.");
+      setSave(msg);
       setSaveError("red");
     }
   };

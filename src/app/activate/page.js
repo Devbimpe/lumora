@@ -1,6 +1,7 @@
 'use client';
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { api, apiErrorMessage } from '@/app/_lib/api-client';
 
 function ActivateContent() {
   const router = useRouter();
@@ -13,17 +14,16 @@ function ActivateContent() {
       setMessage('Invalid activation link.');
       return;
     }
-    fetch(`/api/activate?token=${token}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          setMessage(data.error);
-        } else {
-          setMessage('Account activated! Redirecting...');
-          setTimeout(() => {
-            router.push('/login'); 
-          }, 2000);
-        }
+    api.get('/api/activate', { searchParams: { token } }).json()
+      .then(() => {
+        setMessage('Account activated! Redirecting...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      })
+      .catch(async (err) => {
+        const msg = await apiErrorMessage(err, 'Activation failed.');
+        setMessage(msg);
       });
   }, [router, searchParams]);
 
