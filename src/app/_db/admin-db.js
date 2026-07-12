@@ -415,15 +415,28 @@ export async function deleteModule(moduleId) {
   }
 
   // Renumber remaining modules so there are no gaps
-  await reindexModules();
+  await reindexModules(moduleId);
 }
 
 /**
  * Renumber modules to remove gaps after deletion
  * Example: If modules are 1, 3, 4 -> becomes 1, 2, 3
  */
-async function reindexModules() {
-  throw new Error("to be reworked")
+async function reindexModules(moduleId) {
+  let deletedMod = moduleId
+  const batch = db.batch();
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const snapshot = await modulesRef.orderBy("moduleId").get();
+
+  snapshot.forEach(doc => {
+    let docId = doc.data().moduleId;
+    if(docId > deletedMod){
+      docId--;
+      batch.update(doc.ref, { moduleId: docId });
+    }
+  });
+
+  await batch.commit();
 }
 
 /**
@@ -437,7 +450,24 @@ async function reindexModules() {
  * content, and knowledge checks in one batch.
  */
 export async function reorderModules(newOrder) {
-  throw new Error("to be reworked")
+  let count = 1;
+  const batch = db.batch();
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+
+  for (const order of newOrder){
+    const q = modulesRef.where('moduleId', '==', parseInt(order));
+    const querySnapshot = await q.get();
+
+    if (querySnapshot.empty) {
+      throw new Error('Module not found');
+    }
+
+    const moduleDoc = querySnapshot.docs[0];
+    batch.update(moduleDoc.ref, { moduleId: count });
+    count++;
+  }
+  await batch.commit();
+
 }
 
 /**
