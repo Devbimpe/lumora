@@ -35,7 +35,7 @@ export default function ErrorBoundary({ error, reset }) {
         </button>
 
         <Link
-          href="/landingpage"
+          href="/"
           className="inline-flex items-center justify-center rounded-lg border border-border px-6 py-3 text-sm sm:text-base font-medium text-foreground transition-colors hover:bg-muted"
         >
           Return Home
