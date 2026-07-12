@@ -214,6 +214,8 @@ export default function Dashboard() {
     try {
       // Convert "general" to "General", otherwise use the module ID as-is
       const feedbackType = selectedModule === "general" ? "General" : selectedModule
+
+      const token = await user.account.getIdToken();
       
       const data = await api.post("/api/feedback", {
         json: {
@@ -223,8 +225,7 @@ export default function Dashboard() {
       }).json()
 
       if (data.success) {
-        // Open the default email client (Outlook, Gmail, etc.) with pre-filled email
-        window.location.href = data.mailtoUrl
+        
         setSubmitStatus("success")
         setMessage("")
         setSelectedModule("")
