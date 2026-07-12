@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { api, apiErrorMessage } from '@/app/_lib/api-client';
 
 function isValidHttpUrl(value) {
   try {
@@ -98,11 +99,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
       const formData = new FormData();
       formData.append('file', imageFile);
 
-      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.details || data.error || 'Upload failed');
-      }
+      const data = await api.post('/api/admin/upload-image', { body: formData }).json();
 
       setUploadedImageURL(data.url);
       setImageSrc(data.url);
@@ -110,7 +107,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
       setIsUploadedAsset(true);
       onClearReading?.();
     } catch (err) {
-      onError(`Image upload failed: ${err.message}`);
+      onError(await apiErrorMessage(err, 'Image upload failed.'));
     } finally {
       setUploadingImage(false);
     }
@@ -128,17 +125,13 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
 
     try {
       setUploadingImage(true);
-      const res = await fetch(`/api/admin/upload-image?imageUrl=${encodeURIComponent(uploadedImageURL)}`, {
-        method: 'DELETE',
+      await api.delete('/api/admin/upload-image', {
+        searchParams: { imageUrl: uploadedImageURL }
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.details || data.error || 'Delete failed');
-      }
 
       resetImageState();
     } catch (err) {
-      onError(`Image delete failed: ${err.message}`);
+      onError(await apiErrorMessage(err, 'Image delete failed.'));
     } finally {
       setUploadingImage(false);
     }
@@ -156,24 +149,17 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
 
     try {
       setIsSubmitting(true);
-      const res = await fetch('/api/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await api.post('/api/content', {
+        json: {
           moduleId: selectedModule,
           overview: newOverview,
           reading: newReading,
           imageURL: uploadedImageURL || null,
           imageDescription: uploadedImageURL ? imageDescription : null,
-        }),
+        },
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to create content');
-      }
-
-      const updatedContent = await fetch(`/api/content?moduleId=${selectedModule}`);
-      const data = await updatedContent.json();
+      const data = await api.get('/api/content', { searchParams: { moduleId: selectedModule } }).json();
       onCreated(data);
 
       setNewOverview('');

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthProvider";
+import { api } from "@/app/_lib/api-client";
 
 const Module = ({ title, subtitle, bgColor, borderColor, href, icon }) => (
   <Link href={href} passHref className="h-full block">
@@ -44,11 +45,7 @@ const TrainingModule = () => {
   useEffect(() => {
     async function fetchModules() {
       try {
-        const response = await fetch("/api/modules");
-        if (!response.ok) {
-          throw new Error("Failed to fetch modules");
-        }
-        const data = await response.json();
+        const data = await api.get("/api/modules").json();
         
         // FILTER: Only keep modules where published is true
         // We filter BEFORE mapping so the index (used for bgColor) stays consistent (Green, Orange, Green...)

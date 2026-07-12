@@ -1,59 +1,4 @@
-// Helper function to parse choices into array of options
-// Handles both array of strings and single string format
-export function parseChoices(choices) {
-  if (!choices) return [];
-
-  // If choices is already an array of strings
-  if (Array.isArray(choices)) {
-    return choices.map((choice, index) => {
-      // Try to extract letter and text from string like "A: text" or "A. text"
-      const match = choice.match(/^([A-D])[\.:]\s*(.+)/);
-      if (match) {
-        return {
-          letter: match[1],
-          text: match[2].trim()
-        };
-      }
-      // Fallback: use index as letter (A=0, B=1, etc.)
-      return {
-        letter: String.fromCharCode(65 + index), // 65 is 'A'
-        text: choice.trim()
-      };
-    }).sort((a, b) => a.letter.localeCompare(b.letter));
-  }
-
-  // If choices is a string, parse it (backward compatibility)
-  const choicesString = choices;
-  const regex = /([A-D]):\s*"([^"]+)"/g;
-  const options = [];
-  let match;
-
-  while ((match = regex.exec(choicesString)) !== null) {
-    options.push({
-      letter: match[1],
-      text: match[2]
-    });
-  }
-
-  // If regex didn't work, try simpler split
-  if (options.length === 0) {
-    const parts = choicesString.split(/(?=[A-D]\.\s)/g);
-    parts.forEach(part => {
-      const trimmed = part.trim();
-      if (trimmed) {
-        const letterMatch = trimmed.match(/^([A-D])[\.:]\s*(.+)/);
-        if (letterMatch) {
-          options.push({
-            letter: letterMatch[1],
-            text: letterMatch[2].trim()
-          });
-        }
-      }
-    });
-  }
-
-  return options.sort((a, b) => a.letter.localeCompare(b.letter));
-}
+/** @import { KnowledgeCheck } from '@/app/_db/common' */
 
 // If the API ever returned raw JSON as feedback (e.g. after parse failure), show only the message text
 export function normalizeGradeFeedback(grade, feedback) {
@@ -68,8 +13,37 @@ export function normalizeGradeFeedback(grade, feedback) {
   return { grade, feedback };
 }
 
-/** First item in module order that is not done per saved progress (resume). */
-export function findFirstIncompleteItem(items, viewedSet, completedSet, submissions) {
+/**
+ * Open-ended KC counts as done if submitted in the current session, a saved attempt
+ * exists in progress, or progress marks the KC complete.
+ */
+export function isOpenEndedKCComplete(submissions, completedSet, selectedAnswers, knowledgeCheckId) {
+  if (selectedAnswers[knowledgeCheckId] === '__submitted__') return true;
+  if (completedSet.has(`kc-${knowledgeCheckId}`) || completedSet.has(String(knowledgeCheckId))) return true;
+  const sub = submissions?.[knowledgeCheckId] ?? submissions?.[String(knowledgeCheckId)];
+  return !!(sub && typeof sub === 'object');
+}
+
+/**
+ * Whether a KC is complete, combining persisted progress and current session state.
+ *
+ * `item` is the student-side KC view model: `{ knowledgeCheckId, kcType, correctAnswer }`.
+ * For MC, once a KC is marked complete (persisted or correct in-session), it stays
+ * complete even if the user later picks a wrong answer.
+ */
+export function isKnowledgeCheckComplete(item, ctx = {}) {
+  const { selectedAnswers = {}, completedSet = new Set(), submissions = {} } = ctx;
+  const id = item.knowledgeCheckId;
+  if (item.kcType === 'open-ended') {
+    return isOpenEndedKCComplete(submissions, completedSet, selectedAnswers, id);
+  }
+  if (completedSet.has(`kc-${id}`) || completedSet.has(String(id))) return true;
+  const ans = selectedAnswers[id];
+  return ans !== undefined && ans === item.correctAnswer;
+}
+
+/** First item in module order that is not done per saved progress + current session (resume). */
+export function findFirstIncompleteItem(items, viewedSet, completedSet, submissions, selectedAnswers = {}) {
   for (const item of items) {
     if (item.type === 'content') {
       if (item.contentId == null || !viewedSet.has(String(item.contentId))) {
@@ -78,25 +52,9 @@ export function findFirstIncompleteItem(items, viewedSet, completedSet, submissi
       continue;
     }
     if (item.type === 'knowledgeCheck') {
-      const id = item.knowledgeCheckId;
-      if (completedSet.has(`kc-${id}`) || completedSet.has(String(id))) {
-        continue;
-      }
-      const isDescriptive = !item.choices || item.choices.length === 0;
-      if (isDescriptive) {
-        const sub = submissions?.[id] ?? submissions?.[String(id)];
-        if (sub && typeof sub === 'object') continue;
-      }
+      if (isKnowledgeCheckComplete(item, { selectedAnswers, completedSet, submissions })) continue;
       return item;
     }
   }
   return null;
-}
-
-/** Descriptive KC counts as done for navigation / module complete if submitted in session, saved attempt exists, or progress marks kc complete. */
-export function isDescriptiveKCComplete(submissions, completedSet, selectedAnswers, knowledgeCheckId) {
-  if (selectedAnswers[knowledgeCheckId] === '__submitted__') return true;
-  if (completedSet.has(`kc-${knowledgeCheckId}`) || completedSet.has(String(knowledgeCheckId))) return true;
-  const sub = submissions?.[knowledgeCheckId] ?? submissions?.[String(knowledgeCheckId)];
-  return !!(sub && typeof sub === 'object');
 }

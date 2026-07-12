@@ -1,4 +1,4 @@
-import { Code, Users, GraduationCap, Lightbulb } from "lucide-react" 
+import { Code, Users, GraduationCap, Lightbulb } from "lucide-react"
 import Link from "next/link"
 
 export default function WhoIsThisForSection() {
@@ -26,35 +26,37 @@ export default function WhoIsThisForSection() {
   ]
 
   return (
-    <section className="py-10 relative overflow-hidden" style={{ 
-      backgroundColor: "#dbfbe9"
-    }}>
-      {/* Decorative background elements */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-green-100 rounded-full opacity-20 blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-100 rounded-full opacity-20 blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-      
-      <div className="max-w-6xl mx-auto px-4 relative z-10">
+    <section className="py-16 bg-white">
+      <div className="max-w-6xl mx-auto px-4">
         <h2
-          className="text-5xl font-bold text-center text-green-700 mb-16"
+          className="text-5xl font-bold text-center mb-16"
           style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: "bold", textAlign: "center", color: "#16803D", marginBottom: "4rem" }}
         >
           Who is this for?
         </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+         <div className="rounded-2xl overflow-hidden mb-12 shadow-md">
+          <img
+            src="/working3.jpg"
+            alt="Team collaborating"
+            className="w-full h-64 sm:h-80 object-cover"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {audience.map((item, index) => (
             <Link key={index} href="/training-module">
-            <div className="bg-white rounded-2xl p-5 text-center shadow-lg hover:shadow-xl hover:border-green-400 hover:scale-105 transition-all duration-300 border border-green-100">
+              <div className="group bg-white rounded-2xl p-6 text-center border border-gray-200 hover:shadow-md hover:border-green-300 transition-all duration-300 h-full">
 
-              {/* Icon container */}
-              <div className="w-14 h-14 border-2 border-green-700 group-hover:border-green-500 group-hover:bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-orange-50 to-green-50 transition-all duration-300">
-                <item.icon className="w-7 h-7 text-green-700 group-hover:text-green-500 transition-colors duration-300" />
+                {/* Icon container */}
+                <div className="w-14 h-14 border-2 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300" style={{ borderColor: "#15803D" }}>
+                  <item.icon className="w-6 h-6 transition-colors duration-300" style={{ color: "#15803D" }} />
+                </div>
+
+                {/* Content */}
+                <h3 className="text-base font-bold transition-colors duration-300" style={{ color: "#15803D" }}>
+                  {item.title}
+                </h3>
               </div>
-              
-              {/* Content */}
-              <h3 className="text-lg font-bold text-green-700 group-hover:text-green-500 mb-2 transition-colors duration-300">{item.title}</h3>
-                <p className="text-gray-700 text-sm leading-relaxed">{item.description}</p>
-            </div>
             </Link>
           ))}
         </div>

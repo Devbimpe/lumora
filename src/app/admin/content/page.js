@@ -2,6 +2,7 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getFaviconUrl, getDefaultFaviconUrl } from '@/app/_lib/favicons';
+import { api, apiErrorMessage } from '@/app/_lib/api-client';
 
 import EditModule from '../components/EditModule';
 import NewContentPageForm from '../components/NewContentPageForm';
@@ -36,8 +37,7 @@ function ContentPageContent() {
 
   const fetchModules = async () => {
     try {
-      const res = await fetch('/api/admin/modules');
-      const data = await res.json();
+      const data = await api.get('/api/admin/modules').json();
       setModules(data);
       return data;
     } catch (err) {
@@ -146,8 +146,8 @@ function ContentPageContent() {
     setLoading(true);
 
     Promise.all([
-      fetch(`/api/content?moduleId=${selectedModule}`).then((response) => response.json()),
-      fetch(`/api/knowledge-checks?moduleId=${selectedModule}`).then((response) => response.json()),
+      api.get('/api/content', { searchParams: { moduleId: selectedModule } }).json(),
+      api.get('/api/knowledge-checks', { searchParams: { moduleId: selectedModule } }).json(),
     ])
       .then(([contentData, checksData]) => {
         if (!isMounted) {
@@ -182,25 +182,20 @@ function ContentPageContent() {
     try {
       const isNew = mode === 'new';
       setSubmitStatus(isNew ? 'Saving...' : 'Updating...');
-      const method = isNew ? 'POST' : 'PUT';
       const urlToSave = faviconURL?.trim() || (isNew ? getDefaultFaviconUrl() : getFaviconUrl('1'));
-      const body = isNew
-        ? JSON.stringify({ heading, subHeading, faviconURL: urlToSave })
-        : JSON.stringify({ id: selectedModule, heading, subHeading, faviconURL: urlToSave });
 
-      const response = await fetch('/api/admin/modules', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || (isNew ? 'Submission failed.' : 'Update failed.'));
+      let result;
+      if (isNew) {
+        result = await api.post('/api/admin/modules', {
+          json: { heading, subHeading, faviconURL: urlToSave }
+        }).json();
+      } else {
+        await api.put('/api/admin/modules', {
+          json: { id: selectedModule, heading, subHeading, faviconURL: urlToSave }
+        });
       }
 
       if (isNew) {
-        const result = await response.json();
         await fetchModules();
         if (result?.id != null) {
           router.push(`/admin/content?moduleId=${result.id}`);
@@ -224,7 +219,8 @@ function ContentPageContent() {
       setTimeout(() => setSubmitStatus(''), 3000);
     } catch (err) {
       console.error('Submit error:', err);
-      setSubmitStatus(err.message);
+      const msg = await apiErrorMessage(err, isNew ? 'Failed to create module.' : 'Failed to update module.');
+      setSubmitStatus(msg);
       setTimeout(() => setSubmitStatus(''), 3000);
     }
   };

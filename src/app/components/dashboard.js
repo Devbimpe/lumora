@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "@/app/components/AuthProvider"
+import { api } from "@/app/_lib/api-client"
 import { 
   Trophy, 
   Zap, 
@@ -46,26 +47,19 @@ export default function Dashboard() {
     
     try {
       // Batch all API calls together
-      const [modulesResponse, progressResponse, contentCountsResponse] = await Promise.all([
-        fetch("/api/modules"),
-        fetch(`/api/progress?userId=${user.uid}`),
-        fetch("/api/module-content-counts") // Get all counts in one call
+      const [modulesResult, progressResult, contentCountsResult] = await Promise.allSettled([
+        api.get("/api/modules").json(),
+        api.get("/api/progress", { searchParams: { userId: user.uid } }).json(),
+        api.get("/api/module-content-counts").json(),
       ])
-      
-      if (!modulesResponse.ok) {
+
+      if (modulesResult.status !== 'fulfilled') {
         throw new Error("Failed to fetch modules")
       }
-      const modulesData = await modulesResponse.json()
-      
-      let progressData = []
-      if (progressResponse && progressResponse.ok) {
-        progressData = await progressResponse.json()
-      }
-      
-      let contentCounts = {}
-      if (contentCountsResponse && contentCountsResponse.ok) {
-        contentCounts = await contentCountsResponse.json()
-      }
+      const modulesData = modulesResult.value
+
+      const progressData = progressResult.status === 'fulfilled' ? progressResult.value : []
+      const contentCounts = contentCountsResult.status === 'fulfilled' ? contentCountsResult.value : {}
       
       // Create a map of module progress for quick lookup
       const progressMap = {}
@@ -221,18 +215,12 @@ export default function Dashboard() {
       // Convert "general" to "General", otherwise use the module ID as-is
       const feedbackType = selectedModule === "general" ? "General" : selectedModule
       
-      const response = await fetch("/api/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const data = await api.post("/api/feedback", {
+        json: {
           message: message.trim(),
           type: feedbackType
-        })
-      })
-
-      const data = await response.json()
+        }
+      }).json()
 
       if (data.success) {
         // Open the default email client (Outlook, Gmail, etc.) with pre-filled email
