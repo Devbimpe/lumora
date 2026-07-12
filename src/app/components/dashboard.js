@@ -259,7 +259,7 @@ export default function Dashboard() {
   const isFormValid = selectedModule !== "" && message.trim() !== ""
 
   return (
-    <div className="min-h-screen py-4 sm:py-8 px-3 sm:px-4" style={{ backgroundColor: "#FFF8E1" }}>
+    <div className="min-h-screen py-4 sm:py-8 px-3 sm:px-4 bg-white">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-8">
         {/* Header Section */}
         <div className="relative">
@@ -345,14 +345,14 @@ export default function Dashboard() {
           {/* Status Cards with Fun Icons */}
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* Completed Card */}
-            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-lg p-2 sm:p-4 border-2 border-green-300 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
-                  <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            <div className="bg-white border border-green-200 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-inner">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">Completed</p>
-                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-gray-600 text-xs font-medium">Completed</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                     {completedCount}
                   </p>
                 </div>
@@ -360,14 +360,14 @@ export default function Dashboard() {
             </div>
 
             {/* In Progress Card */}
-            <div className="bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-lg p-2 sm:p-4 border-2 border-yellow-300 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse mb-1 sm:mb-0">
-                  <Zap className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            <div className="bg-white border border-yellow-200 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-yellow-500 flex items-center justify-center text-white shadow-inner">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">In Progress</p>
-                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-gray-600 text-xs font-medium">In Progress</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: "#16803D" }}> 
                     {inProgressCount}
                   </p>
                 </div>
@@ -375,14 +375,14 @@ export default function Dashboard() {
             </div>
 
             {/* Not Started Card */}
-            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-2 sm:p-4 border-2 border-orange-300 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
-                  <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            <div className="bg-white border border-orange-200 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-500 flex items-center justify-center text-white shadow-inner">
+                  <Target className="w-6 h-6 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">Not Started</p>
-                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-gray-600 sm:text-xs font-medium">Not Started</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                     {notCompletedCount}
                   </p>
                 </div>
