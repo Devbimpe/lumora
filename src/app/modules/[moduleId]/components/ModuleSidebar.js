@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { isKnowledgeCheckComplete } from '../utils';
 
 export default function ModuleSidebar({
   allItems,
@@ -9,6 +10,7 @@ export default function ModuleSidebar({
   moduleHeading,
   moduleSubheading,
   selectedAnswers = {},
+  savedKnowledgeCheckSubmissions = {},
   persistedCompletedContentSet = new Set(),
   persistedViewedContentSet = new Set(),
   sidebarOpen,
@@ -57,16 +59,11 @@ export default function ModuleSidebar({
             const isActive = currentItem?.id === item.id;
             const isCompleted =
               item.type === 'knowledgeCheck'
-                ? (
-                    (
-                      selectedAnswers[item.knowledgeCheckId] !== undefined &&
-                      ((!item.choices || item.choices.length === 0)
-                        ? selectedAnswers[item.knowledgeCheckId] === '__submitted__'
-                        : selectedAnswers[item.knowledgeCheckId] === item.answer)
-                    ) ||
-                    persistedCompletedContentSet.has(`kc-${item.knowledgeCheckId}`) ||
-                    persistedCompletedContentSet.has(String(item.knowledgeCheckId))
-                  )
+                ? isKnowledgeCheckComplete(item, {
+                    selectedAnswers,
+                    completedSet: persistedCompletedContentSet,
+                    submissions: savedKnowledgeCheckSubmissions,
+                  })
                 : item.type === 'content' &&
                     (index < currentIndex ||
                       (item.contentId != null &&

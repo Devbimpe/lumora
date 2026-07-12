@@ -35,7 +35,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
             <Image 
-              src="https://res.cloudinary.com/du6yiw4it/image/upload/v1772421438/Lumoralogo.jpg" 
+              src="/lumora.png" 
               alt="LumoraLogo" 
               width={180} 
               height={72} 
@@ -114,7 +114,7 @@ export function Header() {
             ) : (
               <Link 
                 href="/login" 
-                className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+                className="px-5 py-2 bg-green-600 hover:bg-green-700 hover:shadow-md hover:-translate-y-0.5 text-white font-medium rounded-lg transition-all duration-200 shadow-sm"
               >
                 Login
               </Link>

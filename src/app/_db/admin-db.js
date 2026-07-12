@@ -4,7 +4,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
 import { performMigration } from '@/app/_db/admin-db-migration';
 import { getAuth } from 'firebase-admin/auth';
-/** @import { UserDoc } from '@/app/_db/common' */
+/** @import { UserDoc, KnowledgeCheck } from '@/app/_db/common' */
 
 /** @typedef {UserDoc & { uid: string }} UserDocWithId */
 
@@ -614,30 +614,84 @@ export async function getKnowledgeChecksByModuleId(moduleId) {
 }
 
 /**
- * Create a new knowledge check for a module
+ * Get a single knowledge check by (moduleId, knowledgeCheckId).
+ * @returns {Promise<(KnowledgeCheck & { id: string }) | null>}
+ */
+export async function getKnowledgeCheck(knowledgeCheckId, moduleID) {
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = checksRef
+    .where('knowledgeCheckId', '==', parseInt(knowledgeCheckId))
+    .where('moduleID', '==', parseInt(moduleID));
+  const snapshot = await q.get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() };
+}
+
+/**
+ * Build a Firestore KC document for a given type.
+ * @param {KnowledgeCheck} fields
+ * @returns {KnowledgeCheck}
+ */
+function buildKnowledgeCheckDoc(fields) {
+  return /** @type {KnowledgeCheck} */ ({
+    knowledgeCheckId: fields.knowledgeCheckId,
+    moduleID: fields.moduleID,
+    contentId: fields.contentId ?? null,
+    type: fields.type,
+    question: fields.question,
+    createdAt: fields.createdAt,
+    ...(fields.type === 'multiple-choice'
+      ? {
+          choices: fields.choices || [],
+          correctAnswer: fields.correctAnswer ?? 0,
+          explanation: fields.explanation || '',
+        }
+      : {
+          rubric: fields.rubric || '',
+          gradingContext: fields.gradingContext || '',
+          aiGradingEnabled: !!fields.aiGradingEnabled,
+          explanation: fields.explanation || '',
+        }),
+  });
+}
+
+/**
+ * Create a new knowledge check for a module.
+ * @param {Omit<KnowledgeCheck, 'knowledgeCheckId' | 'createdAt' | 'updatedAt'>} data
+ * @returns {Promise<KnowledgeCheck & { id: string }>}
  */
 export async function createKnowledgeCheck(data) {
-  const { moduleID, contentId, question, choices, answer, explain, allowance } = data;
-
-  const existing = await getKnowledgeChecksByModuleId(moduleID);
-  const maxId = existing.reduce((max, c) => Math.max(max, c.knowledgeCheckId || 0), 0);
-
-  const newCheck = {
-    knowledgeCheckId: maxId + 1,
-    moduleID: parseInt(moduleID),
-    contentId: contentId ? parseInt(contentId) : null,
-    question,
-    choices,
-    answer,
-    explain: explain || '',
-    allowance: allowance || '',
-    createdAt: Timestamp.now()
-  };
-
+  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, rubric, gradingContext, aiGradingEnabled } = data;
+  const moduleIdNum = parseInt(moduleID);
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
-  const docRef = await checksRef.add(newCheck);
 
-  return { id: docRef.id, ...newCheck };
+  const { ref, newCheck } = await db.runTransaction(async (t) => {
+    // Query within the transaction so the max id we compute is consistent with the write.
+    const snap = await t.get(checksRef.where('moduleID', '==', moduleIdNum));
+    const maxId = snap.docs.reduce((max, d) => Math.max(max, d.data().knowledgeCheckId || 0), 0);
+    const ref = checksRef.doc();
+
+    const newCheck = buildKnowledgeCheckDoc({
+      knowledgeCheckId: maxId + 1,
+      moduleID: moduleIdNum,
+      contentId: contentId ? parseInt(contentId) : null,
+      type,
+      question,
+      explanation,
+      createdAt: Timestamp.now(),
+      choices,
+      correctAnswer,
+      rubric,
+      gradingContext,
+      aiGradingEnabled,
+    });
+
+    t.create(ref, newCheck);
+    return { ref, newCheck };
+  });
+
+  return { id: ref.id, ...newCheck };
 }
 
 /**
@@ -662,7 +716,10 @@ export async function deleteKnowledgeCheck(knowledgeCheckId, moduleID) {
 }
 
 /**
- * Update a knowledge check by its knowledgeCheckId and moduleID
+ * Update a knowledge check by its knowledgeCheckId and moduleID.
+ * @param {number} knowledgeCheckId
+ * @param {number} moduleID
+ * @param {Partial<Omit<KnowledgeCheck, 'knowledgeCheckId' | 'moduleID' | 'contentId' | 'createdAt' | 'updatedAt'>>} updates
  */
 export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) {
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
@@ -675,12 +732,28 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
     throw new Error('Knowledge check not found');
   }
 
-  const docRef = snapshot.docs[0].ref;
-  await docRef.update({
-    ...updates,
-    updatedAt: Timestamp.now()
+  const existing = snapshot.docs[0].data();
+  const type = updates.type;
+  if (type !== 'multiple-choice' && type !== 'open-ended') {
+    throw new Error('Invalid knowledge check type');
+  }
+
+  const doc = buildKnowledgeCheckDoc({
+    knowledgeCheckId: existing.knowledgeCheckId,
+    moduleID: existing.moduleID,
+    contentId: existing.contentId,
+    type,
+    question: updates.question,
+    explanation: updates.explanation,
+    createdAt: existing.createdAt,
+    choices: updates.choices,
+    correctAnswer: updates.correctAnswer,
+    rubric: updates.rubric,
+    gradingContext: updates.gradingContext,
+    aiGradingEnabled: updates.aiGradingEnabled,
   });
 
+  await snapshot.docs[0].ref.set({ ...doc, updatedAt: Timestamp.now() });
   return { updated: true };
 }
 
@@ -1056,7 +1129,9 @@ export async function markModuleCompleted(userId, moduleId) {
  * Save user answer and AI feedback for a knowledge check to module progress.
  * Overwrites any previous submission for the same contentId (reattempt).
  */
-export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { userAnswer, grade, feedback }) {
+export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
+  userAnswer, grade, feedback, maxGrade, model, graderReasoning, aiGradingEnabled,
+}) {
   const progress = await getUserModuleProgress(userId, moduleId);
   const existing = progress?.knowledgeCheckSubmissions || {};
   const contentIdStr = String(contentId);
@@ -1067,6 +1142,10 @@ export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { 
       userAnswer: userAnswer ?? '',
       grade: grade ?? null,
       feedback: feedback ?? '',
+      maxGrade: maxGrade ?? null,
+      model: model ?? null,
+      graderReasoning: graderReasoning ?? null,
+      aiGradingEnabled: aiGradingEnabled ?? null,
       updatedAt: Timestamp.now()
     }
   };
@@ -1107,39 +1186,3 @@ export async function getFeedbackByUserId(userId) {
     ...doc.data()
   }));
 }
-
-// For backward compatibility with existing code
-export default {
-  updateUser,
-  deleteUser,
-  getAllUsers,
-  getAllModules,
-  getAllPublishedModules,
-  getModuleById,
-  createModule,
-  updateModule,
-  deleteModule,
-  getContentByModuleId,
-  getContentById,
-  updateContent,
-  createContent,
-  deleteContent,
-  getKnowledgeChecksByContentId,
-  getKnowledgeChecksByModuleId,
-  getModuleWithContent,
-  createStudentSubmission,
-  getSubmissionsByStudentId,
-  getAllModuleProgressWithUsers,
-  getAllFeedbackWithUsers,
-  createFeedback,
-  getFeedbackByUserId,
-  getUserProgress,
-  getUserModuleProgress,
-  updateUserModuleProgress,
-  resetUserModuleProgress,
-  markContentViewed,
-  markContentCompleted,
-  updateModulePublished,
-  markModuleCompleted,
-  saveKnowledgeCheckFeedback
-};

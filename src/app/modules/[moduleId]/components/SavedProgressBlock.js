@@ -1,13 +1,15 @@
 'use client';
 
 import AIFeedbackCard from './AIFeedbackCard';
+import ExplanationCard from './ExplanationCard';
 import { normalizeGradeFeedback } from '../utils';
 
-export default function SavedProgressBlock({ savedSubmission }) {
+export default function SavedProgressBlock({ savedSubmission, explanation, aiGradingEnabled }) {
   if (!savedSubmission) return null;
   const { userAnswer, grade, feedback } = savedSubmission;
   const { grade: g, feedback: f } = normalizeGradeFeedback(grade, feedback);
-  const hasFeedback = f != null || g != null;
+  const isNonGraded = savedSubmission?.aiGradingEnabled === false;
+  const hasFeedback = !isNonGraded && (f != null || g != null);
 
   return (
     <>
@@ -29,6 +31,9 @@ export default function SavedProgressBlock({ savedSubmission }) {
           feedback={feedback}
           variant="previous"
         />
+      )}
+      {isNonGraded && explanation && (
+        <ExplanationCard explanation={explanation} />
       )}
       <p className="text-xs text-gray-500 mt-3 sm:mt-4">Submit a new answer below to overwrite this saved attempt.</p>
     </>

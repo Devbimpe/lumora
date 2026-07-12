@@ -1,56 +1,51 @@
 import { NextResponse } from 'next/server';
-import { gradeKnowledgeCheck } from '@/ai/groq.js';
-import { defineUserRoute, internalServerError } from '@/app/_lib/route';
+import { gradeOpenEndedAnswer } from '@/app/_lib/ai/ai-grading.js';
+import { getKnowledgeCheck } from '@/app/_db/admin-db.js';
+import { defineUserRoute, badRequestError, internalServerError } from '@/app/_lib/route';
 
-// POST /api/grade-knowledge-check — body: { "question", "userAnswer", "sampleAnswer?", "explanation?" }
+// POST /api/grade-knowledge-check
 export const POST = defineUserRoute(async (req) => {
   try {
-    const { question, userAnswer, sampleAnswer, explanation } = await req.json();
-    if (!question || !userAnswer) {
-      return NextResponse.json(
-        { error: 'Missing question or userAnswer' },
-        { status: 400 }
-      );
+    const { moduleID, knowledgeCheckId, userAnswer } = await req.json();
+    if (!moduleID || !knowledgeCheckId) {
+      return badRequestError('moduleID and knowledgeCheckId are required');
     }
-    const completion = await gradeKnowledgeCheck(
-      question,
-      userAnswer,
-      sampleAnswer ?? '',
-      explanation ?? ''
-    );
-    let text = (completion.choices[0]?.message?.content ?? '').trim();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) text = jsonMatch[0];
+    if (!userAnswer || !String(userAnswer).trim()) {
+      return badRequestError('userAnswer is required');
+    }
 
-    // Parse LLM response as JSON (expected: {"Grade": ..., "Feedback": "..."})
-    let grade, feedback;
-    try {
-      // Try to fix common LLM JSON issues (trailing comma, etc.)
-      const normalized = text.replace(/,(\s*[}\]])/g, '$1');
-      const parsed = JSON.parse(normalized);
-      const raw = parsed.Grade;
-      const num = raw != null ? Math.round(Number(raw)) : NaN;
-      grade = Number.isNaN(num) || num < 0 || num > 100 ? null : num;
-      feedback = parsed.Feedback != null ? String(parsed.Feedback) : '';
-    } catch {
-      // If parse fails, try to extract Grade and Feedback from the raw text so we never surface raw JSON to the UI
-      const gradeMatch = text.match(/"Grade"\s*:\s*(\d+)/);
-      const feedbackMatch = text.match(/"Feedback"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      grade = gradeMatch ? Math.min(100, Math.max(0, parseInt(gradeMatch[1], 10))) : null;
-      feedback = feedbackMatch ? feedbackMatch[1].replace(/\\(.)/g, '$1') : text;
+    const kc = await getKnowledgeCheck(knowledgeCheckId, moduleID);
+    if (!kc) {
+      return badRequestError('Knowledge check not found');
     }
-    return NextResponse.json({ Grade: grade, Feedback: feedback });
+    if (kc.type !== 'open-ended') {
+      return badRequestError('Only open-ended knowledge checks can be AI-graded');
+    }
+    if (!kc.aiGradingEnabled) {
+      return badRequestError('AI grading is disabled for this knowledge check');
+    }
+
+    const result = await gradeOpenEndedAnswer({
+      scenario: kc.gradingContext || '',
+      question: kc.question,
+      rubric: kc.rubric,
+      maxGrade: 3, // fixed for now; authoring surface added later
+      userAnswer: String(userAnswer),
+    });
+
+    if (result.reasoning) {
+      // Debug/audit trace; not surfaced to the participant.
+      console.log('[ai-grading] reasoning', { moduleID, knowledgeCheckId, model: result.model, reasoning: result.reasoning });
+    }
+
+    return NextResponse.json({
+      score: result.score,
+      feedback: result.feedback,
+      maxGrade: 3,
+      model: result.model,
+    });
   } catch (error) {
     console.error('grade-knowledge-check error:', error);
-    const status = error?.status === 429 || error?.statusCode === 429 || /rate limit/i.test(error?.message ?? '')
-      ? 429
-      : 500;
-    const message = status === 429
-      ? 'Groq API rate limit exceeded. Wait a minute or check your plan at console.groq.com.'
-      : (error.message || 'Groq request failed');
-    return NextResponse.json(
-      { error: message },
-      { status }
-    );
+    return internalServerError('Grading failed. Please try again.');
   }
 });

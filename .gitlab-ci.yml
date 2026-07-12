@@ -2,42 +2,63 @@ stages:
   - deploy
 
 variables:
-  # Adding this saves Vercel CLI telemetry
   VERCEL_TELEMETRY_DISABLED: 1
 
+before_script:
+  # 1. Clear out any lingering university server environment variables
+  - unset NPM_CONFIG_PREFIX
+  
+  # 2. Install NVM (Node Version Manager) on the fly
+  - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+  - export NVM_DIR="$HOME/.nvm"
+  - \. "$NVM_DIR/nvm.sh"
+  
+  # 3. Install and use Node.js (v20 is stable)
+  - nvm install 20
+  - nvm use 20
+  
+  # 4. Install Vercel and Firebase CLI cleanly into our fresh Node environment
+  - npm config set cache "${CI_PROJECT_DIR}/.cache/npm" --global
+  - npm install -g vercel firebase-tools
+
+cache:
+  paths:
+  - .cache
+
 deploy_staging:
+  tags: [ugrad]
   stage: deploy
   image: node:24
   script:
-    - npm install -g vercel
     # Pull the Vercel Preview environment configuration and secrets
-    - vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+    - npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
     # Build the project for the Preview environment
-    - vercel build --token=$VERCEL_TOKEN
+    - npx vercel build --token=$VERCEL_TOKEN
+    # Deploy Firebase assets to DEV
+    - firebase --project lumora-16953 deploy --non-interactive
     # Deploy to Vercel (Staging/Preview)
-    - vercel deploy --prebuilt --token=$VERCEL_TOKEN
-
-    - DEPLOY_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - DEPLOY_URL=$(npx vercel deploy --prebuilt --token=$VERCEL_TOKEN | tail -1)
     - echo "Deployed to $DEPLOY_URL"
     # Pin it to a stable alias
-    - vercel alias set $DEPLOY_URL lumora-staging.vercel.app --token=$VERCEL_TOKEN
-
+    - npx vercel alias set $DEPLOY_URL lumora-staging.vercel.app --token=$VERCEL_TOKEN
   only:
-    - Development
+    - dev
 
 deploy_production:
+  tags: [ugrad]
   stage: deploy
   image: node:24
   script:
-    - npm install -g vercel
     # Pull the Vercel Production environment configuration and secrets
-    - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+    - npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
     # Build the project for the Production environment
-    - vercel build --prod --token=$VERCEL_TOKEN
+    - npx vercel build --prod --token=$VERCEL_TOKEN
+    # Deploy Firebase assets to PROD
+    - firebase --project lumora-prod-91c61 deploy --non-interactive
     # Deploy to Vercel (Production)
-    - DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>/dev/null | tail -1)
+    - DEPLOY_URL=$(npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN | tail -1)
     - echo "Deployed to $DEPLOY_URL"
     # Pin it to a stable alias
-    - vercel alias set $DEPLOY_URL lumora-app.vercel.app --token=$VERCEL_TOKEN
+    - npx vercel alias set $DEPLOY_URL lumora-app.vercel.app --token=$VERCEL_TOKEN
   only:
     - main
