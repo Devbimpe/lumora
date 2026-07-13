@@ -20,7 +20,6 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
 import { auth, db } from '@/app/_db/client-db';
 import { redirect, usePathname } from 'next/navigation';
-import '@/app/_lib/api-client'; // Ensure global `fetch` is patched
 /** @import { UserDoc } from '@/app/_db/common' */
 
 /**
@@ -42,18 +41,18 @@ import '@/app/_lib/api-client'; // Ensure global `fetch` is patched
 
 const AuthContext = createContext(/** @type {AuthContextReturn} */ (null));
 
-const PUBLIC_PATHS = [
-  '/',
-  '/login',
-  '/signup',
-  '/forgot-password',
-  '/reset-password',
-  '/activate',
-  '/contact',
+const PROTECTED_PATH_PREFIXES = [
+  '/admin',
+  '/modules',
+  '/training-module',
+  '/user-profile',
+  '/user-progress',
 ];
 
-function isPublicPath(pathname) {
-  return PUBLIC_PATHS.some((pub) => pathname === pub || pathname === pub + '/');
+function isProtectedPath(pathname) {
+  return PROTECTED_PATH_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + '/'),
+  );
 }
 
 export function AuthProvider({ children }) {
@@ -65,14 +64,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isPublicPath(pathname) && !loading) {
+    if (isProtectedPath(pathname) && !loading) {
       if (!user || (user?.account?.email && !user?.account?.emailVerified)) {
         console.warn('User is not logged in');
         redirect('/');
       }
     }
   }, [pathname, loading, user]);
-
   /**
    * @param {UserSession['account'] | null} firebaseUser
    * @param {UserSession['doc'] | null} doc

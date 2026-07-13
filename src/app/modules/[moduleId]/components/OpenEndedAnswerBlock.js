@@ -1,8 +1,9 @@
 'use client';
 
 import AIFeedbackCard from './AIFeedbackCard';
+import ExplanationCard from './ExplanationCard';
 
-export default function DescriptiveAnswerBlock({ userAnswer, aiFeedback, animate }) {
+export default function OpenEndedAnswerBlock({ userAnswer, aiFeedback, explanation, aiGradingEnabled, animate }) {
   return (
     <div
       className={`transition-all duration-300 ease-out ${
@@ -19,7 +20,7 @@ export default function DescriptiveAnswerBlock({ userAnswer, aiFeedback, animate
           </p>
         </div>
       </div>
-      {aiFeedback && (
+      {aiFeedback && aiGradingEnabled && (
         <AIFeedbackCard
           loading={aiFeedback.loading}
           error={aiFeedback.error}
@@ -27,6 +28,9 @@ export default function DescriptiveAnswerBlock({ userAnswer, aiFeedback, animate
           feedback={aiFeedback.Feedback}
           variant="current"
         />
+      )}
+      {aiFeedback && !aiGradingEnabled && explanation && (
+        <ExplanationCard explanation={explanation} />
       )}
     </div>
   );

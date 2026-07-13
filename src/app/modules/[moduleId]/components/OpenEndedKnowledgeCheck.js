@@ -1,25 +1,29 @@
 'use client';
 
-import DescriptiveAnswerBlock from './DescriptiveAnswerBlock';
+import OpenEndedAnswerBlock from './OpenEndedAnswerBlock';
 import SavedProgressBlock from './SavedProgressBlock';
 
-export default function DescriptiveKnowledgeCheck({
+export default function OpenEndedKnowledgeCheck({
   knowledgeCheckId,
   isSubmitted,
-  descriptiveAnswer,
+  openEndedAnswer,
   savedSubmission,
   aiFeedback,
+  explanation,
+  aiGradingEnabled,
   submittedViewAnimate,
   onAnswerChange,
   onSubmit,
 }) {
-  const displayAnswer = descriptiveAnswer ?? savedSubmission?.userAnswer ?? '';
+  const displayAnswer = openEndedAnswer ?? savedSubmission?.userAnswer ?? '';
 
   if (isSubmitted) {
     return (
-      <DescriptiveAnswerBlock
+      <OpenEndedAnswerBlock
         userAnswer={displayAnswer}
         aiFeedback={aiFeedback}
+        explanation={explanation}
+        aiGradingEnabled={aiGradingEnabled}
         animate={submittedViewAnimate}
       />
     );
@@ -27,7 +31,13 @@ export default function DescriptiveKnowledgeCheck({
 
   return (
     <>
-      {savedSubmission && <SavedProgressBlock savedSubmission={savedSubmission} />}
+      {savedSubmission && (
+        <SavedProgressBlock
+          savedSubmission={savedSubmission}
+          explanation={explanation}
+          aiGradingEnabled={aiGradingEnabled}
+        />
+      )}
       <textarea
         value={displayAnswer}
         onChange={(e) => onAnswerChange(e.target.value)}

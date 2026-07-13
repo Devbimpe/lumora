@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense } from 'react';
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from '@/app/components/AuthProvider';
+import { api } from '@/app/_lib/api-client';
 
 function UserProgressContent() {
   const { user } = useAuth();
@@ -15,14 +16,14 @@ function UserProgressContent() {
   const [activeFilter, setActiveFilter] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null); // module that opens the popup
   const [progressLoaded, setProgressLoaded] = useState(false);
+  const [selectedModuleKCs, setSelectedModuleKCs] = useState(null); // knowledge checks for the popup module
 
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const fetchModules = async () => {
     try {
-      const res = await fetch("/api/modules");
-      const data = await res.json();
+      const data = await api.get("/api/modules").json();
       console.log("Modules", data);
       setModules(data);
       return data;
@@ -33,9 +34,9 @@ function UserProgressContent() {
   };
 
   const fetchUserProgress = async () => {
+    if (!user) return;
     try {
-      const response = await fetch(`/api/progress?userId=${user?.uid}`);
-      const data = await response.json();
+      const data = await api.get("/api/progress", { searchParams: { userId: user.uid } }).json();
       console.log("Progress", data);
       if(Array.isArray(data)) {
         setModuleProgress(data);
@@ -72,6 +73,33 @@ useEffect(() => {
 
   router.replace("/user-progress");
 }, [modules, moduleProgress, progressLoaded]);
+
+// Fetch knowledge checks for the selected module.
+const prevFetchedModuleId = useRef(null);
+useEffect(() => {
+  if (!selectedModule) {
+    setSelectedModuleKCs(null);
+    prevFetchedModuleId.current = null;
+    return;
+  }
+  const modId = selectedModule.ModuleID ?? selectedModule.moduleId;
+  if (modId === prevFetchedModuleId.current) return;
+  prevFetchedModuleId.current = modId;
+
+  (async () => {
+    try {
+      const data = await api.get("/api/knowledge-checks", { searchParams: { moduleId: modId } }).json();
+      if (!Array.isArray(data)) return;
+      const map = {};
+      for (const kc of data) {
+        map[kc.knowledgeCheckId] = kc;
+      }
+      setSelectedModuleKCs(map);
+    } catch {
+      setSelectedModuleKCs({});
+    }
+  })();
+}, [selectedModule]);
 
 const modulesMap = modules.reduce((acc, mod) => {
   acc[mod.ModuleID] = mod;
@@ -137,14 +165,12 @@ const filteredModules = baseList.filter((mod) => {
   const moduleId = selectedModule.ModuleID ?? selectedModule.moduleId;
 
   try {
-    await fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    await api.post('/api/progress', {
+      json: {
         userId: user.uid,
         moduleId,
         action: 'resetUserProgress'
-      })
+      }
     });
     router.push(`/modules/module${moduleId}`);
     setSelectedModule(null);
@@ -355,31 +381,38 @@ const filteredModules = baseList.filter((mod) => {
 
               {selectedModule.isCompleted ? (
                 (() => {
-                  const submissions = selectedModule.knowledgeCheckSubmissions
-                    ? Object.values(selectedModule.knowledgeCheckSubmissions)
+                  const allSubmissions = selectedModule.knowledgeCheckSubmissions ?
+                    Object.entries(selectedModule.knowledgeCheckSubmissions)
+                      .map(([id, s]) => ({ ...s, _kcId: Number(id) }))
                     : [];
 
+                  const gradedSubmissions = allSubmissions.filter(s => s.grade != null);
+
                   const overallScore =
-                    submissions.length === 0
-                      ? 100
+                    gradedSubmissions.length === 0
+                      ? (allSubmissions.length === 0 ? 100 : null)
                       : Math.round(
-                          (submissions.reduce((sum, s) => sum + (s.grade ?? 0), 0) /
-                            submissions.length)
+                          (gradedSubmissions.reduce((sum, s) => sum + (s.grade ?? 0), 0) /
+                            gradedSubmissions.length)
                         );
 
                   const scoreBg =
                     overallScore === 100
                       ? "bg-green-50 border-green-200"
-                      : overallScore >= 60
+                      : overallScore != null && overallScore >= 60
                       ? "bg-orange-50 border-orange-200"
-                      : "bg-red-50 border-red-200";
+                      : overallScore != null
+                      ? "bg-red-50 border-red-200"
+                      : "bg-slate-50 border-slate-200";
 
                   const scoreLabelColor =
                     overallScore === 100
                       ? "text-green-600"
-                      : overallScore >= 60
+                      : overallScore != null && overallScore >= 60
                       ? "text-orange-500"
-                      : "text-red-500";
+                      : overallScore != null
+                      ? "text-red-500"
+                      : "text-slate-500";
 
                   return (
                     <>
@@ -387,16 +420,17 @@ const filteredModules = baseList.filter((mod) => {
                       <div className={`flex items-center justify-between border rounded-xl px-5 py-4 mb-6 ${scoreBg}`}>
                         <div>
                           <p className={`text-xs font-medium uppercase tracking-wide mb-0.5 ${scoreLabelColor}`}> Overall Score </p>
-                          <p className="text-2xl font-bold">{overallScore}%</p>
+                          <p className="text-2xl font-bold">{overallScore != null ? `${overallScore}%` : '—'}</p>
                         </div>
                       </div>
 
                       {/* Knowledge Check Scores */}
-                      {submissions.length > 0 && (
+                      {allSubmissions.length > 0 && (
                         <div className="mb-6">
-                          <h3 className="text-sm font-semibold text-slate-700 mb-3">Knowledge Checks: ( {submissions.length} submission )</h3>
+                          <h3 className="text-sm font-semibold text-slate-700 mb-3">Knowledge Checks: ( {allSubmissions.length} submission{allSubmissions.length !== 1 ? 's' : ''} )</h3>
                           <div className="flex flex-col gap-2">
-                            {submissions.map((sub, i) => {
+                            {allSubmissions.map((sub, i) => {
+                              const isGraded = sub.grade != null;
                               const pct = Math.round((sub.grade ?? 0));
                               const barColor =
                                 pct === 100 ? "bg-green-500" : pct >= 60 ? "bg-orange-400" : "bg-red-400";
@@ -404,41 +438,16 @@ const filteredModules = baseList.filter((mod) => {
                                 <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                                   <div className="flex justify-between items-center mb-2">
                                     <p className="text-sm text-slate-700 font-medium">Knowledge Check {i + 1}</p>
-                                    <span className="text-sm font-bold text-slate-800">{sub.grade ?? 0}/100</span>
+                                    <span className="text-sm font-bold text-slate-800">
+                                      {isGraded ? `${sub.grade ?? 0}/100` : 'Submitted'}
+                                    </span>
                                   </div>
-                                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Free-text Feedback */}
-                      {submissions.length > 0 && (
-                        <div className="mb-6">
-                          <h3 className="text-sm font-semibold text-slate-700 mb-3">Free-text Feedback</h3>
-                          <div className="flex flex-col gap-3">
-                            {submissions.map((sub, i) => {
-                              const isCorrect = (sub.grade ?? 0) === 1;
-                              return (
-                                <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                                    Submission {i + 1}
-                                  </p>
-                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
-                                    Your Answer
-                                  </p>
-                                  <p className="text-sm text-slate-500 italic mb-3">"{sub.userAnswer}"</p>
-                                  {!isCorrect && sub.feedback && (
-                                    <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm">
-                                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                                        Feedback
-                                      </p>
-                                      <p className="text-sm text-slate-700">{sub.feedback}</p>
+                                  {isGraded ? (
+                                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
                                     </div>
+                                  ) : (
+                                    <p className="text-xs text-slate-400 italic">Reviewed, not scored</p>
                                   )}
                                 </div>
                               );
@@ -447,8 +456,52 @@ const filteredModules = baseList.filter((mod) => {
                         </div>
                       )}
 
+                      {/* Free-text Feedback */}
+                      {allSubmissions.length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="text-sm font-semibold text-slate-700 mb-3">Free-text Feedback</h3>
+                          <div className="flex flex-col gap-3">
+                            {allSubmissions.map((sub, i) => {
+                              const isGraded = sub.grade != null;
+                              return (
+                                <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                    Submission {i + 1}
+                                  </p>
+                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                                    Your Answer
+                                  </p>
+                                  <p className="text-sm text-slate-500 italic mb-3">{`"${sub.userAnswer}"`}</p>
+                                  {sub.feedback && (
+                                    <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm">
+                                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                        Feedback
+                                      </p>
+                                      <p className="text-sm text-slate-700">{sub.feedback}</p>
+                                    </div>
+                                  )}
+                                  {!isGraded &&
+                                    (selectedModuleKCs?.[sub._kcId]?.explanation ? (
+                                      <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 shadow-sm mt-3">
+                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                          Explanation
+                                        </p>
+                                        <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                                          {selectedModuleKCs[sub._kcId].explanation}
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-slate-400 italic">Not graded</p>
+                                    ))}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* No submissions */}
-                      {submissions.length === 0 && (
+                      {allSubmissions.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-8 text-slate-400 mb-6">
                           <p className="text-sm font-medium">No knowledge checks recorded.</p>
                         </div>

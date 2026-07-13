@@ -4,7 +4,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { COLLECTIONS } from '@/app/_db/common';
 import { performMigration } from '@/app/_db/admin-db-migration';
 import { getAuth } from 'firebase-admin/auth';
-/** @import { UserDoc } from '@/app/_db/common' */
+/** @import { UserDoc, KnowledgeCheck } from '@/app/_db/common' */
 
 /** @typedef {UserDoc & { uid: string }} UserDocWithId */
 
@@ -20,10 +20,10 @@ if (!getApps().length) {
     credential: firebaseAdminCert({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
     })
   });
-  await performMigration();
+ // await performMigration();
 }
 
 const db = getFirestore();
@@ -242,34 +242,49 @@ export async function deleteUser(userId) {
  */
 export async function getAllModules() {
   const modulesRef = db.collection(COLLECTIONS.MODULES);
-  const q = modulesRef.orderBy('moduleId', 'asc');
-  const querySnapshot = await q.get();
+  const querySnapshot = await modulesRef.get();
 
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  return querySnapshot.docs
+    .map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    .sort((a, b) => {
+      const aOrder = Number.isFinite(Number(a.sortOrder))
+        ? Number(a.sortOrder)
+        : Number(a.moduleId ?? 0);
+
+      const bOrder = Number.isFinite(Number(b.sortOrder))
+        ? Number(b.sortOrder)
+        : Number(b.moduleId ?? 0);
+
+      return aOrder - bOrder || Number(a.moduleId ?? 0) - Number(b.moduleId ?? 0);
+    });
 }
 
 export async function getAllPublishedModules() {
   const modulesRef = db.collection(COLLECTIONS.MODULES);
 
   try {
-    const q = modulesRef.where('published', '==', true).orderBy('moduleId', 'asc');
+    const q = modulesRef.where('published', '==', true);
     const querySnapshot = await q.get();
 
-    let results = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    return querySnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .sort((a, b) => {
+        const aOrder = Number.isFinite(Number(a.sortOrder))
+          ? Number(a.sortOrder)
+          : Number(a.moduleId ?? 0);
 
-    // results.sort((a, b) => {
-    //   const aId = Number(a?.moduleId ?? 0);
-    //   const bId = Number(b?.moduleId ?? 0);
-    //   return aId - bId;
-    // });
+        const bOrder = Number.isFinite(Number(b.sortOrder))
+          ? Number(b.sortOrder)
+          : Number(b.moduleId ?? 0);
 
-    return results;
+        return aOrder - bOrder || Number(a.moduleId ?? 0) - Number(b.moduleId ?? 0);
+      });
   } catch (error) {
     throw new Error(`Error fetching published modules: ${error.message}`);
   }
@@ -297,21 +312,29 @@ export async function getModuleById(moduleId) {
 export async function createModule(moduleData) {
   const modulesRef = db.collection(COLLECTIONS.MODULES);
 
-  // Get the highest moduleId
   const allModules = await getAllModules();
+
   const maxModuleId = allModules.length > 0
-    ? Math.max(...allModules.map(m => m.moduleId || 0))
+    ? Math.max(...allModules.map(m => Number(m.moduleId) || 0))
     : 0;
 
+  const maxSortOrder = allModules.length > 0
+    ? Math.max(...allModules.map(m => Number(m.sortOrder ?? m.moduleId) || 0))
+    : 0;
+
+  const newModuleId = maxModuleId + 1;
+  const newSortOrder = maxSortOrder + 1;
+
   const docRef = await modulesRef.add({
-    moduleId: maxModuleId + 1,
+    moduleId: newModuleId,
+    sortOrder: newSortOrder,
     heading: moduleData.heading,
     subheading: moduleData.subheading || moduleData.subHeading,
     createdAt: Timestamp.now(),
     faviconURL: moduleData.faviconURL || null
   });
 
-  return { id: docRef.id, moduleId: maxModuleId + 1 };
+  return { id: docRef.id, moduleId: newModuleId, sortOrder: newSortOrder };
 }
 
 /**
@@ -414,30 +437,50 @@ export async function deleteModule(moduleId) {
     }
   }
 
-  // Renumber remaining modules so there are no gaps
-  await reindexModules();
+  // Do not renumber modules after delete.
+  // moduleId must stay stable so existing user progress does not get corrupted.
 }
 
-/**
- * Renumber modules to remove gaps after deletion
- * Example: If modules are 1, 3, 4 -> becomes 1, 2, 3
- */
-async function reindexModules() {
-  throw new Error("to be reworked")
-}
+
 
 /**
  * Reorder modules based on a new ordering provided by the admin.
  * Takes an array of moduleIds in the desired new order.
- * Example: [3, 1, 2] means module 3 goes first, module 1 second, module 2 third.
- *
- * User progress doc IDs are `${userId}_${moduleId}`. Renaming them in a single batch
- * causes collisions when IDs permute (e.g. user_1 and user_2 swap targets): one write
- * overwrites or deletes another. We use a two-phase staging pass, then update modules,
- * content, and knowledge checks in one batch.
+ * Updates only sortOrder so moduleId stays stable.
  */
 export async function reorderModules(newOrder) {
-  throw new Error("to be reworked")
+  if (!Array.isArray(newOrder)) {
+    throw new Error('Invalid module order');
+  }
+
+  const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const batch = db.batch();
+
+  for (let index = 0; index < newOrder.length; index++) {
+    const moduleId = parseInt(newOrder[index]);
+
+    if (Number.isNaN(moduleId)) {
+      throw new Error(`Invalid moduleId in reorder list: ${newOrder[index]}`);
+    }
+
+    const moduleQuery = modulesRef.where('moduleId', '==', moduleId).limit(1);
+    const moduleSnapshot = await moduleQuery.get();
+
+    if (moduleSnapshot.empty) {
+      throw new Error(`Module not found: ${moduleId}`);
+    }
+
+    const moduleDoc = moduleSnapshot.docs[0];
+
+    batch.update(moduleDoc.ref, {
+      sortOrder: index + 1,
+      updatedAt: Timestamp.now()
+    });
+  }
+
+  await batch.commit();
+
+  return { success: true };
 }
 
 /**
@@ -614,30 +657,84 @@ export async function getKnowledgeChecksByModuleId(moduleId) {
 }
 
 /**
- * Create a new knowledge check for a module
+ * Get a single knowledge check by (moduleId, knowledgeCheckId).
+ * @returns {Promise<(KnowledgeCheck & { id: string }) | null>}
+ */
+export async function getKnowledgeCheck(knowledgeCheckId, moduleID) {
+  const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
+  const q = checksRef
+    .where('knowledgeCheckId', '==', parseInt(knowledgeCheckId))
+    .where('moduleID', '==', parseInt(moduleID));
+  const snapshot = await q.get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() };
+}
+
+/**
+ * Build a Firestore KC document for a given type.
+ * @param {KnowledgeCheck} fields
+ * @returns {KnowledgeCheck}
+ */
+function buildKnowledgeCheckDoc(fields) {
+  return /** @type {KnowledgeCheck} */ ({
+    knowledgeCheckId: fields.knowledgeCheckId,
+    moduleID: fields.moduleID,
+    contentId: fields.contentId ?? null,
+    type: fields.type,
+    question: fields.question,
+    createdAt: fields.createdAt,
+    ...(fields.type === 'multiple-choice'
+      ? {
+          choices: fields.choices || [],
+          correctAnswer: fields.correctAnswer ?? 0,
+          explanation: fields.explanation || '',
+        }
+      : {
+          rubric: fields.rubric || '',
+          gradingContext: fields.gradingContext || '',
+          aiGradingEnabled: !!fields.aiGradingEnabled,
+          explanation: fields.explanation || '',
+        }),
+  });
+}
+
+/**
+ * Create a new knowledge check for a module.
+ * @param {Omit<KnowledgeCheck, 'knowledgeCheckId' | 'createdAt' | 'updatedAt'>} data
+ * @returns {Promise<KnowledgeCheck & { id: string }>}
  */
 export async function createKnowledgeCheck(data) {
-  const { moduleID, contentId, question, choices, answer, explain, allowance } = data;
-
-  const existing = await getKnowledgeChecksByModuleId(moduleID);
-  const maxId = existing.reduce((max, c) => Math.max(max, c.knowledgeCheckId || 0), 0);
-
-  const newCheck = {
-    knowledgeCheckId: maxId + 1,
-    moduleID: parseInt(moduleID),
-    contentId: contentId ? parseInt(contentId) : null,
-    question,
-    choices,
-    answer,
-    explain: explain || '',
-    allowance: allowance || '',
-    createdAt: Timestamp.now()
-  };
-
+  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, rubric, gradingContext, aiGradingEnabled } = data;
+  const moduleIdNum = parseInt(moduleID);
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
-  const docRef = await checksRef.add(newCheck);
 
-  return { id: docRef.id, ...newCheck };
+  const { ref, newCheck } = await db.runTransaction(async (t) => {
+    // Query within the transaction so the max id we compute is consistent with the write.
+    const snap = await t.get(checksRef.where('moduleID', '==', moduleIdNum));
+    const maxId = snap.docs.reduce((max, d) => Math.max(max, d.data().knowledgeCheckId || 0), 0);
+    const ref = checksRef.doc();
+
+    const newCheck = buildKnowledgeCheckDoc({
+      knowledgeCheckId: maxId + 1,
+      moduleID: moduleIdNum,
+      contentId: contentId ? parseInt(contentId) : null,
+      type,
+      question,
+      explanation,
+      createdAt: Timestamp.now(),
+      choices,
+      correctAnswer,
+      rubric,
+      gradingContext,
+      aiGradingEnabled,
+    });
+
+    t.create(ref, newCheck);
+    return { ref, newCheck };
+  });
+
+  return { id: ref.id, ...newCheck };
 }
 
 /**
@@ -662,7 +759,10 @@ export async function deleteKnowledgeCheck(knowledgeCheckId, moduleID) {
 }
 
 /**
- * Update a knowledge check by its knowledgeCheckId and moduleID
+ * Update a knowledge check by its knowledgeCheckId and moduleID.
+ * @param {number} knowledgeCheckId
+ * @param {number} moduleID
+ * @param {Partial<Omit<KnowledgeCheck, 'knowledgeCheckId' | 'moduleID' | 'contentId' | 'createdAt' | 'updatedAt'>>} updates
  */
 export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) {
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
@@ -675,12 +775,28 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
     throw new Error('Knowledge check not found');
   }
 
-  const docRef = snapshot.docs[0].ref;
-  await docRef.update({
-    ...updates,
-    updatedAt: Timestamp.now()
+  const existing = snapshot.docs[0].data();
+  const type = updates.type;
+  if (type !== 'multiple-choice' && type !== 'open-ended') {
+    throw new Error('Invalid knowledge check type');
+  }
+
+  const doc = buildKnowledgeCheckDoc({
+    knowledgeCheckId: existing.knowledgeCheckId,
+    moduleID: existing.moduleID,
+    contentId: existing.contentId,
+    type,
+    question: updates.question,
+    explanation: updates.explanation,
+    createdAt: existing.createdAt,
+    choices: updates.choices,
+    correctAnswer: updates.correctAnswer,
+    rubric: updates.rubric,
+    gradingContext: updates.gradingContext,
+    aiGradingEnabled: updates.aiGradingEnabled,
   });
 
+  await snapshot.docs[0].ref.set({ ...doc, updatedAt: Timestamp.now() });
   return { updated: true };
 }
 
@@ -1056,7 +1172,9 @@ export async function markModuleCompleted(userId, moduleId) {
  * Save user answer and AI feedback for a knowledge check to module progress.
  * Overwrites any previous submission for the same contentId (reattempt).
  */
-export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { userAnswer, grade, feedback }) {
+export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
+  userAnswer, grade, feedback, maxGrade, model, graderReasoning, aiGradingEnabled,
+}) {
   const progress = await getUserModuleProgress(userId, moduleId);
   const existing = progress?.knowledgeCheckSubmissions || {};
   const contentIdStr = String(contentId);
@@ -1067,6 +1185,10 @@ export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, { 
       userAnswer: userAnswer ?? '',
       grade: grade ?? null,
       feedback: feedback ?? '',
+      maxGrade: maxGrade ?? null,
+      model: model ?? null,
+      graderReasoning: graderReasoning ?? null,
+      aiGradingEnabled: aiGradingEnabled ?? null,
       updatedAt: Timestamp.now()
     }
   };
@@ -1107,39 +1229,3 @@ export async function getFeedbackByUserId(userId) {
     ...doc.data()
   }));
 }
-
-// For backward compatibility with existing code
-export default {
-  updateUser,
-  deleteUser,
-  getAllUsers,
-  getAllModules,
-  getAllPublishedModules,
-  getModuleById,
-  createModule,
-  updateModule,
-  deleteModule,
-  getContentByModuleId,
-  getContentById,
-  updateContent,
-  createContent,
-  deleteContent,
-  getKnowledgeChecksByContentId,
-  getKnowledgeChecksByModuleId,
-  getModuleWithContent,
-  createStudentSubmission,
-  getSubmissionsByStudentId,
-  getAllModuleProgressWithUsers,
-  getAllFeedbackWithUsers,
-  createFeedback,
-  getFeedbackByUserId,
-  getUserProgress,
-  getUserModuleProgress,
-  updateUserModuleProgress,
-  resetUserModuleProgress,
-  markContentViewed,
-  markContentCompleted,
-  updateModulePublished,
-  markModuleCompleted,
-  saveKnowledgeCheckFeedback
-};

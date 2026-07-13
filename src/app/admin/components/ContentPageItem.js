@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import ConfirmationModal from './ConfirmationModal';
+import { api, apiErrorMessage } from '@/app/_lib/api-client';
 
 export default function ContentPageItem({ item, index, selectedModule, onContentChange }) {
   // MARK: Edit State
@@ -51,20 +52,16 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
     try {
       setIsSubmitting(true);
       console.log('Saving content with values:', { editOverview, editReading, uploadedImageURL, imageDescription });
-      const res = await fetch(`/api/content/${selectedModule}/${item.ContentID}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await api.put(`/api/content/${selectedModule}/${item.ContentID}`, {
+        json: {
           Overview: editOverview,
           Reading: editReading,
           imageURL: uploadedImageURL || null,
           imageDescription: uploadedImageURL ? editImageDescription : null,
-        }),
+        },
       });
-      if (!res.ok) throw new Error("Failed to update content");
 
-      const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
-      const data = await updatedRes.json();
+      const data = await api.get('/api/content', { searchParams: { moduleId: selectedModule } }).json();
       console.log('Fetched updated content after edit:', data);
       onContentChange(data);
       window.dispatchEvent(new Event('content-updated'));
@@ -79,11 +76,9 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
   // MARK: Delete Handler
   const performDelete = async () => {
     try {
-      const res = await fetch(`/api/content/${selectedModule}/${item.ContentID}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete content");
+      await api.delete(`/api/content/${selectedModule}/${item.ContentID}`);
 
-      const updatedContent = await fetch(`/api/content?moduleId=${selectedModule}`);
-      const data = await updatedContent.json();
+      const data = await api.get('/api/content', { searchParams: { moduleId: selectedModule } }).json();
       onContentChange(data);
       window.dispatchEvent(new Event('content-updated'));
     } catch (err) {
@@ -112,14 +107,12 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
       setUploadingImage(true);
       const formData = new FormData();
       formData.append('file', imageFile);
-      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.details || data.error || 'Upload failed');
+      const data = await api.post('/api/admin/upload-image', { body: formData }).json();
       setUploadedImageURL(data.url);
       setImageSrc(data.url);
       onClearReading?.();
     } catch (err) {
-      setError(`Image upload failed: ${err.message}`);
+      setError(await apiErrorMessage(err, 'Image upload failed.'));
     } finally {
       setUploadingImage(false);
     }
@@ -129,19 +122,16 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
     if (!uploadedImageURL) return;
     try {
       setUploadingImage(true);
-      const res = await fetch(`/api/admin/upload-image?imageUrl=${encodeURIComponent(uploadedImageURL)}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.details || data.error || 'Delete failed');
+      await api.delete('/api/admin/upload-image', {
+        searchParams: { imageUrl: uploadedImageURL }
+      });
 
       // If editing an existing item, also clear the image from the DB record
       if (editing) {
-        await fetch(`/api/content/${item.ContentID}/${selectedModule}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ Overview: editOverview, Reading: editReading, imageURL: null, imageDescription: null }),
+        await api.put(`/api/content/${item.ContentID}/${selectedModule}`, {
+          json: { Overview: editOverview, Reading: editReading, imageURL: null, imageDescription: null },
         });
-        const updatedRes = await fetch(`/api/content?moduleId=${selectedModule}`);
-        const contentData = await updatedRes.json();
+        const contentData = await api.get('/api/content', { searchParams: { moduleId: selectedModule } }).json();
         onContentChange(contentData);
         window.dispatchEvent(new Event('content-updated'));
       }
@@ -151,7 +141,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
       setUploadedImageURL(null);
       setImageDescription('');
     } catch (err) {
-      setError(`Image delete failed: ${err.message}`);
+      setError(await apiErrorMessage(err, 'Image delete failed.'));
     } finally {
       setUploadingImage(false);
     }

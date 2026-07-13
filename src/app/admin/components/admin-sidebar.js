@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/components/AuthProvider';
+import { FiHome, FiUsers, FiBookOpen, FiBarChart2, FiMessageSquare } from 'react-icons/fi';
+import { api } from '@/app/_lib/api-client';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -36,19 +38,18 @@ export default function Sidebar() {
     async function fetchContentPages() {
       setContentLoading(true);
       try {
-        const [contentRes, modulesRes, kcRes] = await Promise.all([
-          fetch(`/api/content?moduleId=${moduleId}`),
-          fetch('/api/admin/modules'),
-          fetch(`/api/knowledge-checks?moduleId=${moduleId}`)
+        const [contentResult, modulesResult, kcResult] = await Promise.allSettled([
+          api.get(`/api/content?moduleId=${moduleId}`).json(),
+          api.get('/api/admin/modules').json(),
+          api.get(`/api/knowledge-checks?moduleId=${moduleId}`).json(),
         ]);
 
-        if (contentRes.ok) {
-          const data = await contentRes.json();
-          setContentPages(data);
+        if (contentResult.status === 'fulfilled') {
+          setContentPages(contentResult.value);
         }
 
-        if (modulesRes.ok) {
-          const modules = await modulesRes.json();
+        if (modulesResult.status === 'fulfilled') {
+          const modules = modulesResult.value;
           const moduleIdNum = Number(moduleId);
           const currentModule = modules.find((m) => Number(m.id) === moduleIdNum);
           if (currentModule) {
@@ -56,9 +57,8 @@ export default function Sidebar() {
           }
         }
 
-        if (kcRes.ok) {
-          const kcData = await kcRes.json();
-          setKnowledgeChecks(Array.isArray(kcData) ? kcData : []);
+        if (kcResult.status === 'fulfilled') {
+          setKnowledgeChecks(Array.isArray(kcResult.value) ? kcResult.value : []);
         }
       } catch (err) {
         console.error('Failed to fetch content for sidebar:', err);
@@ -129,11 +129,11 @@ export default function Sidebar() {
 
   // ─── DEFAULT ADMIN SIDEBAR SECTIONS ───
   const sections = [
-    { id: 'dashboard', label: 'Dashboard', path: '/admin' },
-    { id: 'user-management', label: 'User Management', path: '/admin/user-management' },
-    { id: 'feedback', label: 'Feedback', path: '/admin/feedback' },
-    { id: 'progress', label: 'Module Progress', path: '/admin/module-progress' },
-    { id: 'management', label: 'Module Management', path: '/admin/module-management' },
+    { id: 'dashboard', label: 'Dashboard', path: '/admin', icon: <FiHome/> },
+    { id: 'user-management', label: 'Users', path: '/admin/user-management', icon: <FiUsers/> },
+    { id: 'management', label: 'Module Management', path: '/admin/module-management', icon: <FiBookOpen/>},
+    { id: 'progress', label: 'Progress', path: '/admin/module-progress', icon: <FiBarChart2/> },
+    { id: 'feedback', label: 'Feedback', path: '/admin/feedback', icon: <FiMessageSquare/> },
     { id: 'training-module', label: 'Training Module', path: '/training-module' },
   ];
 
@@ -170,7 +170,7 @@ export default function Sidebar() {
     return (
       <>
         {/* Mobile Header */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm bg-white">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3 min-w-0">
               <button
@@ -260,7 +260,7 @@ export default function Sidebar() {
                       <>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pt-3 pb-1">Knowledge Checks</p>
                         {knowledgeChecks.map((kc, index) => {
-                          const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
+                          const isMultipleChoice = kc.type === 'multiple-choice';
                           return (
                             <button
                               key={`kc-${kc.knowledgeCheckId}`}
@@ -276,7 +276,7 @@ export default function Sidebar() {
                                 </span>
                                 <span className="text-sm truncate flex-1">{kc.question || `Knowledge Check ${index + 1}`}</span>
                                 <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${isMultipleChoice ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                                  {isMultipleChoice ? 'MC' : 'DESC'}
+                                  {isMultipleChoice ? 'MC' : 'OE'}
                                 </span>
                               </div>
                             </button>
@@ -309,7 +309,7 @@ export default function Sidebar() {
         </div>
 
         {/* Desktop Content Sidebar */}
-        <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+        <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm bg-white">
           {/* Header */}
           <div className="p-4 border-b border-gray-200">
             <Link
@@ -389,7 +389,7 @@ export default function Sidebar() {
                 )}
 
                 {knowledgeChecks.map((kc, index) => {
-                  const isMultipleChoice = Array.isArray(kc.choices) && kc.choices.length > 0;
+                  const isMultipleChoice = kc.type === 'multiple-choice';
                   return (
                     <button
                       key={`kc-${kc.knowledgeCheckId}`}
@@ -405,7 +405,7 @@ export default function Sidebar() {
                         </span>
                         <span className="text-sm truncate flex-1">{kc.question || `Knowledge Check ${index + 1}`}</span>
                         <span className={`ml-2 text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${isMultipleChoice ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                          {isMultipleChoice ? 'MC' : 'DESC'}
+                          {isMultipleChoice ? 'MC' : 'OE'}
                         </span>
                       </div>
                     </button>
@@ -450,7 +450,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm bg-white">
         <div className="flex items-center justify-between p-4">
           <Link href="/" className="flex items-center">
             <Image
@@ -484,11 +484,13 @@ export default function Sidebar() {
                   key={section.id}
                   href={section.path}
                   onClick={closeMobileMenu}
-                  className={`block text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200 ${activeSection === section.id
-                    ? 'bg-green-50 text-green-700 border-l-3 border-green-600'
-                    : 'text-gray-700 hover:bg-gray-50'
+                  className={`flex items-center gap-3 text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200
+                    ${activeSection === section.id
+                      ? 'bg-green-50 text-green-700 border-l-4 border-green-600'
+                      : 'text-gray-700 hover:bg-gray-50'
                     }`}
                 >
+                  <span className="text-gray-600">{section.icon}</span>
                   {section.label}
                 </Link>
               ))}
@@ -509,7 +511,8 @@ export default function Sidebar() {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm" style={{ backgroundColor: '#dbfbe7' }}>
+      <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm bg-white">
+        
         {/* Logo Section */}
         <div className="p-6 border-b border-gray-200">
           <Link href="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
@@ -529,11 +532,17 @@ export default function Sidebar() {
             <Link
               key={section.id}
               href={section.path}
-              className={`block text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200 ${activeSection === section.id
-                ? 'bg-green-50 text-green-700 border-l-3 border-green-600'
-                : 'text-gray-700 hover:bg-gray-50'
+              className={`flex items-center gap-3 text-sm font-medium rounded-lg px-4 py-3 transition-all duration-200
+                ${activeSection === section.id
+                  ? 'bg-green-50 text-green-700 border-l-4 border-green-600'
+                  : 'text-gray-700 hover:bg-white/60'
                 }`}
             >
+              {/* Icon */}
+              <span className="text-gray-600">
+                {section.icon}
+              </span>
+
               {section.label}
             </Link>
           ))}

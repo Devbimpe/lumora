@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "@/app/components/AuthProvider"
+import { api } from "@/app/_lib/api-client"
 import { 
   Trophy, 
   Zap, 
@@ -46,26 +47,19 @@ export default function Dashboard() {
     
     try {
       // Batch all API calls together
-      const [modulesResponse, progressResponse, contentCountsResponse] = await Promise.all([
-        fetch("/api/modules"),
-        fetch(`/api/progress?userId=${user.uid}`),
-        fetch("/api/module-content-counts") // Get all counts in one call
+      const [modulesResult, progressResult, contentCountsResult] = await Promise.allSettled([
+        api.get("/api/modules").json(),
+        api.get("/api/progress", { searchParams: { userId: user.uid } }).json(),
+        api.get("/api/module-content-counts").json(),
       ])
-      
-      if (!modulesResponse.ok) {
+
+      if (modulesResult.status !== 'fulfilled') {
         throw new Error("Failed to fetch modules")
       }
-      const modulesData = await modulesResponse.json()
-      
-      let progressData = []
-      if (progressResponse && progressResponse.ok) {
-        progressData = await progressResponse.json()
-      }
-      
-      let contentCounts = {}
-      if (contentCountsResponse && contentCountsResponse.ok) {
-        contentCounts = await contentCountsResponse.json()
-      }
+      const modulesData = modulesResult.value
+
+      const progressData = progressResult.status === 'fulfilled' ? progressResult.value : []
+      const contentCounts = contentCountsResult.status === 'fulfilled' ? contentCountsResult.value : {}
       
       // Create a map of module progress for quick lookup
       const progressMap = {}
@@ -220,23 +214,18 @@ export default function Dashboard() {
     try {
       // Convert "general" to "General", otherwise use the module ID as-is
       const feedbackType = selectedModule === "general" ? "General" : selectedModule
+
+      const token = await user.account.getIdToken();
       
-      const response = await fetch("/api/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const data = await api.post("/api/feedback", {
+        json: {
           message: message.trim(),
           type: feedbackType
-        })
-      })
-
-      const data = await response.json()
+        }
+      }).json()
 
       if (data.success) {
-        // Open the default email client (Outlook, Gmail, etc.) with pre-filled email
-        window.location.href = data.mailtoUrl
+        
         setSubmitStatus("success")
         setMessage("")
         setSelectedModule("")
@@ -259,7 +248,7 @@ export default function Dashboard() {
   const isFormValid = selectedModule !== "" && message.trim() !== ""
 
   return (
-    <div className="min-h-screen py-4 sm:py-8 px-3 sm:px-4" style={{ backgroundColor: "#FFF8E1" }}>
+    <div className="min-h-screen py-4 sm:py-8 px-3 sm:px-4 bg-white">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-8">
         {/* Header Section */}
         <div className="relative">
@@ -291,33 +280,30 @@ export default function Dashboard() {
 
         {/* Overall Progress Section */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 space-y-4 sm:space-y-6 border-2 border-green-200">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pb-2 border-b border-gray-200">
             <h2 
-              className="text-lg sm:text-2xl font-bold flex items-center gap-2"
-              style={{ color: "#16803D" }}
-            >
-              <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7" />
+              className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-green-600" />
               Overall Progress
             </h2>
             {progressPercentage === 100 && (
-              <PartyPopper className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 animate-pulse" />
+              <PartyPopper className="w-5 h-5 text-yellow-500 animate-bounce" />
             )}
           </div>
           
           {/* Progress Bar with Level Indicator */}
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1 sm:gap-2">
-                <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
+              <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 Level {Math.floor(progressPercentage / 25) + 1}
               </span>
               <span className="text-xl sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                 {progressPercentage}%
               </span>
             </div>
-            <div className="relative w-full bg-green-100 rounded-full h-4 sm:h-6 overflow-hidden shadow-inner">
+            <div className="relative w-full bg-green-100 rounded-full h-4 sm:h-6 overflow-hidden shadow-inner relative w-full h-3 sm:h-4 bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full transition-all duration-500 ease-out relative"
+                className="h-full bg-green-500 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${progressPercentage}%` }}
               >
                 {progressPercentage > 0 && (
@@ -345,14 +331,14 @@ export default function Dashboard() {
           {/* Status Cards with Fun Icons */}
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* Completed Card */}
-            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-lg p-2 sm:p-4 border-2 border-green-300 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
-                  <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            <div className="bg-white border border-green-200 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-inner">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">Completed</p>
-                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-gray-600 text-xs font-medium">Completed</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                     {completedCount}
                   </p>
                 </div>
@@ -360,14 +346,14 @@ export default function Dashboard() {
             </div>
 
             {/* In Progress Card */}
-            <div className="bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-lg p-2 sm:p-4 border-2 border-yellow-300 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse mb-1 sm:mb-0">
-                  <Zap className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            <div className="bg-white border border-yellow-200 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-yellow-500 flex items-center justify-center text-white shadow-inner">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">In Progress</p>
-                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-gray-600 text-xs font-medium">In Progress</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: "#16803D" }}> 
                     {inProgressCount}
                   </p>
                 </div>
@@ -375,14 +361,14 @@ export default function Dashboard() {
             </div>
 
             {/* Not Started Card */}
-            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-2 sm:p-4 border-2 border-orange-300 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-center sm:space-x-3 text-center sm:text-left">
-                <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md mb-1 sm:mb-0">
-                  <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+            <div className="bg-white border border-orange-200 rounded-xl p-3 sm:p-5 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-500 flex items-center justify-center text-white shadow-inner">
+                  <Target className="w-6 h-6 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">Not Started</p>
-                  <p className="text-lg sm:text-2xl font-bold" style={{ color: "#16803D" }}>
+                  <p className="text-gray-600 sm:text-xs font-medium">Not Started</p>
+                  <p className="text-xl sm:text-2xl font-bold" style={{ color: "#16803D" }}>
                     {notCompletedCount}
                   </p>
                 </div>
@@ -428,22 +414,22 @@ export default function Dashboard() {
         )}
 
         {/* Course Modules Section */}
-        <div id="course-modules" className="bg-white rounded-lg shadow-md p-4 sm:p-6 space-y-3 sm:space-y-4 border-2 border-green-200">
-          <h2 
-            className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 flex items-center gap-2"
-            style={{ color: "#16803D" }}
-          >
-            <BookOpen className="w-5 h-5 sm:w-7 sm:h-7" />
-            Course Modules
-          </h2>
+        <div id="course-modules" className="bg-white rounded-xl shadow-sm p-5 sm:p-6 space-y-5 border border-green-100">
+          <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+            <h2 
+              className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-green-600" />
+              Course Modules
+            </h2>
+          </div>
           
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-3 sm:space-y-4">
             {moduleLoading ? (
-              <div className="text-center py-6 sm:py-8 text-gray-600 text-sm">
+              <div className="text-center py-8 text-gray-600 text-sm">
                 Loading modules...
               </div>
             ) : modules.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 text-gray-600 text-sm">
+              <div className="text-center py-8 text-gray-600 text-sm">
                 No modules available
               </div>
             ) : (
@@ -457,39 +443,45 @@ export default function Dashboard() {
                     : `/modules/module${module.id}`;
                   window.location.href = url;
                 }}
-                className={`cursor-pointer rounded-lg p-3 sm:p-4 border-2 hover:shadow-lg transition-all ${
-                  module.status === "completed"
-                    ? "bg-gradient-to-br from-green-50 to-green-100 border-green-300"
-                    : module.status === "in-progress"
-                    ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300"
-                    : "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300"
-                }`}
+                className={`
+                  cursor-pointer rounded-xl p-4 sm:p-5 border shadow-sm hover:shadow-md transition-all
+                  ${
+                    module.status === "completed"
+                      ? "border-green-200 bg-green-50"
+                      : module.status === "in-progress"
+                      ? "border-yellow-200 bg-yellow-50"
+                      : "border-orange-200 bg-orange-50"
+                  }
+                `}
               >
-                <div className="flex items-start sm:items-center justify-between gap-2 mb-2 sm:mb-3">
-                  <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                <div className="flex items-start sm:items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     {module.status === "completed" ? (
-                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
-                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center shadow-inner">
+                        <Trophy className="w-5 h-5 text-white" />
                       </div>
                     ) : module.status === "in-progress" ? (
-                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md animate-pulse">
-                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center shadow-inner">
+                        <Zap className="w-5 h-5 text-white" />
                       </div>
                     ) : (
-                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-orange-600 flex items-center justify-center bg-white">
-                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                      <div className="w-10 h-10 rounded-full border border-orange-600 flex items-center justify-center bg-white">
+                        <Target className="w-5 h-5 text-orange-600" />
                       </div>
                     )}
                     <span className="font-semibold text-gray-800 text-sm sm:text-lg truncate">{module.title}</span>
                   </div>
-                  <span
-                    className={`flex-shrink-0 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold shadow-sm whitespace-nowrap ${
-                      module.status === "completed"
-                        ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
-                        : module.status === "in-progress"
-                        ? "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white"
-                        : "bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700"
-                    }`}
+                 <span
+                    className={`
+                      flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium shadow-sm whitespace-nowrap
+                      ${
+                        module.status === "completed"
+                          ? "bg-green-600 text-white"
+                          : module.status === "in-progress"
+                          ? "bg-yellow-500 text-white"
+                          : "bg-orange-100 text-orange-700 border border-orange-200"
+                      }
+                    `}
                   >
                     {module.status === "completed" 
                       ? <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> <span className="hidden xs:inline">Completed</span><span className="xs:hidden">Done</span></span>

@@ -123,7 +123,7 @@ export const POST = defineAdminRoute(async (request) => {
     const isBadRequest =
       /Missing|Invalid|Resource not found|URL (returned|not reachable|does not point)|timed out|Host not found/.test(err.message);
     return NextResponse.json(
-      { error: 'Upload failed', details: err.message },
+      { error: `Upload failed: ${err.message}` },
       { status: isBadRequest ? 400 : 500 }
     );
   }
@@ -158,7 +158,7 @@ export const DELETE = defineAdminRoute(async (request) => {
   } catch (err) {
     console.error('Delete error:', err);
     return NextResponse.json(
-      { error: 'Delete failed', details: err.message },
+      { error: `Delete failed: ${err.message}` },
       { status: err.message?.includes('Missing') ? 400 : 500 }
     );
   }

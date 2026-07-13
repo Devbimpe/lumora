@@ -3,6 +3,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, X } from "lucide-react";
+import { api, apiErrorMessage } from '@/app/_lib/api-client';
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import StatusMessage from "../components/StatusMessage";
@@ -35,16 +36,11 @@ export default function ModuleManagementPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/admin/modules");
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to load modules");
-      }
-      const data = await response.json();
+      const data = await api.get("/api/admin/modules").json();
       setModules(data);
     } catch (error) {
       console.error("Fetch error:", error);
-      setError(error.message);
+      setError(await apiErrorMessage(error, "Failed to load modules"));
     } finally {
       setLoading(false);
     }
@@ -63,13 +59,7 @@ export default function ModuleManagementPage() {
 
   const performDelete = async (moduleId) => {
     try {
-      const response = await fetch("/api/admin/modules", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: moduleId }),
-      });
-
-      if (!response.ok) throw new Error("Failed to delete module");
+      await api.delete("/api/admin/modules", { json: { id: moduleId } });
 
       await fetchModules();
       setSubmitStatus("Module deleted successfully!");
@@ -88,27 +78,22 @@ export default function ModuleManagementPage() {
 
   const handlePublishToggle = async (id, currentPublished) => {
     try {
-      const response = await fetch("/api/admin/modules", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, published: !currentPublished }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 400) {
-          setPublishError(errorData.error || "Failed to update publish status");
-        } else {
-          setSubmitStatus("Failed to update publish status");
-          setTimeout(() => setSubmitStatus(""), 3000);
-        }
-        return;
+      await api.patch("/api/admin/modules", { json: { id, published: !currentPublished } });
+    } catch (err) {
+      if (err.response?.status === 400) {
+        setPublishError(await apiErrorMessage(err, "Failed to update publish status"));
+      } else {
+        setSubmitStatus("Failed to update publish status");
+        setTimeout(() => setSubmitStatus(""), 3000);
       }
+      return;
+    }
 
+    try {
       await fetchModules();
       setSubmitStatus(!currentPublished ? "Module published!" : "Module unpublished!");
       setTimeout(() => setSubmitStatus(""), 3000);
-    } catch (err) {
+    } catch {
       setSubmitStatus("Failed to update publish status");
       setTimeout(() => setSubmitStatus(""), 3000);
     }
@@ -136,16 +121,7 @@ export default function ModuleManagementPage() {
       // Build the order array - just the moduleIds in their new positions
       const newOrder = reorderedModules.map((m) => m.id);
 
-      const response = await fetch("/api/admin/modules", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: newOrder }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save new order");
-      }
+      await api.patch("/api/admin/modules", { json: { order: newOrder } });
 
       // Refresh modules from the server and exit reorder mode
       await fetchModules();
@@ -194,19 +170,14 @@ export default function ModuleManagementPage() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("/api/admin/modules");
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to load modules");
-        }
-        const data = await response.json();
+        const data = await api.get("/api/admin/modules").json();
         if (isMounted) {
           setModules(data);
         }
       } catch (error) {
         console.error("Fetch error:", error);
         if (isMounted) {
-          setError(error.message);
+          setError(await apiErrorMessage(error, "Failed to load modules"));
         }
       } finally {
         if (isMounted) {

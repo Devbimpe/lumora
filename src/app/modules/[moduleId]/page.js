@@ -4,12 +4,12 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../Module.css';
 import { useAuth } from '@/app/components/AuthProvider';
-import { parseChoices, findFirstIncompleteItem, isDescriptiveKCComplete } from './utils';
+import { api, apiErrorMessage } from '@/app/_lib/api-client';
+import { findFirstIncompleteItem, isKnowledgeCheckComplete } from './utils';
 import ModuleMobileHeader from './components/ModuleMobileHeader';
 import ModuleSidebar from './components/ModuleSidebar';
 import ContentItemView from './components/ContentItemView';
 import KnowledgeCheckView from './components/KnowledgeCheckView';
-import ModuleNavigation from './components/ModuleNavigation';
 
 function ModulePageContent() {
   const { moduleId } = useParams();
@@ -25,7 +25,7 @@ function ModulePageContent() {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [descriptiveAnswers, setDescriptiveAnswers] = useState({});
+  const [openEndedAnswers, setOpenEndedAnswers] = useState({});
   const [aiFeedbackByCheck, setAiFeedbackByCheck] = useState({});
   const [savedKnowledgeCheckSubmissions, setSavedKnowledgeCheckSubmissions] = useState({});
   const [persistedCompletedContent, setPersistedCompletedContent] = useState([]);
@@ -61,12 +61,9 @@ function ModulePageContent() {
     
     async function fetchAllModules() {
       try {
-        const res = await fetch('/api/modules');
-        if (res.ok) {
-          const data = await res.json();
-          setAllModules(data);
-          allModulesFetched.current = true;
-        }
+        const data = await api.get('/api/modules').json();
+        setAllModules(data);
+        allModulesFetched.current = true;
       } catch (err) {
         console.error('Failed to fetch modules:', err);
       }
@@ -82,44 +79,51 @@ function ModulePageContent() {
     async function loadContent() {
       try {
         const moduleNum = moduleId.replace('module', '');
+
+        // Map a raw KC doc (typed by `type`) into the unified `allItems` view model.
+        // `allItems` uses `type` for content-vs-knowledgeCheck, so the MC/open-ended
+        // discriminator is carried as `kcType`.
+        const toKcItem = (check) => ({
+          id: `check-${check.knowledgeCheckId}`,
+          type: 'knowledgeCheck',
+          knowledgeCheckId: check.knowledgeCheckId,
+          kcType: check.type,
+          question: check.question,
+          explanation: check.explanation,
+          contentId: check.contentId,
+          moduleID: check.moduleID,
+          aiGradingEnabled: check.aiGradingEnabled,
+          ...(check.type === 'multiple-choice'
+            ? { choices: Array.isArray(check.choices) ? check.choices : [], correctAnswer: check.correctAnswer }
+            : { rubric: check.rubric, gradingContext: check.gradingContext }),
+        });
         
-        // Fetch content, knowledge checks, and module details in parallel
-        const [contentRes, knowledgeChecksRes, moduleDetailsRes] = await Promise.all([
-          fetch(`/api/content?moduleId=${moduleNum}`),
-          fetch(`/api/knowledge-checks?moduleId=${moduleNum}`),
-          fetch(`/api/Module?moduleId=${moduleNum}`)
+        // Fetch content, knowledge checks, and module details in parallel. Content and
+        // knowledge checks are required for a usable module page; module details are best-effort.
+        const [contentResult, checksResult, moduleResult] = await Promise.allSettled([
+          api.get(`/api/content?moduleId=${moduleNum}`).json(),
+          api.get(`/api/knowledge-checks?moduleId=${moduleNum}`).json(),
+          api.get(`/api/Module?moduleId=${moduleNum}`).json(),
         ]);
-        
-        let contentItems = [];
-        if (contentRes.ok) {
-          try {
-            contentItems = await contentRes.json();
-          } catch (parseError) {
-            console.error('Failed to parse content response:', parseError);
-          }
+
+        if (contentResult.status !== 'fulfilled') {
+          throw new Error('Failed to load module content');
         }
-        
-        let knowledgeChecks = [];
-        if (knowledgeChecksRes.ok) {
-          try {
-            knowledgeChecks = await knowledgeChecksRes.json();
-          } catch (parseError) {
-            console.error('Failed to parse knowledge checks response:', parseError);
-          }
+        if (checksResult.status !== 'fulfilled') {
+          throw new Error('Failed to load knowledge checks');
         }
 
+        const contentItems = contentResult.value;
+        const knowledgeChecks = checksResult.value;
+
         let moduleDetails = null;
-        if (moduleDetailsRes.ok) {
-          try {
-            const moduleRows = await moduleDetailsRes.json();
-            if (Array.isArray(moduleRows) && moduleRows.length > 0) {
-              moduleDetails = {
-                heading: moduleRows[0]?.Heading,
-                subheading: moduleRows[0]?.Subheading
-              };
-            }
-          } catch (parseError) {
-            console.error('Failed to parse module details response:', parseError);
+        if (moduleResult.status === 'fulfilled') {
+          const moduleRows = moduleResult.value;
+          if (Array.isArray(moduleRows) && moduleRows.length > 0) {
+            moduleDetails = {
+              heading: moduleRows[0]?.Heading,
+              subheading: moduleRows[0]?.Subheading
+            };
           }
         }
         
@@ -155,33 +159,13 @@ function ModulePageContent() {
           // Insert knowledge checks associated with this content item
           const associatedChecks = checksByContentId[content.ContentID] || [];
           associatedChecks.forEach(check => {
-            items.push({
-              id: `check-${check.knowledgeCheckId}`,
-              type: 'knowledgeCheck',
-              knowledgeCheckId: check.knowledgeCheckId,
-              question: check.question,
-              choices: parseChoices(check.choices),
-              answer: check.answer?.trim(),
-              explain: check.explain,
-              allowance: check.allowance,
-              contentId: check.contentId
-            });
+            items.push(toKcItem(check));
           });
         });
         
         // Append any knowledge checks not linked to a specific content item
         unassociatedChecks.forEach(check => {
-          items.push({
-            id: `check-${check.knowledgeCheckId}`,
-            type: 'knowledgeCheck',
-            knowledgeCheckId: check.knowledgeCheckId,
-            question: check.question,
-            choices: parseChoices(check.choices),
-            answer: check.answer?.trim(),
-            explain: check.explain,
-            allowance: check.allowance,
-            contentId: check.contentId
-          });
+          items.push(toKcItem(check));
         });
         
         setAllItems(items);
@@ -221,9 +205,7 @@ function ModulePageContent() {
     setPersistedViewedContent([]);
     (async () => {
       try {
-        const res = await fetch(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`);
-        if (!res.ok || cancelled) return;
-        const progress = await res.json();
+        const progress = await api.get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`).json();
         if (!cancelled) {
           setSavedKnowledgeCheckSubmissions(progress?.knowledgeCheckSubmissions || {});
           setPersistedCompletedContent(Array.isArray(progress?.completedContent) ? progress.completedContent : []);
@@ -257,7 +239,8 @@ function ModulePageContent() {
       allItems,
       persistedViewedContentSet,
       persistedCompletedContentSet,
-      savedKnowledgeCheckSubmissions
+      savedKnowledgeCheckSubmissions,
+      selectedAnswers
     );
     const target = firstIncomplete || allItems[allItems.length - 1];
     if (!target) return;
@@ -278,7 +261,7 @@ function ModulePageContent() {
 
   useEffect(() => {
     setSelectedAnswers({});
-    setDescriptiveAnswers({});
+    setOpenEndedAnswers({});
     setAiFeedbackByCheck({});
   }, [moduleId]);
 
@@ -291,16 +274,16 @@ function ModulePageContent() {
       let changed = false;
       for (const item of allItems) {
         if (item.type !== 'knowledgeCheck') continue;
-        if (!item.choices || item.choices.length === 0) continue;
+        if (item.kcType !== 'multiple-choice') continue;
         const id = item.knowledgeCheckId;
         if (prev[id] !== undefined) continue;
-        const letter = item.answer?.trim();
-        if (!letter) continue;
+        const idx = item.correctAnswer;
+        if (typeof idx !== 'number') continue;
         const done =
           persistedCompletedContentSet.has(`kc-${id}`) ||
           persistedCompletedContentSet.has(String(id));
         if (done) {
-          next[id] = letter;
+          next[id] = idx;
           changed = true;
         }
       }
@@ -337,22 +320,18 @@ function ModulePageContent() {
       if (item?.type !== 'content' || item.contentId == null) return;
       const contentId = item.contentId;
       
-      const res = await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await api.post('/api/progress', {
+        json: {
           userId: user.uid,
           moduleId: moduleId.replace('module', ''),
           action: 'view',
           contentId: contentId
-        })
+        }
       });
-      if (res.ok) {
-        const idStr = String(contentId);
-        setPersistedViewedContent((prev) =>
-          prev.some((id) => String(id) === idStr) ? prev : [...prev, contentId]
-        );
-      }
+      const idStr = String(contentId);
+      setPersistedViewedContent((prev) =>
+        prev.some((id) => String(id) === idStr) ? prev : [...prev, contentId]
+      );
     } catch (error) {
       console.error('Failed to track item view:', error);
       trackedViews.current.delete(trackingKey);
@@ -373,16 +352,21 @@ function ModulePageContent() {
     completedItems.current.add(completionKey);
     
     try {
-      await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await api.post('/api/progress', {
+        json: {
           userId: user.uid,
           moduleId: moduleId.replace('module', ''),
           action: 'complete',
           contentId: `kc-${knowledgeCheckId}`
-        })
+        }
       });
+      const kcId = `kc-${knowledgeCheckId}`;
+      setPersistedCompletedContent((prev) =>
+        prev.some((id) => String(id) === kcId) ? prev : [...prev, kcId]
+      );
+      setPersistedViewedContent((prev) =>
+        prev.some((id) => String(id) === kcId) ? prev : [...prev, kcId]
+      );
     } catch (error) {
       console.error('Failed to track knowledge check completion:', error);
       completedItems.current.delete(completionKey);
@@ -400,14 +384,12 @@ function ModulePageContent() {
     completedModules.current.add(moduleId);
     
     try {
-      await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await api.post('/api/progress', {
+        json: {
           userId: user.uid,
           moduleId: moduleId.replace('module', ''),
           action: 'completeModule'
-        })
+        }
       });
     } catch (error) {
       console.error('Failed to track module completion:', error);
@@ -422,24 +404,24 @@ function ModulePageContent() {
     // Don't track here - let the useEffect handle it to avoid duplicates
   };
 
-  const handleOptionClick = useCallback((knowledgeCheckId, letter, correctAnswer) => {
+  const handleOptionClick = useCallback((knowledgeCheckId, index, correctIndex) => {
     setSelectedAnswers(prev => ({
       ...prev,
-      [knowledgeCheckId]: letter
+      [knowledgeCheckId]: index
     }));
     
     // Track completion if answer is correct
-    if (letter === correctAnswer && user) {
+    if (index === correctIndex && user) {
       trackKnowledgeCheckCompletion(knowledgeCheckId);
     }
   }, [user, trackKnowledgeCheckCompletion]);
 
-  const handleDescriptiveSubmit = useCallback(async (knowledgeCheckId, answerText) => {
+  const handleOpenEndedSubmit = useCallback(async (knowledgeCheckId, answerText) => {
     setSelectedAnswers(prev => ({
       ...prev,
       [knowledgeCheckId]: '__submitted__'
     }));
-    setDescriptiveAnswers(prev => ({
+    setOpenEndedAnswers(prev => ({
       ...prev,
       [knowledgeCheckId]: answerText
     }));
@@ -457,6 +439,45 @@ function ModulePageContent() {
       return;
     }
 
+    // Non-AI-graded: skip the grader, save answer-only, show explanation.
+    if (!item.aiGradingEnabled) {
+      setAiFeedbackByCheck(prev => ({
+        ...prev,
+        [knowledgeCheckId]: {
+          loading: false,
+          error: null,
+          aiGradingEnabled: false,
+        }
+      }));
+
+      if (user) {
+        try {
+          await api.post('/api/progress', {
+            json: {
+              userId: user.uid,
+              moduleId: moduleId.replace('module', ''),
+              action: 'saveKnowledgeCheckFeedback',
+              contentId: knowledgeCheckId,
+              userAnswer: answerText,
+              aiGradingEnabled: false,
+            }
+          });
+          setSavedKnowledgeCheckSubmissions(prev => ({
+            ...prev,
+            [knowledgeCheckId]: {
+              userAnswer: answerText,
+              grade: null,
+              feedback: null,
+              aiGradingEnabled: false,
+            }
+          }));
+        } catch (saveErr) {
+          console.error('Failed to save knowledge check submission to progress:', saveErr);
+        }
+      }
+      return;
+    }
+
     // Call AI grading endpoint with question, user answer, sample answer, and explanation
     try {
       setAiFeedbackByCheck(prev => ({
@@ -468,24 +489,18 @@ function ModulePageContent() {
         }
       }));
 
-      const response = await fetch('/api/grade-knowledge-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: item.question,
+      const data = await api.post('/api/grade-knowledge-check', {
+        json: {
+          moduleID: item.moduleID,
+          knowledgeCheckId: item.knowledgeCheckId,
           userAnswer: answerText,
-          // Backward-compatible: older descriptive checks stored sample answer in `explain`.
-          sampleAnswer: item.answer || item.explain || '',
-          explanation: item.explain || ''
-        })
-      });
+        }
+      }).json();
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to grade knowledge check');
-      }
-
-      const data = await response.json();
+      // Display/storage uses a 0-100 percentage for now (matches the existing feedback
+      // card and progress dashboard); the grader emits a raw 0..maxGrade integer, so
+      // normalize here. maxGrade is also stored so a future switch to raw scores is easy.
+      const pct = data.maxGrade > 0 ? Math.round((data.score / data.maxGrade) * 100) : 0;
 
       setAiFeedbackByCheck(prev => ({
         ...prev,
@@ -493,33 +508,35 @@ function ModulePageContent() {
           ...(prev[knowledgeCheckId] || {}),
           loading: false,
           error: null,
-          Grade: data.Grade ?? null,
-          Feedback: data.Feedback ?? ''
+          Grade: pct,
+          Feedback: data.feedback,
+          maxGrade: data.maxGrade,
         }
       }));
 
       // Save user answer and AI feedback to module progress (overwrites on reattempt)
       if (user) {
         try {
-          await fetch('/api/progress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+          await api.post('/api/progress', {
+            json: {
               userId: user.uid,
               moduleId: moduleId.replace('module', ''),
               action: 'saveKnowledgeCheckFeedback',
               contentId: knowledgeCheckId,
               userAnswer: answerText,
-              grade: data.Grade ?? null,
-              feedback: data.Feedback ?? ''
-            })
+              grade: pct,
+              feedback: data.feedback,
+              maxGrade: data.maxGrade,
+              model: data.model,
+            }
           });
           setSavedKnowledgeCheckSubmissions(prev => ({
             ...prev,
             [knowledgeCheckId]: {
               userAnswer: answerText,
-              grade: data.Grade ?? null,
-              feedback: data.Feedback ?? ''
+              grade: pct,
+              feedback: data.feedback,
+              maxGrade: data.maxGrade,
             }
           }));
         } catch (saveErr) {
@@ -528,12 +545,13 @@ function ModulePageContent() {
       }
     } catch (err) {
       console.error('Failed to grade knowledge check:', err);
+      const message = await apiErrorMessage(err, 'Unable to retrieve AI feedback right now.');
       setAiFeedbackByCheck(prev => ({
         ...prev,
         [knowledgeCheckId]: {
           ...(prev[knowledgeCheckId] || {}),
           loading: false,
-          error: 'Unable to retrieve AI feedback right now.',
+          error: message,
           Grade: null,
           Feedback: ''
         }
@@ -609,8 +627,27 @@ function ModulePageContent() {
   const currentIndex = allItems.findIndex(item => item.id === currentItem.id);
   const isLastItem = currentIndex === allItems.length - 1;
   const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
-  const publishedModules = allModules.filter(m => m.published);
-  const nextModule = publishedModules.find(m => m.ModuleID > currentModuleIdNum);
+
+  const publishedModules = [...allModules]
+    .filter(m => m.published === true || m.Published === true)
+    .sort((a, b) => {
+    const aOrder = Number.isFinite(Number(a.sortOrder))
+      ? Number(a.sortOrder)
+      : Number(a.ModuleID ?? a.moduleId ?? 0);
+
+    const bOrder = Number.isFinite(Number(b.sortOrder))
+      ? Number(b.sortOrder)
+      : Number(b.ModuleID ?? b.moduleId ?? 0);
+
+    return aOrder - bOrder;
+  });
+
+  const currentModuleIndex = publishedModules.findIndex(
+    m => Number(m.ModuleID ?? m.moduleId) === currentModuleIdNum
+  );  
+  const nextModule = currentModuleIndex >= 0
+  ? publishedModules[currentModuleIndex + 1]
+  : null;
 
   const isKnowledgeCheck = currentItem.type === 'knowledgeCheck';
   const isDescriptive = isKnowledgeCheck && (!currentItem.choices || currentItem.choices.length === 0);
@@ -646,6 +683,20 @@ function ModulePageContent() {
   });
   const showModuleComplete = isLastItem && isLastItemDone && allKCsCompleted;
 
+  const handleGoToNextModule = async () => {
+    if (currentItem.type === 'content') {
+      await trackModuleCompletion();
+    }
+
+    if (!nextModule) {
+      router.push('/training-module');
+      return;
+    }
+
+    const nextModuleId = nextModule.ModuleID ?? nextModule.moduleId;
+    router.push(`/modules/module${nextModuleId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex">
       <ModuleMobileHeader
@@ -668,6 +719,7 @@ function ModulePageContent() {
         moduleHeading={moduleHeading}
         moduleSubheading={moduleSubheading}
         selectedAnswers={selectedAnswers}
+        savedKnowledgeCheckSubmissions={savedKnowledgeCheckSubmissions}
         persistedCompletedContentSet={persistedCompletedContentSet}
         persistedViewedContentSet={persistedViewedContentSet}
         sidebarOpen={sidebarOpen}
@@ -701,64 +753,27 @@ function ModulePageContent() {
               <KnowledgeCheckView
                 item={currentItem}
                 selectedAnswers={selectedAnswers}
-                descriptiveAnswers={descriptiveAnswers}
+                openEndedAnswers={openEndedAnswers}
                 savedKnowledgeCheckSubmissions={savedKnowledgeCheckSubmissions}
                 aiFeedbackByCheck={aiFeedbackByCheck}
                 submittedViewAnimate={submittedViewAnimate}
                 onOptionClick={handleOptionClick}
-                onDescriptiveAnswerChange={(id, value) => setDescriptiveAnswers(prev => ({ ...prev, [id]: value }))}
-                onDescriptiveSubmit={handleDescriptiveSubmit}
+                onOpenEndedAnswerChange={(id, value) => setOpenEndedAnswers(prev => ({ ...prev, [id]: value }))}
+                onOpenEndedSubmit={handleOpenEndedSubmit}
               />
             )}
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center gap-2 sm:gap-4">
-              <button
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                  currentIndex === 0
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                <span className="hidden sm:inline">← Previous</span>
-                <span className="sm:hidden">←</span>
-              </button>
-              
-              <span className="text-xs sm:text-sm text-gray-600 font-medium">
-                {currentIndex + 1} of {allItems.length}
-              </span>
-              
-              {isLastItem ? (
-                <button
-                  onClick={async () => {
-                    if (currentItem.type === 'content') {
-                      await trackModuleCompletion();
-                    }
-                    setTimeout(() => {
-                      router.push(`/user-progress?modId=${moduleId.replace('module', '')}`);
-                    }, 1000)
-                  }}
-                  className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
-                >
-                  <span className="hidden sm:inline">View results</span>
-                  <span className="sm:hidden">View results</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
-                >
-                  <span className="hidden sm:inline">Next →</span>
-                  <span className="sm:hidden">→</span>
-                </button>
-              )}
-            </div>
-
-          </div>
+          <ModuleNavigation
+            currentIndex={currentIndex}
+            totalItems={allItems.length}
+            showModuleComplete={showModuleComplete}
+            hasNextPublishedModule={!!nextModule}
+            onPrev={handlePrev}
+            onNext={handleNext}
+            onGoToNextModule={handleGoToNextModule}
+          />
         </div>
       </main>
     </div>

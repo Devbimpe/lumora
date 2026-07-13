@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
-// import db from "@/db/db";
-// TODO: fetch from server instead
+import { useAuth } from "@/app/components/AuthProvider";
+import { api } from "@/app/_lib/api-client";
 
 // This JS object is to represent an ENUM for module status filters
 const moduleStatusENUM = {
@@ -21,6 +21,7 @@ const searchTopicsENUM = {
 
 
 export default function ModuleProgressPage() {
+  const { user, loading: authLoading } = useAuth();
   const [progress, setProgress] = useState([]);
   const [modules, setModules] = useState([]);
   const [modulesDropdownOptions, setModulesDropdownOptions] = useState([]);
@@ -35,40 +36,56 @@ export default function ModuleProgressPage() {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchProgress = async () => {
-      try {
-        const progressData = await db.getAllModuleProgressWithUsers();
-        const modulesData = await db.getAllModules();
-        const formattedModules = modulesData.reduce((acc, module) => {
-          acc[module.moduleId] = module.heading;
-          return acc;
-        }, {});
+    if (authLoading) {
+      return;
+    }
 
-        if (isMounted) {
-          setModules(formattedModules);
-          setModulesDropdownOptions(modulesData.map(module => ({ value: module.moduleId, label: module.heading })));
-          setModulesDropdownOptions(prev => [{ value: null, label: "All Modules" }, ...prev]);
-        }
-        if (isMounted) {
-          setProgress(progressData);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error("Error fetching db information:", err);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+  const fetchProgress = async () => {
+    try {
+      
+      const data = await api.get('/api/admin/module-progress').json();
+
+      const progressData = data.progress || [];
+      const modulesData = data.modules || [];
+
+      const formattedModules = modulesData.reduce((acc, module) => {
+        acc[module.moduleId] = module.heading;
+        return acc;
+      }, {});
+
+      if (isMounted) {
+        setModules(formattedModules);
+        setModulesDropdownOptions([
+          { value: null, label: "All Modules" },
+          ...modulesData.map(module => ({
+            value: module.moduleId,
+            label: module.heading
+          }))
+        ]);
+        setProgress(progressData);
       }
-    };
+    } catch (err) {
+      if (isMounted) {
+        console.error("Error fetching module progress:", err);
+      }
+    } finally {
+      if (isMounted) {
+        setLoading(false);
+      }
+    }
+  };
 
-    fetchProgress();
+  fetchProgress();
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  return () => {
+    isMounted = false;
+  };
+}, [authLoading, user]);
 
   //Filter once for progress
   //then filter again for search and search topic

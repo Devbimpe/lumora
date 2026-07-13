@@ -1,26 +1,24 @@
 'use client';
 
 import MultipleChoiceOptions from './MultipleChoiceOptions';
-import DescriptiveKnowledgeCheck from './DescriptiveKnowledgeCheck';
+import OpenEndedKnowledgeCheck from './OpenEndedKnowledgeCheck';
 import ExplanationCard from './ExplanationCard';
 
 export default function KnowledgeCheckView({
   item,
   selectedAnswers,
-  descriptiveAnswers,
+  openEndedAnswers,
   savedKnowledgeCheckSubmissions,
   aiFeedbackByCheck,
   submittedViewAnimate,
   onOptionClick,
-  onDescriptiveAnswerChange,
-  onDescriptiveSubmit,
+  onOpenEndedAnswerChange,
+  onOpenEndedSubmit,
 }) {
   const knowledgeCheckId = item.knowledgeCheckId;
-  const hasChoices = item.choices && item.choices.length > 0;
-  const isDescriptive = !hasChoices;
-  const choices = hasChoices ? item.choices : [];
+  const isMultipleChoice = item.kcType === 'multiple-choice';
+  const isSubmitted = selectedAnswers[knowledgeCheckId] === '__submitted__';
   const selectedAnswer = selectedAnswers[knowledgeCheckId];
-  const isSubmitted = selectedAnswer === '__submitted__';
   const hasAnswered = selectedAnswer !== undefined;
 
   return (
@@ -29,43 +27,35 @@ export default function KnowledgeCheckView({
         <h3 className="text-xl font-semibold text-gray-800 mb-4">
           {item.question || 'Question not available'}
         </h3>
-        {item.allowance && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
-            <p className="text-sm text-blue-800 font-medium">
-              💬 {item.allowance}
-            </p>
-          </div>
-        )}
       </div>
 
-      {hasChoices ? (
+      {isMultipleChoice ? (
         <MultipleChoiceOptions
-          choices={choices}
-          selectedAnswer={selectedAnswer}
-          correctAnswer={item.answer}
-          onSelect={(letter) => onOptionClick(knowledgeCheckId, letter, item.answer)}
+          choices={item.choices}
+          selectedIndex={typeof selectedAnswer === 'number' ? selectedAnswer : undefined}
+          correctIndex={item.correctAnswer}
+          onSelect={(index) => onOptionClick(knowledgeCheckId, index, item.correctAnswer)}
         />
-      ) : isDescriptive ? (
+      ) : (
         <div className="space-y-4">
-          <DescriptiveKnowledgeCheck
+          <OpenEndedKnowledgeCheck
             knowledgeCheckId={knowledgeCheckId}
             isSubmitted={isSubmitted}
-            descriptiveAnswer={descriptiveAnswers[knowledgeCheckId]}
+            openEndedAnswer={openEndedAnswers[knowledgeCheckId]}
             savedSubmission={savedKnowledgeCheckSubmissions[knowledgeCheckId]}
             aiFeedback={aiFeedbackByCheck[knowledgeCheckId]}
+            explanation={item.explanation}
+            aiGradingEnabled={item.aiGradingEnabled}
             submittedViewAnimate={submittedViewAnimate}
-            onAnswerChange={(value) => onDescriptiveAnswerChange(knowledgeCheckId, value)}
-            onSubmit={(answerText) => onDescriptiveSubmit(knowledgeCheckId, answerText)}
+            onAnswerChange={(value) => onOpenEndedAnswerChange(knowledgeCheckId, value)}
+            onSubmit={(answerText) => onOpenEndedSubmit(knowledgeCheckId, answerText)}
           />
-        </div>
-      ) : (
-        <div className="text-gray-500 text-center p-4">
-          <p>No choices available for this question.</p>
         </div>
       )}
 
-      {hasAnswered && item.explain && (
-        <ExplanationCard explain={item.explain} />
+      {/* Explanation is MC-only (student-facing reveal). Open-ended feedback comes from the AI grader. */}
+      {hasAnswered && isMultipleChoice && item.explanation && (
+        <ExplanationCard explanation={item.explanation} />
       )}
     </div>
   );
