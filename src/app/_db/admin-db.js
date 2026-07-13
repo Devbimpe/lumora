@@ -20,10 +20,10 @@ if (!getApps().length) {
     credential: firebaseAdminCert({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
     })
   });
-  await performMigration();
+ // await performMigration();
 }
 
 const db = getFirestore();
@@ -242,34 +242,49 @@ export async function deleteUser(userId) {
  */
 export async function getAllModules() {
   const modulesRef = db.collection(COLLECTIONS.MODULES);
-  const q = modulesRef.orderBy('moduleId', 'asc');
-  const querySnapshot = await q.get();
+  const querySnapshot = await modulesRef.get();
 
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  return querySnapshot.docs
+    .map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    .sort((a, b) => {
+      const aOrder = Number.isFinite(Number(a.sortOrder))
+        ? Number(a.sortOrder)
+        : Number(a.moduleId ?? 0);
+
+      const bOrder = Number.isFinite(Number(b.sortOrder))
+        ? Number(b.sortOrder)
+        : Number(b.moduleId ?? 0);
+
+      return aOrder - bOrder || Number(a.moduleId ?? 0) - Number(b.moduleId ?? 0);
+    });
 }
 
 export async function getAllPublishedModules() {
   const modulesRef = db.collection(COLLECTIONS.MODULES);
 
   try {
-    const q = modulesRef.where('published', '==', true).orderBy('moduleId', 'asc');
+    const q = modulesRef.where('published', '==', true);
     const querySnapshot = await q.get();
 
-    let results = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    return querySnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .sort((a, b) => {
+        const aOrder = Number.isFinite(Number(a.sortOrder))
+          ? Number(a.sortOrder)
+          : Number(a.moduleId ?? 0);
 
-    // results.sort((a, b) => {
-    //   const aId = Number(a?.moduleId ?? 0);
-    //   const bId = Number(b?.moduleId ?? 0);
-    //   return aId - bId;
-    // });
+        const bOrder = Number.isFinite(Number(b.sortOrder))
+          ? Number(b.sortOrder)
+          : Number(b.moduleId ?? 0);
 
-    return results;
+        return aOrder - bOrder || Number(a.moduleId ?? 0) - Number(b.moduleId ?? 0);
+      });
   } catch (error) {
     throw new Error(`Error fetching published modules: ${error.message}`);
   }
@@ -297,21 +312,29 @@ export async function getModuleById(moduleId) {
 export async function createModule(moduleData) {
   const modulesRef = db.collection(COLLECTIONS.MODULES);
 
-  // Get the highest moduleId
   const allModules = await getAllModules();
+
   const maxModuleId = allModules.length > 0
-    ? Math.max(...allModules.map(m => m.moduleId || 0))
+    ? Math.max(...allModules.map(m => Number(m.moduleId) || 0))
     : 0;
 
+  const maxSortOrder = allModules.length > 0
+    ? Math.max(...allModules.map(m => Number(m.sortOrder ?? m.moduleId) || 0))
+    : 0;
+
+  const newModuleId = maxModuleId + 1;
+  const newSortOrder = maxSortOrder + 1;
+
   const docRef = await modulesRef.add({
-    moduleId: maxModuleId + 1,
+    moduleId: newModuleId,
+    sortOrder: newSortOrder,
     heading: moduleData.heading,
     subheading: moduleData.subheading || moduleData.subHeading,
     createdAt: Timestamp.now(),
     faviconURL: moduleData.faviconURL || null
   });
 
-  return { id: docRef.id, moduleId: maxModuleId + 1 };
+  return { id: docRef.id, moduleId: newModuleId, sortOrder: newSortOrder };
 }
 
 /**
@@ -418,36 +441,45 @@ export async function deleteModule(moduleId) {
   // moduleId must stay stable so existing user progress does not get corrupted.
 }
 
+
+
 /**
  * Reorder modules based on a new ordering provided by the admin.
  * Takes an array of moduleIds in the desired new order.
  * Updates only sortOrder so moduleId stays stable.
  */
 export async function reorderModules(newOrder) {
-  if (!Array.isArray(newOrder)) throw new Error('Invalid module order');
-  
-  const batch = db.batch();
+  if (!Array.isArray(newOrder)) {
+    throw new Error('Invalid module order');
+  }
+
   const modulesRef = db.collection(COLLECTIONS.MODULES);
+  const batch = db.batch();
 
   for (let index = 0; index < newOrder.length; index++) {
-    const order = newOrder[index];
-    const q = modulesRef.where('moduleId', '==', parseInt(order));
-    const querySnapshot = await q.get();
+    const moduleId = parseInt(newOrder[index]);
 
-    if (querySnapshot.empty) {
-      throw new Error(`Module not found: ${order}`);
+    if (Number.isNaN(moduleId)) {
+      throw new Error(`Invalid moduleId in reorder list: ${newOrder[index]}`);
     }
 
-    const moduleDoc = querySnapshot.docs[0];
-    
-    // Update sortOrder instead of mutating the static moduleId
-    batch.update(moduleDoc.ref, { 
+    const moduleQuery = modulesRef.where('moduleId', '==', moduleId).limit(1);
+    const moduleSnapshot = await moduleQuery.get();
+
+    if (moduleSnapshot.empty) {
+      throw new Error(`Module not found: ${moduleId}`);
+    }
+
+    const moduleDoc = moduleSnapshot.docs[0];
+
+    batch.update(moduleDoc.ref, {
       sortOrder: index + 1,
       updatedAt: Timestamp.now()
     });
   }
-  
+
   await batch.commit();
+
   return { success: true };
 }
 
