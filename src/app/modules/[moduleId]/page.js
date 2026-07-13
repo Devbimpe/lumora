@@ -6,6 +6,7 @@ import '../Module.css';
 import { useAuth } from '@/app/components/AuthProvider';
 import { api, apiErrorMessage } from '@/app/_lib/api-client';
 import { findFirstIncompleteItem } from './utils';
+import { compareModulesBySortOrder } from '@/app/_db/common';
 import ModuleMobileHeader from './components/ModuleMobileHeader';
 import ModuleSidebar from './components/ModuleSidebar';
 import ContentItemView from './components/ContentItemView';
@@ -52,21 +53,15 @@ function ModulePageContent() {
   const completedItems = useRef(new Set());
   const completedModules = useRef(new Set());
 
-  const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
   const { nextModule, prevModule } = useMemo(() => {
-    const sorted = [...allModules].sort((a, b) => {
-      const aId = Number(a.ModuleID ?? a.moduleId ?? 0);
-      const bId = Number(b.ModuleID ?? b.moduleId ?? 0);
-      const aOrder = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : aId;
-      const bOrder = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : bId;
-      return aOrder - bOrder || aId - bId;
-    });
+    const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
+    const sorted = [...allModules].sort(compareModulesBySortOrder);
     const idx = sorted.findIndex(m => Number(m.ModuleID ?? m.moduleId) === currentModuleIdNum);
     return {
       nextModule: idx >= 0 ? sorted[idx + 1] : null,
       prevModule: idx >= 0 ? sorted[idx - 1] : null,
     };
-  }, [allModules, currentModuleIdNum]);
+  }, [allModules, moduleId]);
 
   // Get current item ID from URL
   const currentItemId = searchParams.get('item') || searchParams.get('page') || null;

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from '@/app/components/AuthProvider';
 import { api } from '@/app/_lib/api-client';
+import { compareModulesBySortOrder } from '@/app/_db/common';
 
 function UserProgressContent() {
   const { user } = useAuth();
@@ -24,13 +25,7 @@ function UserProgressContent() {
   const fetchModules = async () => {
     try {
       const data = await api.get("/api/modules").json();
-      const sorted = [...data].sort((a, b) => {
-        const aId = Number(a.ModuleID ?? a.moduleId ?? 0);
-        const bId = Number(b.ModuleID ?? b.moduleId ?? 0);
-        const aOrder = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : aId;
-        const bOrder = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : bId;
-        return aOrder - bOrder || aId - bId;
-      });
+      const sorted = [...data].sort(compareModulesBySortOrder);
       setModules(sorted);
       return sorted;
     } catch (err) {
@@ -113,11 +108,16 @@ const modulesMap = modules.reduce((acc, mod) => {
 }, {});
 
 // Add heading to module progress
-const enrichedProgress = moduleProgress.map((p) => ({
-  ...p,
-  Heading: modulesMap[p.moduleId]?.Heading ?? "Untitled Module",
-  percentage: p.isCompleted ? 100 : p.percentage,
-}));
+const enrichedProgress = moduleProgress.map((p) => {
+  const meta = modulesMap[p.moduleId];
+  return {
+    ...p,
+    ModuleID: p.ModuleID ?? meta?.ModuleID ?? p.moduleId,
+    sortOrder: p.sortOrder ?? meta?.sortOrder,
+    Heading: meta?.Heading ?? "Untitled Module",
+    percentage: p.isCompleted ? 100 : p.percentage,
+  };
+});
 
 const progressModuleIds = new Set(moduleProgress.map((p) => p.moduleId));
 
@@ -125,25 +125,13 @@ const notStartedModules = modules
   .filter((mod) => !progressModuleIds.has(mod.ModuleID))
   .map((mod) => ({ ...mod, percentage: 0, isCompleted: false }));
 
-const bySortOrder = (a, b) => {
-  const aId = Number(a.ModuleID ?? a.moduleId ?? 0);
-  const bId = Number(b.ModuleID ?? b.moduleId ?? 0);
-  const aSort = Number.isFinite(Number(a.sortOrder))
-    ? Number(a.sortOrder)
-    : Number(modulesMap[aId]?.sortOrder ?? aId);
-  const bSort = Number.isFinite(Number(b.sortOrder))
-    ? Number(b.sortOrder)
-    : Number(modulesMap[bId]?.sortOrder ?? bId);
-  return aSort - bSort || aId - bId;
-};
-
 const baseList =
   (activeFilter === "not_started"
     ? notStartedModules
     : activeFilter
     ? enrichedProgress
     : [...enrichedProgress, ...notStartedModules]
-  ).sort(bySortOrder);
+  ).sort(compareModulesBySortOrder);
 
 const filteredModules = baseList.filter((mod) => {
   const matchesSearch = (mod.Heading?.toLowerCase() ?? "").includes(
