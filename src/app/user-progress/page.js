@@ -24,9 +24,15 @@ function UserProgressContent() {
   const fetchModules = async () => {
     try {
       const data = await api.get("/api/modules").json();
-      console.log("Modules", data);
-      setModules(data);
-      return data;
+      const sorted = [...data].sort((a, b) => {
+        const aId = Number(a.ModuleID ?? a.moduleId ?? 0);
+        const bId = Number(b.ModuleID ?? b.moduleId ?? 0);
+        const aOrder = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : aId;
+        const bOrder = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : bId;
+        return aOrder - bOrder || aId - bId;
+      });
+      setModules(sorted);
+      return sorted;
     } catch (err) {
       console.error("Failed to fetch modules:", err);
       return [];
@@ -119,12 +125,25 @@ const notStartedModules = modules
   .filter((mod) => !progressModuleIds.has(mod.ModuleID))
   .map((mod) => ({ ...mod, percentage: 0, isCompleted: false }));
 
+const bySortOrder = (a, b) => {
+  const aId = Number(a.ModuleID ?? a.moduleId ?? 0);
+  const bId = Number(b.ModuleID ?? b.moduleId ?? 0);
+  const aSort = Number.isFinite(Number(a.sortOrder))
+    ? Number(a.sortOrder)
+    : Number(modulesMap[aId]?.sortOrder ?? aId);
+  const bSort = Number.isFinite(Number(b.sortOrder))
+    ? Number(b.sortOrder)
+    : Number(modulesMap[bId]?.sortOrder ?? bId);
+  return aSort - bSort || aId - bId;
+};
+
 const baseList =
-  activeFilter === "not_started"
+  (activeFilter === "not_started"
     ? notStartedModules
     : activeFilter
     ? enrichedProgress
-    : [...enrichedProgress, ...notStartedModules];
+    : [...enrichedProgress, ...notStartedModules]
+  ).sort(bySortOrder);
 
 const filteredModules = baseList.filter((mod) => {
   const matchesSearch = (mod.Heading?.toLowerCase() ?? "").includes(
