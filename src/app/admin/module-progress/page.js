@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import { useAuth } from "@/app/components/AuthProvider";
+import { api } from "@/app/_lib/api-client";
 
 // This JS object is to represent an ENUM for module status filters
 const moduleStatusENUM = {
@@ -47,20 +48,7 @@ export default function ModuleProgressPage() {
   const fetchProgress = async () => {
     try {
       
-      const token = await user.account.getIdToken();
-
-      const res = await fetch('/api/admin/module-progress', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-      },
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to fetch module progress: ${res.status} ${errorText}`);
-      }
-
-      const data = await res.json();
+      const data = await api.get('/api/admin/module-progress').json();
 
       const progressData = data.progress || [];
       const modulesData = data.modules || [];
