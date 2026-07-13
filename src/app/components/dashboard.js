@@ -300,7 +300,7 @@ export default function Dashboard() {
                 {progressPercentage}%
               </span>
             </div>
-            <div className="relative w-full bg-green-100 rounded-full h-4 sm:h-6 overflow-hidden shadow-innerrelative w-full h-3 sm:h-4 bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
+            <div className="relative w-full bg-green-100 rounded-full h-4 sm:h-6 overflow-hidden shadow-inner relative w-full h-3 sm:h-4 bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
               <div
                 className="h-full bg-green-500 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${progressPercentage}%` }}
