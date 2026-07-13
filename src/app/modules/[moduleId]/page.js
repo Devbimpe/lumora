@@ -738,9 +738,7 @@ function ModulePageContent() {
               {isLastItem ? (
                 <button
                   onClick={async () => {
-                    if (currentItem.type === 'content') {
-                      await trackModuleCompletion();
-                    }
+                    await trackModuleCompletion();
                     setTimeout(() => {
                       router.push(`/user-progress?modId=${moduleId.replace('module', '')}`);
                     }, 1000)
