@@ -95,7 +95,7 @@ const TrainingModule = () => {
               title={module.title}
               subtitle={module.subtitle}
               bgColor={module.bgColor}
-              borderColor="border-white"
+              borderColor="border-gray-100"
               href={module.href}
               icon={module.icon}
             />
