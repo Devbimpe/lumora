@@ -414,60 +414,41 @@ export async function deleteModule(moduleId) {
     }
   }
 
-  // Renumber remaining modules so there are no gaps
-  await reindexModules(moduleId);
-}
-
-/**
- * Renumber modules to remove gaps after deletion
- * Example: If modules are 1, 3, 4 -> becomes 1, 2, 3
- */
-async function reindexModules(moduleId) {
-  let deletedMod = moduleId
-  const batch = db.batch();
-  const modulesRef = db.collection(COLLECTIONS.MODULES);
-  const snapshot = await modulesRef.orderBy("moduleId").get();
-
-  snapshot.forEach(doc => {
-    let docId = doc.data().moduleId;
-    if(docId > deletedMod){
-      docId--;
-      batch.update(doc.ref, { moduleId: docId });
-    }
-  });
-
-  await batch.commit();
+  // Do not renumber modules after delete.
+  // moduleId must stay stable so existing user progress does not get corrupted.
 }
 
 /**
  * Reorder modules based on a new ordering provided by the admin.
  * Takes an array of moduleIds in the desired new order.
- * Example: [3, 1, 2] means module 3 goes first, module 1 second, module 2 third.
- *
- * User progress doc IDs are `${userId}_${moduleId}`. Renaming them in a single batch
- * causes collisions when IDs permute (e.g. user_1 and user_2 swap targets): one write
- * overwrites or deletes another. We use a two-phase staging pass, then update modules,
- * content, and knowledge checks in one batch.
+ * Updates only sortOrder so moduleId stays stable.
  */
 export async function reorderModules(newOrder) {
-  let count = 1;
+  if (!Array.isArray(newOrder)) throw new Error('Invalid module order');
+  
   const batch = db.batch();
   const modulesRef = db.collection(COLLECTIONS.MODULES);
 
-  for (const order of newOrder){
+  for (let index = 0; index < newOrder.length; index++) {
+    const order = newOrder[index];
     const q = modulesRef.where('moduleId', '==', parseInt(order));
     const querySnapshot = await q.get();
 
     if (querySnapshot.empty) {
-      throw new Error('Module not found');
+      throw new Error(`Module not found: ${order}`);
     }
 
     const moduleDoc = querySnapshot.docs[0];
-    batch.update(moduleDoc.ref, { moduleId: count });
-    count++;
+    
+    // Update sortOrder instead of mutating the static moduleId
+    batch.update(moduleDoc.ref, { 
+      sortOrder: index + 1,
+      updatedAt: Timestamp.now()
+    });
   }
+  
   await batch.commit();
-
+  return { success: true };
 }
 
 /**
