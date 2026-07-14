@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from '@/app/components/AuthProvider';
 import { api } from '@/app/_lib/api-client';
+import { compareModulesBySortOrder } from '@/app/_db/common';
 
 function UserProgressContent() {
   const { user } = useAuth();
@@ -24,9 +25,9 @@ function UserProgressContent() {
   const fetchModules = async () => {
     try {
       const data = await api.get("/api/modules").json();
-      console.log("Modules", data);
-      setModules(data);
-      return data;
+      const sorted = [...data].sort(compareModulesBySortOrder);
+      setModules(sorted);
+      return sorted;
     } catch (err) {
       console.error("Failed to fetch modules:", err);
       return [];
@@ -107,11 +108,16 @@ const modulesMap = modules.reduce((acc, mod) => {
 }, {});
 
 // Add heading to module progress
-const enrichedProgress = moduleProgress.map((p) => ({
-  ...p,
-  Heading: modulesMap[p.moduleId]?.Heading ?? "Untitled Module",
-  percentage: p.isCompleted ? 100 : p.percentage,
-}));
+const enrichedProgress = moduleProgress.map((p) => {
+  const meta = modulesMap[p.moduleId];
+  return {
+    ...p,
+    ModuleID: p.ModuleID ?? meta?.ModuleID ?? p.moduleId,
+    sortOrder: p.sortOrder ?? meta?.sortOrder,
+    Heading: meta?.Heading ?? "Untitled Module",
+    percentage: p.isCompleted ? 100 : p.percentage,
+  };
+});
 
 const progressModuleIds = new Set(moduleProgress.map((p) => p.moduleId));
 
@@ -120,11 +126,12 @@ const notStartedModules = modules
   .map((mod) => ({ ...mod, percentage: 0, isCompleted: false }));
 
 const baseList =
-  activeFilter === "not_started"
+  (activeFilter === "not_started"
     ? notStartedModules
     : activeFilter
     ? enrichedProgress
-    : [...enrichedProgress, ...notStartedModules];
+    : [...enrichedProgress, ...notStartedModules]
+  ).sort(compareModulesBySortOrder);
 
 const filteredModules = baseList.filter((mod) => {
   const matchesSearch = (mod.Heading?.toLowerCase() ?? "").includes(

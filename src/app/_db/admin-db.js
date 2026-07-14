@@ -1,7 +1,7 @@
 import 'server-only'
 import { cert as firebaseAdminCert, initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { COLLECTIONS } from '@/app/_db/common';
+import { COLLECTIONS, compareModulesBySortOrder } from '@/app/_db/common';
 import { performMigration } from '@/app/_db/admin-db-migration';
 import { getAuth } from 'firebase-admin/auth';
 /** @import { UserDoc, KnowledgeCheck } from '@/app/_db/common' */
@@ -249,17 +249,7 @@ export async function getAllModules() {
       id: doc.id,
       ...doc.data()
     }))
-    .sort((a, b) => {
-      const aOrder = Number.isFinite(Number(a.sortOrder))
-        ? Number(a.sortOrder)
-        : Number(a.moduleId ?? 0);
-
-      const bOrder = Number.isFinite(Number(b.sortOrder))
-        ? Number(b.sortOrder)
-        : Number(b.moduleId ?? 0);
-
-      return aOrder - bOrder || Number(a.moduleId ?? 0) - Number(b.moduleId ?? 0);
-    });
+    .sort(compareModulesBySortOrder);
 }
 
 export async function getAllPublishedModules() {
@@ -274,17 +264,7 @@ export async function getAllPublishedModules() {
         id: doc.id,
         ...doc.data()
       }))
-      .sort((a, b) => {
-        const aOrder = Number.isFinite(Number(a.sortOrder))
-          ? Number(a.sortOrder)
-          : Number(a.moduleId ?? 0);
-
-        const bOrder = Number.isFinite(Number(b.sortOrder))
-          ? Number(b.sortOrder)
-          : Number(b.moduleId ?? 0);
-
-        return aOrder - bOrder || Number(a.moduleId ?? 0) - Number(b.moduleId ?? 0);
-      });
+      .sort(compareModulesBySortOrder);
   } catch (error) {
     throw new Error(`Error fetching published modules: ${error.message}`);
   }
