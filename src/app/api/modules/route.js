@@ -14,7 +14,6 @@ export const GET = defineUserRoute(async () => {
       Subheading: module.subheading,
       published: module.published ?? false,
       faviconURL: module.faviconURL ?? null,
-      sortOrder: module.sortOrder,
     }));
     return NextResponse.json(formattedModules);
   } catch (error) {

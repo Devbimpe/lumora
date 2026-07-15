@@ -5,8 +5,7 @@ import Link from 'next/link';
 import '../Module.css';
 import { useAuth } from '@/app/components/AuthProvider';
 import { api, apiErrorMessage } from '@/app/_lib/api-client';
-import { findFirstIncompleteItem } from './utils';
-import { compareModulesBySortOrder } from '@/app/_db/common';
+import { findFirstIncompleteItem, isKnowledgeCheckComplete } from './utils';
 import ModuleMobileHeader from './components/ModuleMobileHeader';
 import ModuleSidebar from './components/ModuleSidebar';
 import ContentItemView from './components/ContentItemView';
@@ -52,17 +51,7 @@ function ModulePageContent() {
   const trackingInProgress = useRef(false);
   const completedItems = useRef(new Set());
   const completedModules = useRef(new Set());
-
-  const { nextModule, prevModule } = useMemo(() => {
-    const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
-    const sorted = [...allModules].sort(compareModulesBySortOrder);
-    const idx = sorted.findIndex(m => Number(m.ModuleID ?? m.moduleId) === currentModuleIdNum);
-    return {
-      nextModule: idx >= 0 ? sorted[idx + 1] : null,
-      prevModule: idx >= 0 ? sorted[idx - 1] : null,
-    };
-  }, [allModules, moduleId]);
-
+  
   // Get current item ID from URL
   const currentItemId = searchParams.get('item') || searchParams.get('page') || null;
 
@@ -637,15 +626,75 @@ function ModulePageContent() {
 
   const currentIndex = allItems.findIndex(item => item.id === currentItem.id);
   const isLastItem = currentIndex === allItems.length - 1;
+  const currentModuleIdNum = parseInt(moduleId.replace('module', ''), 10);
 
-  const handleGoToNextModule = () => {
-    if (!nextModule) return;
-    router.push(`/modules/module${nextModule.ModuleID ?? nextModule.moduleId}`);
-  };
+  const publishedModules = [...allModules]
+    .filter(m => m.published === true || m.Published === true)
+    .sort((a, b) => {
+    const aOrder = Number.isFinite(Number(a.sortOrder))
+      ? Number(a.sortOrder)
+      : Number(a.ModuleID ?? a.moduleId ?? 0);
 
-  const handleGoToPrevModule = () => {
-    if (!prevModule) return;
-    router.push(`/modules/module${prevModule.ModuleID ?? prevModule.moduleId}`);
+    const bOrder = Number.isFinite(Number(b.sortOrder))
+      ? Number(b.sortOrder)
+      : Number(b.ModuleID ?? b.moduleId ?? 0);
+
+    return aOrder - bOrder;
+  });
+
+  const currentModuleIndex = publishedModules.findIndex(
+    m => Number(m.ModuleID ?? m.moduleId) === currentModuleIdNum
+  );  
+  const nextModule = currentModuleIndex >= 0
+  ? publishedModules[currentModuleIndex + 1]
+  : null;
+
+  const isKnowledgeCheck = currentItem.type === 'knowledgeCheck';
+  const isDescriptive = isKnowledgeCheck && (!currentItem.choices || currentItem.choices.length === 0);
+  const isKnowledgeCheckAnswered = isKnowledgeCheck && selectedAnswers[currentItem.knowledgeCheckId] !== undefined;
+  const isKnowledgeCheckCorrect = isKnowledgeCheck && (
+    isDescriptive
+      ? isDescriptiveKCComplete(
+          savedKnowledgeCheckSubmissions,
+          persistedCompletedContentSet,
+          selectedAnswers,
+          currentItem.knowledgeCheckId
+        )
+      : selectedAnswers[currentItem.knowledgeCheckId] === currentItem.answer
+  );
+  const isLastItemDone =
+    !isKnowledgeCheck ||
+    (isDescriptive
+      ? isKnowledgeCheckCorrect
+      : isKnowledgeCheckAnswered && isKnowledgeCheckCorrect);
+  const allKCsCompleted = allItems.every(item => {
+    if (item.type !== 'knowledgeCheck') return true;
+    const isDesc = !item.choices || item.choices.length === 0;
+    if (isDesc) {
+      return isDescriptiveKCComplete(
+        savedKnowledgeCheckSubmissions,
+        persistedCompletedContentSet,
+        selectedAnswers,
+        item.knowledgeCheckId
+      );
+    }
+    const ans = selectedAnswers[item.knowledgeCheckId];
+    return ans !== undefined && ans === item.answer;
+  });
+  const showModuleComplete = isLastItem && isLastItemDone && allKCsCompleted;
+
+  const handleGoToNextModule = async () => {
+    if (currentItem.type === 'content') {
+      await trackModuleCompletion();
+    }
+
+    if (!nextModule) {
+      router.push('/training-module');
+      return;
+    }
+
+    const nextModuleId = nextModule.ModuleID ?? nextModule.moduleId;
+    router.push(`/modules/module${nextModuleId}`);
   };
 
   return (
@@ -716,78 +765,15 @@ function ModulePageContent() {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center gap-2 sm:gap-4">
-              <button
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                  currentIndex === 0
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                <span className="hidden sm:inline">← Previous</span>
-                <span className="sm:hidden">←</span>
-              </button>
-              
-              <span className="text-xs sm:text-sm text-gray-600 font-medium">
-                {currentIndex + 1} of {allItems.length}
-              </span>
-              
-              {isLastItem ? (
-                <button
-                  onClick={async () => {
-                    await trackModuleCompletion();
-                    setTimeout(() => {
-                      router.push(`/user-progress?modId=${moduleId.replace('module', '')}`);
-                    }, 1000)
-                  }}
-                  className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
-                >
-                  <span className="hidden sm:inline">View results</span>
-                  <span className="sm:hidden">View results</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  className="px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base bg-green-600 text-white hover:bg-green-700"
-                >
-                  <span className="hidden sm:inline">Next →</span>
-                  <span className="sm:hidden">→</span>
-                </button>
-              )}
-            </div>
-
-            <div className="flex justify-between items-center gap-2 sm:gap-4 pt-2 border-t border-gray-100">
-              <button
-                onClick={handleGoToPrevModule}
-                disabled={!prevModule}
-                className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
-                  !prevModule
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-green-700 border border-green-600 hover:bg-green-50'
-                }`}
-              >
-                <span className="hidden sm:inline">← Previous module</span>
-                <span className="sm:hidden">← Module</span>
-              </button>
-
-              <button
-                onClick={handleGoToNextModule}
-                disabled={!nextModule}
-                className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
-                  !nextModule
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-green-700 border border-green-600 hover:bg-green-50'
-                }`}
-              >
-                <span className="hidden sm:inline">Next module →</span>
-                <span className="sm:hidden">Module →</span>
-              </button>
-            </div>
-          </div>
-
+          <ModuleNavigation
+            currentIndex={currentIndex}
+            totalItems={allItems.length}
+            showModuleComplete={showModuleComplete}
+            hasNextPublishedModule={!!nextModule}
+            onPrev={handlePrev}
+            onNext={handleNext}
+            onGoToNextModule={handleGoToNextModule}
+          />
         </div>
       </main>
     </div>
