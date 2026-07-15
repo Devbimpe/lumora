@@ -54,12 +54,3 @@ export const COLLECTIONS = {
  * }} OpenEndedKnowledgeCheck
  */
 /** @typedef {MultipleChoiceKnowledgeCheck | OpenEndedKnowledgeCheck} KnowledgeCheck */
-
-/** Comparator for module docs/DTOs ordered by `sortOrder`. */
-export function compareModulesBySortOrder(a, b) {
-  const aId = Number(a.ModuleID ?? a.moduleId ?? 0);
-  const bId = Number(b.ModuleID ?? b.moduleId ?? 0);
-  const aOrder = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : aId;
-  const bOrder = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : bId;
-  return aOrder - bOrder || aId - bId;
-}

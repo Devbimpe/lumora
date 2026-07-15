@@ -100,6 +100,43 @@
     line-height: 1.4;
 }
 
+.remember_forget {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+    color: #666;
+}
+
+.remember_forget label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 500;
+    margin: 0;
+}
+
+.remember_forget input[type="checkbox"] {
+    margin-right: 8px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #2f6633;
+}
+
+.remember_forget a {
+    color: #2f6633;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.remember_forget a:hover {
+    color: #3d7a42;
+    text-decoration: underline;
+}
+
 .button {
     margin-top: 8px;
     margin-bottom: 24px;
@@ -134,11 +171,6 @@
 .button button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-}
-
-.login-footer {
-    display: flex;
-    justify-content: space-between;
 }
 
 .register_link {
@@ -255,13 +287,14 @@
         width: 100%;
     }
 
+    .remember_forget {
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+    }
+
     .register_link {
         font-size: 0.9rem;
         margin-top: 16px;
-    }
-
-    .login-footer {
-        flex-direction: column;
     }
 }
 
@@ -288,6 +321,14 @@
     }
 
     .info {
+        margin-bottom: 14px;
+    }
+
+    .remember_forget {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 0.8rem;
         margin-bottom: 14px;
     }
 
