@@ -36,6 +36,7 @@ function LoginInner() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
 
   const { user: currentUser, loading: checkingAuth, signIn, reload } = useAuth();
   const router = useRouter()
@@ -84,7 +85,7 @@ function LoginInner() {
 
     try {
       console.log("🚀 Attempting login...")
-      await signIn(formData.email, formData.password)
+      await signIn(formData.email, formData.password, formData.rememberMe)
 
       const { status } = await api.post('/api/email-verification').json()
       if (status === 'verified') {
@@ -181,6 +182,20 @@ function LoginInner() {
                 </small>
               </div>
 
+              <div className="remember_forget">
+                <label>
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    style={{ marginRight: "5px" }}
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  Remember me
+                </label>
+                <a href="/forgot-password">Forgot password?</a>
+              </div>
+
               <div className="button">
                 <button
                   type="submit"
@@ -191,9 +206,8 @@ function LoginInner() {
                 </button>
               </div>
 
-              <div className="login-footer register_link">
-                <span>Don't have an account? <a href="/signup">Sign up</a></span>
-                <a href="/forgot-password">Forgot password</a>
+              <div className="register_link">
+                Don't have an account? <a href="/signup">Sign up</a>
               </div>
             </form>
           </div>
