@@ -13,6 +13,10 @@ export const POST = defineUserRoute(async (req) => {
     if (!userAnswer || !String(userAnswer).trim()) {
       return badRequestError('userAnswer is required');
     }
+    const trimmedAnswer = String(userAnswer).trim();
+    if(trimmedAnswer.length < 10){
+      return badRequestError('Please write a more complete answer before submitting'); 
+    }
 
     const kc = await getKnowledgeCheck(knowledgeCheckId, moduleID);
     if (!kc) {
@@ -30,7 +34,7 @@ export const POST = defineUserRoute(async (req) => {
       question: kc.question,
       rubric: kc.rubric,
       maxGrade: 3, // fixed for now; authoring surface added later
-      userAnswer: String(userAnswer),
+      userAnswer: trimmedAnswer,
     });
 
     if (result.reasoning) {
