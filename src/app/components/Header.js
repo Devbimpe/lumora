@@ -60,12 +60,7 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
-            <Link 
-              href="/#top" 
-              className="text-gray-700 hover:text-green-600 font-medium transition-colors"
-            >
-              Home
-            </Link>
+            
 
             {user && ( 
               <Link 
