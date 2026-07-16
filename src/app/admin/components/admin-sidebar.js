@@ -134,7 +134,7 @@ export default function Sidebar() {
     { id: 'management', label: 'Module Management', path: '/admin/module-management', icon: <FiBookOpen/>},
     { id: 'progress', label: 'Progress', path: '/admin/module-progress', icon: <FiBarChart2/> },
     { id: 'feedback', label: 'Feedback', path: '/admin/feedback', icon: <FiMessageSquare/> },
-    { id: 'training-module', label: 'Training Module', path: '/training-module' },
+    { id: 'training-module', label: 'Go to Student View \u2192', path: '/training-module' },
   ];
 
   const getActiveSection = () => {
