@@ -82,6 +82,8 @@ function LoginInner() {
       return
     }
 
+    // No explicit captcha or rate-limiting on login, they are handled by Firebase Auth directly.
+
     try {
       console.log("🚀 Attempting login...")
       await signIn(formData.email, formData.password)
