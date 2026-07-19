@@ -3,6 +3,8 @@ import { useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 
 // Docs: https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/
 
+let mountedInstances = 0;
+
 export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
   const widgetId = useRef(null);
   const containerRef = useRef(null);
@@ -33,6 +35,13 @@ export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
   }
 
   useEffect(() => {
+    mountedInstances++;
+    if (mountedInstances > 1) {
+      const msg = '<Turnstile> only supports one mounted instance per page';
+      if (process.env.NODE_ENV !== 'production') throw new Error(msg);
+      console.error(msg);
+    }
+
     const SCRIPT_ID = 'cf-turnstile-script';
     if (window.turnstile) {
       render();
@@ -47,7 +56,10 @@ export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
       document.head.appendChild(script);
     }
 
-    return cleanup;
+    return () => {
+      mountedInstances--;
+      cleanup();
+    };
   }, [config]);
 
   useImperativeHandle(ref, () => ({
