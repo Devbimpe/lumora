@@ -1,12 +1,25 @@
 import { NextResponse } from 'next/server';
 import { gradeOpenEndedAnswer } from '@/app/_lib/ai/ai-grading.js';
 import { getKnowledgeCheck } from '@/app/_db/admin-db.js';
-import { defineUserRoute, badRequestError, internalServerError } from '@/app/_lib/route';
+import {
+  defineUserRoute,
+  badRequestError,
+  internalServerError,
+  validateJsonBody,
+  extractClientIp,
+} from '@/app/_lib/route';
+import { verifyTurnstile } from '@/app/_lib/turnstile';
 
 // POST /api/grade-knowledge-check
 export const POST = defineUserRoute(async (req) => {
   try {
-    const { moduleID, knowledgeCheckId, userAnswer } = await req.json();
+    const { body, validationError } = await validateJsonBody(req);
+    if (validationError) return validationError;
+
+    const { moduleID, knowledgeCheckId, userAnswer, token } = body;
+    if (!token) {
+      return badRequestError('challenge token is required');
+    }
     if (!moduleID || !knowledgeCheckId) {
       return badRequestError('moduleID and knowledgeCheckId are required');
     }
@@ -14,7 +27,7 @@ export const POST = defineUserRoute(async (req) => {
       return badRequestError('userAnswer is required');
     }
     const trimmedAnswer = String(userAnswer).trim();
-    if(trimmedAnswer.length < 10){
+    if (trimmedAnswer.length < 10){
       return badRequestError('Please write a more complete answer before submitting'); 
     }
 
@@ -27,6 +40,10 @@ export const POST = defineUserRoute(async (req) => {
     }
     if (!kc.aiGradingEnabled) {
       return badRequestError('AI grading is disabled for this knowledge check');
+    }
+
+    if (!await verifyTurnstile(token, 'ai-grading', extractClientIp(req))) {
+      return badRequestError('Security challenge failed, please try again');
     }
 
     const result = await gradeOpenEndedAnswer({

@@ -427,7 +427,21 @@ function ModulePageContent() {
     }
   }, [user, trackKnowledgeCheckCompletion]);
 
-  const handleOpenEndedSubmit = useCallback(async (knowledgeCheckId, answerText) => {
+  const handleOpenEndedSubmit = useCallback(async (knowledgeCheckId, answerText, token) => {
+    // Find the knowledge check details so we can send full context to the grader
+    const item = allItems.find(
+      (i) => i.type === 'knowledgeCheck' && i.knowledgeCheckId === knowledgeCheckId
+    );
+
+    if (!item) {
+      return;
+    }
+
+    if (item.aiGradingEnabled && !token) {
+      console.warn('AI grading is enabled but captcha has not been solved');
+      return;
+    }
+
     setSelectedAnswers(prev => ({
       ...prev,
       [knowledgeCheckId]: '__submitted__'
@@ -437,17 +451,8 @@ function ModulePageContent() {
       [knowledgeCheckId]: answerText
     }));
 
-    // Find the knowledge check details so we can send full context to the grader
-    const item = allItems.find(
-      (i) => i.type === 'knowledgeCheck' && i.knowledgeCheckId === knowledgeCheckId
-    );
-
     if (user) {
       trackKnowledgeCheckCompletion(knowledgeCheckId);
-    }
-
-    if (!item) {
-      return;
     }
 
     // Non-AI-graded: skip the grader, save answer-only, show explanation.
@@ -505,6 +510,7 @@ function ModulePageContent() {
           moduleID: item.moduleID,
           knowledgeCheckId: item.knowledgeCheckId,
           userAnswer: answerText,
+          token,
         }
       }).json();
 
