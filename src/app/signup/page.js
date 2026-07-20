@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/components/AuthProvider';
+import { Turnstile } from '@/app/components/Turnstile';
 import '../globals.css';
 import '../login/login.css';
 import { api } from '@/app/_lib/api-client';
@@ -21,9 +22,12 @@ export default function Page() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDisabled, setDisabled] = useState(false);
+  const turnstile = useRef(null);
+  const token = useRef(null);
 
   const router = useRouter();
-  const { user: currentUser, loading: checkingAuth, signUp } = useAuth();
+  const { user: currentUser, loading: checkingAuth } = useAuth();
   const notifySuccess = () => toast.success('Check your email — we’ve sent you an activation link to complete your registration.');
 
   // Check if user is already authenticated and redirect if so
@@ -82,6 +86,12 @@ export default function Page() {
       return;
     }
 
+    if (!token.current) {
+      setError("Please complete the security check first.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const res = await api.post('/api/signup', {
         throwHttpErrors: false,
@@ -90,19 +100,25 @@ export default function Page() {
           username: form.userName,
           email: form.email,
           password: form.password,
+          token: token.current,
         }
       });
+      token.current = null;
 
       const data = await res.json();
       if (res.ok) {
         notifySuccess();
         setSuccess('Sucess!');
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
+        setDisabled(true); // Prevent additional sign ups without refreshing the page
+        turnstile.current.remove();
       } else {
         setError(data.error || 'Signup failed.');
+        turnstile.current.reset();
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
+      turnstile.current.reset();
     } finally {
       setIsLoading(false);
     }
@@ -226,10 +242,21 @@ export default function Page() {
                   aria-describedby={error && error.includes('Passwords do not match') ? 'form-error' : undefined}
                 />
               </div>
+              <Turnstile
+                ref={turnstile}
+                config={{
+                  action: 'signup',
+                  callback: (newToken) => (token.current = newToken),
+                  'expired-callback': () => {
+                    token.current = null;
+                    turnstile.current.reset();
+                  },
+                }}
+              />
               <div className="button">
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || isDisabled}
                   aria-busy={isLoading}
                   aria-label={isLoading ? 'Signing up, please wait' : 'Sign up'}
                 >

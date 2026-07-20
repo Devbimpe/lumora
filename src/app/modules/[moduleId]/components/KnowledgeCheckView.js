@@ -48,7 +48,7 @@ export default function KnowledgeCheckView({
             aiGradingEnabled={item.aiGradingEnabled}
             submittedViewAnimate={submittedViewAnimate}
             onAnswerChange={(value) => onOpenEndedAnswerChange(knowledgeCheckId, value)}
-            onSubmit={(answerText) => onOpenEndedSubmit(knowledgeCheckId, answerText)}
+            onSubmit={(answerText, token) => onOpenEndedSubmit(knowledgeCheckId, answerText, token)}
           />
         </div>
       )}
