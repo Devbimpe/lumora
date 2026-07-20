@@ -764,7 +764,7 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
   const doc = buildKnowledgeCheckDoc({
     knowledgeCheckId: existing.knowledgeCheckId,
     moduleID: existing.moduleID,
-    contentId: existing.contentId,
+    contentId: updates.contentId != null ? parseInt(updates.contentId) : null,
     type,
     question: updates.question,
     explanation: updates.explanation,

@@ -117,7 +117,7 @@ export const PUT = defineAdminRoute(async (request) => {
     const { body, validationError } = await validateJsonBody(request);
     if (validationError) return validationError;
 
-    const { knowledgeCheckId, moduleID, type, question, ...rest } = body;
+    const { knowledgeCheckId, moduleID, contentId, type, question, ...rest } = body;
     if (!knowledgeCheckId || !moduleID) {
       return badRequestError("knowledgeCheckId and moduleID are required");
     }
@@ -132,6 +132,7 @@ export const PUT = defineAdminRoute(async (request) => {
     if (result.error) return badRequestError(result.error);
 
     await updateKnowledgeCheck(knowledgeCheckId, moduleID, {
+      contentId,
       type,
       question,
       ...result.fields,

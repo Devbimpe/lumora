@@ -423,6 +423,7 @@ function ContentPageContent() {
                       kc={kc}
                       index={index}
                       selectedModule={selectedModule}
+                      content={content}
                       onKCChange={(data) => {
                         setKnowledgeChecks(data);
                         window.dispatchEvent(new Event('kc-updated'));
@@ -449,6 +450,7 @@ function ContentPageContent() {
                 )}
                 <CreateKnowledgeCheckForm
                   selectedModule={selectedModule}
+                  content={content}
                   onClose={() => { setShowKCForm(false); setKcFormError(null); }}
                   onCreated={(data) => {
                     setKnowledgeChecks(data);
