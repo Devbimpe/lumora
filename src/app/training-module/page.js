@@ -51,7 +51,7 @@ const TrainingModule = () => {
         // Map data to component format — icon only from saved faviconURL (no fallback)
         const formattedModules = data.map((module, index) => ({
           id: module.ModuleID,
-          title: `MODULE ${module.ModuleID}: ${module.Heading}`,
+          title: `${module.Heading}`,
           subtitle: module.Subheading || "",
           href: `/modules/module${module.ModuleID}`,
           icon: module.faviconURL || null,
