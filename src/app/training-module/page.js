@@ -47,16 +47,23 @@ const TrainingModule = () => {
       try {
         const data = await api.get("/api/modules").json();
 
+        const progress = await api.get(`/api/progress?userId=${user.uid}`).json();
+
         // /api/modules only returns published modules, so no client-side filter is needed.
         // Map data to component format — icon only from saved faviconURL (no fallback)
-        const formattedModules = data.map((module, index) => ({
-          id: module.ModuleID,
-          title: `${module.Heading}`,
-          subtitle: module.Subheading || "",
-          href: `/modules/module${module.ModuleID}`,
-          icon: module.faviconURL || null,
-          bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
-        }));
+        const formattedModules = data.map((module, index) => {
+          const moduleProgress = progress.find(p => p.moduleId === module.ModuleID);
+          const resumeId = moduleProgress?.lastViewedContentId || 1;
+
+          return {
+            id: module.ModuleID,
+            title: module.Heading,
+            subtitle: module.Subheading || "",
+            href: `/modules/module${module.ModuleID}?item=${resumeId}`,
+            icon: module.faviconURL || null,
+            bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
+          };
+        });
         
         setModules(formattedModules);
       } catch (error) {

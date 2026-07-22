@@ -27,7 +27,9 @@ export const GET = defineUserRoute(async (request, session) => {
         viewedContent: [],
         completedContent: [],
         isCompleted: false,
-        percentage: 0
+        percentage: 0,
+        lastViewedContentId: null,
+        lastCompletedContentId: null,
       });
     } else {
       // Get all progress - ensure percentage is included for each

@@ -33,6 +33,7 @@ function ModulePageContent() {
   const [persistedViewedContent, setPersistedViewedContent] = useState([]);
   const [moduleProgressHydrated, setModuleProgressHydrated] = useState(false);
   const [submittedViewAnimate, setSubmittedViewAnimate] = useState(false);
+  const [progress, setProgress] = useState(null);
 
   const isSubmittedView = currentItem?.type === 'knowledgeCheck' && selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__';
   useEffect(() => {
@@ -216,8 +217,13 @@ function ModulePageContent() {
     setPersistedViewedContent([]);
     (async () => {
       try {
-        const progress = await api.get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`).json();
+        //const progress = await api.get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`).json();
+        const p = await api
+        .get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`)
+        .json();
+
         if (!cancelled) {
+          setProgress(p);
           setSavedKnowledgeCheckSubmissions(progress?.knowledgeCheckSubmissions || {});
           setPersistedCompletedContent(Array.isArray(progress?.completedContent) ? progress.completedContent : []);
           setPersistedViewedContent(Array.isArray(progress?.viewedContent) ? progress.viewedContent : []);
@@ -246,6 +252,18 @@ function ModulePageContent() {
     if (!user?.id || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
     if (currentItemId) return;
 
+    // try resume point
+   if (progress?.lastViewedContentId) {
+    const resumeItem = allItems.find(
+      i => String(i.id) === String(progress.lastViewedContentId)
+    );
+
+    if (resumeItem) {
+      router.replace(`/modules/${moduleId}?item=${resumeItem.id}`);
+      return;
+    }
+   }
+
     const firstIncomplete = findFirstIncompleteItem(
       allItems,
       persistedViewedContentSet,
@@ -253,8 +271,8 @@ function ModulePageContent() {
       savedKnowledgeCheckSubmissions,
       selectedAnswers
     );
-    const target = firstIncomplete || allItems[allItems.length - 1];
-    if (!target) return;
+    const target = firstIncomplete || allItems[0]; // allItems.length - 1
+    //if (!target) return;
 
     router.replace(`/modules/${moduleId}?item=${encodeURIComponent(target.id)}`);
   }, [
@@ -267,6 +285,7 @@ function ModulePageContent() {
     persistedViewedContentSet,
     persistedCompletedContentSet,
     savedKnowledgeCheckSubmissions,
+    progress,
     router,
   ]);
 
