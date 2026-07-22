@@ -36,8 +36,6 @@ export default function Page() {
       console.log("User is authenticated, redirecting...");
       if (currentUser.account.email && !currentUser.account.emailVerified) {
         router.push("/login"); // Hasn't verified email yet
-      } else if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("/login")) {
-        router.push(callbackUrl);
       } else if(currentUser.role === "Admin") {
         router.push("/admin");
       } else {
