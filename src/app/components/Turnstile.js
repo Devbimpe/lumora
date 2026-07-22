@@ -5,7 +5,7 @@ import { useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 
 let mountedInstances = 0;
 
-export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
+export function Turnstile({ ref, onLoad, shouldExecuteOnLoad, config, className }) {
   const widgetId = useRef(null);
   const containerRef = useRef(null);
 
@@ -17,6 +17,7 @@ export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
   }, []);
 
   function render() {
+    delete window.onTurnstileLoad;
     cleanup();
     if (!containerRef.current) return;
 
@@ -40,6 +41,7 @@ export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
       const msg = '<Turnstile> only supports one mounted instance per page';
       if (process.env.NODE_ENV !== 'production') throw new Error(msg);
       console.error(msg);
+      return;
     }
 
     const SCRIPT_ID = 'cf-turnstile-script';
@@ -60,7 +62,7 @@ export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
       mountedInstances--;
       cleanup();
     };
-  }, [config]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     execute: () => {
@@ -74,5 +76,5 @@ export function Turnstile({ onLoad, shouldExecuteOnLoad, config, attrs, ref }) {
     },
   }));
 
-  return <div ref={containerRef} {...attrs} />;
+  return <div ref={containerRef} className={className} />;
 }
