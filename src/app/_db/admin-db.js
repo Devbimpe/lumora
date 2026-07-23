@@ -1157,11 +1157,12 @@ export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
 }) {
   const progress = await getUserModuleProgress(userId, moduleId);
   const existing = progress?.knowledgeCheckSubmissions || {};
-  const contentIdStr = `content-${contentId}`;
+  // Normalize KC key: "kc-2" → "2"
+  const kcKey = String(contentId).replace('kc-', '');
 
   const knowledgeCheckSubmissions = {
     ...existing,
-    [contentIdStr]: {
+    [kcKey]: {
       userAnswer: userAnswer ?? '',
       grade: grade ?? null,
       feedback: feedback ?? '',

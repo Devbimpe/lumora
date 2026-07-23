@@ -96,7 +96,7 @@ function ModulePageContent() {
         // `allItems` uses `type` for content-vs-knowledgeCheck, so the MC/open-ended
         // discriminator is carried as `kcType`.
         const toKcItem = (check) => ({
-          id: `check-${check.knowledgeCheckId}`,
+          id: `kc-${check.knowledgeCheckId}`,
           type: 'knowledgeCheck',
           knowledgeCheckId: check.knowledgeCheckId,
           kcType: check.type,
@@ -205,7 +205,7 @@ function ModulePageContent() {
 
   // Load module progress so we can show saved knowledge check answers and feedback
   useEffect(() => {
-    if (!user?.id || !moduleId) {
+    if (!user?.uid || !moduleId) {
       setModuleProgressHydrated(false);
       return;
     }
@@ -217,13 +217,10 @@ function ModulePageContent() {
     setPersistedViewedContent([]);
     (async () => {
       try {
-        //const progress = await api.get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`).json();
-        const p = await api
-        .get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`)
-        .json();
-
+        const progress = await api.get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`).json();
+        
         if (!cancelled) {
-          setProgress(p);
+          setProgress(progress);
           setSavedKnowledgeCheckSubmissions(progress?.knowledgeCheckSubmissions || {});
           setPersistedCompletedContent(Array.isArray(progress?.completedContent) ? progress.completedContent : []);
           setPersistedViewedContent(Array.isArray(progress?.viewedContent) ? progress.viewedContent : []);
@@ -235,7 +232,7 @@ function ModulePageContent() {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id, moduleId]);
+  }, [user?.uid, moduleId]);
 
   const persistedCompletedContentSet = useMemo(
     () => new Set((persistedCompletedContent || []).map(value => String(value))),
@@ -249,7 +246,7 @@ function ModulePageContent() {
 
   // Logged-in users: open module at first incomplete item when URL has no ?item= (resume)
   useEffect(() => {
-    if (!user?.id || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
+    if (!user?.uid || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
     if (currentItemId) return;
 
     // try resume point
@@ -276,7 +273,7 @@ function ModulePageContent() {
 
     router.replace(`/modules/${moduleId}?item=${encodeURIComponent(target.id)}`);
   }, [
-    user?.id,
+    user?.uid,
     moduleId,
     loading,
     moduleProgressHydrated,
@@ -289,15 +286,42 @@ function ModulePageContent() {
     router,
   ]);
 
+
+
   useEffect(() => {
-    setSelectedAnswers({});
-    setOpenEndedAnswers({});
-    setAiFeedbackByCheck({});
-  }, [moduleId]);
+    if (!moduleProgressHydrated) return;
+
+    setOpenEndedAnswers(prev => {
+      const next = { ...prev };
+
+      for (const [kcId, submission] of Object.entries(savedKnowledgeCheckSubmissions || {})) {
+        if (submission?.userAnswer && !next[kcId]) {
+          next[kcId] = submission.userAnswer;
+        }
+      }
+
+      return next;
+    });
+  }, [moduleProgressHydrated, savedKnowledgeCheckSubmissions]);
+
+  useEffect(() => {
+    if (!moduleProgressHydrated) return;
+
+    setSelectedAnswers(prev => {
+      const next = { ...prev };
+
+      for (const [kcId, submission] of Object.entries(savedKnowledgeCheckSubmissions || {})) {
+        if (submission?.userAnswer && !next[kcId]) {
+          next[kcId] = '__submitted__';
+        }
+      }
+      return next;
+    });
+  }, [moduleProgressHydrated, savedKnowledgeCheckSubmissions]);
 
   // Restore MC selections for knowledge checks already completed (correct) in saved progress
   useEffect(() => {
-    if (!user?.id || !moduleProgressHydrated || !allItems.length || loading) return;
+    if (!user?.uid || !moduleProgressHydrated || !allItems.length || loading) return;
 
     setSelectedAnswers((prev) => {
       const next = { ...prev };
@@ -319,7 +343,7 @@ function ModulePageContent() {
       }
       return changed ? next : prev;
     });
-  }, [user?.id, moduleProgressHydrated, allItems, persistedCompletedContentSet, loading]);
+  }, [user?.uid, moduleProgressHydrated, allItems, persistedCompletedContentSet, loading]);
 
   // Update module heading when allModules loads
   useEffect(() => {

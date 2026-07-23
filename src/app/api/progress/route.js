@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress} from '@/app/_db/admin-db.js';
+import { getUserProgress, getUserModuleProgress, markContentViewed, markContentCompleted, markModuleCompleted, saveKnowledgeCheckFeedback, resetUserModuleProgress, updateUserModuleProgress} from '@/app/_db/admin-db.js';
 import { defineUserRoute, validateJsonBody, verifyOwnership } from '@/app/_lib/route';
 
 // GET: Retrieve user progress
@@ -71,6 +71,8 @@ export const POST = defineUserRoute(async (request, session) => {
 
     let result;
 
+    const isKC = typeof contentId === 'string' && contentId.startsWith('kc-');
+
     switch (action) {
       case 'view':
         if (!contentId) {
@@ -79,7 +81,18 @@ export const POST = defineUserRoute(async (request, session) => {
             { status: 400 }
           );
         }
-        result = await markContentViewed(userId, moduleId, contentId);
+        if (isKC) {
+          const progress = await getUserModuleProgress(userId, moduleId);
+          const viewed = new Set(progress.viewedContent || []);
+          viewed.add(contentId);
+
+          await updateUserModuleProgress(userId, moduleId, {
+            viewedContent: Array.from(viewed),
+            lastViewedContentId: contentId,
+          });
+        } else {
+          result = await markContentViewed(userId, moduleId, contentId);
+        }
         break;
       
       case 'complete':
@@ -89,7 +102,23 @@ export const POST = defineUserRoute(async (request, session) => {
             { status: 400 }
           );
         }
-        result = await markContentCompleted(userId, moduleId, contentId);
+        if (isKC) {
+          const progress = await getUserModuleProgress(userId, moduleId);
+          const completed = new Set(progress.completedContent || []);
+          const viewed = new Set(progress.viewedContent || []);
+
+          completed.add(contentId);
+          viewed.add(contentId);
+
+          await updateUserModuleProgress(userId, moduleId, {
+            completedContent: Array.from(completed),
+            viewedContent: Array.from(viewed),
+            lastCompletedContentId: contentId,
+            lastViewedContentId: contentId,
+          });
+        } else {
+          result = await markContentCompleted(userId, moduleId, contentId);
+        }
         break;
       
       case 'completeModule':
