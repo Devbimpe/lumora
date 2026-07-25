@@ -82,7 +82,6 @@ function LoginInner() {
       return
     }
 
-    // No explicit captcha or rate-limiting on login, they are handled by Firebase Auth directly.
 
     try {
       console.log("🚀 Attempting login...")
@@ -143,7 +142,7 @@ function LoginInner() {
             <form onSubmit={handleSubmit}>
               {/* Error Message */}
               {error && (
-                <div className="error-message">
+                <div className="error-message" role="alert" aria-live="assertive">
                   {/* Display login error message */}
                   {error}
                 </div>
@@ -177,8 +176,9 @@ function LoginInner() {
                   onChange={handleInputChange}
                   disabled={loading}
                   minLength="8"
+                  aria-describedby="password-hint"
                 />
-                <small>
+                <small id="password-hint">
                   Password must be 8+ characters with uppercase, lowercase, number, and special character
                 </small>
               </div>
