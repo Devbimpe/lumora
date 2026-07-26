@@ -366,6 +366,18 @@ export async function deleteModule(moduleId) {
     batch.delete(doc.ref);
   });
 
+  // Delete related sections 
+  const sectionsRef = db.collection(COLLECTIONS.SECTIONS);
+  const sectionsQuery = sectionsRef.where('moduleId', '==', parseInt(moduleId));
+  const sectionsSnapshot = await sectionsQuery.get();
+
+  sectionsSnapshot.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+
+
+  
+
   // Delete all knowledge checks for this module (by moduleID), including unassociated
   // checks with no contentId. Deleting only by contentId misses those and leaves stale
   // rows that collide when module ids are reused after reindexing.
@@ -482,6 +494,103 @@ export async function updateModulePublished(moduleId, published) {
   });
 }
 
+// ==================== SECTIONS OPERATIONS ====================
+
+// Get sections by module ID
+ 
+export async function getSectionsByModuleId(moduleId) {
+  const sectionsRef = db.collection(COLLECTIONS.SECTIONS);
+  const moduleIdNum = parseInt(moduleId);
+
+  const snapshot = await sectionsRef
+    .where('moduleId', '==', moduleIdNum)
+    .get();
+
+  return snapshot.docs
+    .map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+    .sort((a, b) => {
+      const aOrder = Number(a.sortOrder ?? a.sectionId ?? 0);
+      const bOrder = Number(b.sortOrder ?? b.sectionId ?? 0);
+      return aOrder - bOrder;
+    });
+}
+
+// Create a section for a module
+
+export async function createSection(sectionData) {
+  const sectionsRef = db.collection(COLLECTIONS.SECTIONS);
+  const moduleIdNum = parseInt(sectionData.moduleId);
+
+  const existingSections = await getSectionsByModuleId(moduleIdNum);
+
+  const maxSectionId = existingSections.length > 0
+    ? Math.max(...existingSections.map((section) => Number(section.sectionId) || 0))
+    : 0;
+
+  const maxSortOrder = existingSections.length > 0
+    ? Math.max(...existingSections.map((section) => Number(section.sortOrder ?? section.sectionId) || 0))
+    : 0;
+
+  const newSection = {
+    sectionId: maxSectionId + 1,
+    moduleId: moduleIdNum,
+    title: sectionData.title,
+    description: sectionData.description || '',
+    sortOrder: maxSortOrder + 1,
+    createdAt: Timestamp.now(),
+  };
+
+  const docRef = await sectionsRef.add(newSection);
+
+  return { id: docRef.id, ...newSection };
+}
+
+// Update a section
+
+export async function updateSection(moduleId, sectionId, updates) {
+  const sectionsRef = db.collection(COLLECTIONS.SECTIONS);
+
+  const snapshot = await sectionsRef
+    .where('moduleId', '==', parseInt(moduleId))
+    .where('sectionId', '==', parseInt(sectionId))
+    .get();
+
+  if (snapshot.empty) {
+    throw new Error('Section not found');
+  }
+
+  await snapshot.docs[0].ref.update({
+    title: updates.title,
+    description: updates.description || '',
+    updatedAt: Timestamp.now(),
+  });
+
+  return { updated: true };
+}
+
+// Delete a section
+
+export async function deleteSection(moduleId, sectionId) {
+  const sectionsRef = db.collection(COLLECTIONS.SECTIONS);
+
+  const snapshot = await sectionsRef
+    .where('moduleId', '==', parseInt(moduleId))
+    .where('sectionId', '==', parseInt(sectionId))
+    .get();
+
+  if (snapshot.empty) {
+    throw new Error('Section not found');
+  }
+
+  await snapshot.docs[0].ref.delete();
+
+  return { deleted: true };
+}
+
+
 // ==================== CONTENT OPERATIONS ====================
 
 /**
@@ -536,6 +645,7 @@ export async function updateContent(moduleId, contentId, updates) {
   await contentDoc.ref.update({
     overview: updates.Overview ?? updates.overview ?? '',
     reading: updates.Reading ?? updates.reading ?? '',
+    sectionId: updates.sectionId ? parseInt(updates.sectionId) : null,
     updatedAt: Timestamp.now(),
     image: updates.imageURL ?? updates.Image ?? updates.image ?? null,
     imageDescription: updates.imageDescription ?? updates.ImageDescription ?? null
@@ -557,6 +667,7 @@ export async function createContent(contentData) {
   const docRef = await contentRef.add({
     contentId: maxContentId + 1,
     moduleId: parseInt(contentData.moduleId),
+    sectionId: contentData.sectionId ? parseInt(contentData.sectionId) : null,
     overview: contentData.overview,
     reading: contentData.reading,
     createdAt: Timestamp.now(),
@@ -661,6 +772,7 @@ function buildKnowledgeCheckDoc(fields) {
     knowledgeCheckId: fields.knowledgeCheckId,
     moduleID: fields.moduleID,
     contentId: fields.contentId ?? null,
+    sectionId: fields.sectionId ?? null,
     type: fields.type,
     question: fields.question,
     createdAt: fields.createdAt,
@@ -685,7 +797,7 @@ function buildKnowledgeCheckDoc(fields) {
  * @returns {Promise<KnowledgeCheck & { id: string }>}
  */
 export async function createKnowledgeCheck(data) {
-  const { moduleID, contentId, type, question, explanation, choices, correctAnswer, rubric, gradingContext, aiGradingEnabled } = data;
+  const { moduleID, contentId, sectionId, type, question, explanation, choices, correctAnswer, rubric, gradingContext, aiGradingEnabled } = data;
   const moduleIdNum = parseInt(moduleID);
   const checksRef = db.collection(COLLECTIONS.KNOWLEDGE_CHECKS);
 
@@ -698,7 +810,8 @@ export async function createKnowledgeCheck(data) {
     const newCheck = buildKnowledgeCheckDoc({
       knowledgeCheckId: maxId + 1,
       moduleID: moduleIdNum,
-      contentId: contentId ? parseInt(contentId) : null,
+      contentId: sectionId ? null : (contentId ? parseInt(contentId) : null),
+      sectionId: sectionId ? parseInt(sectionId) : null,
       type,
       question,
       explanation,
@@ -764,7 +877,8 @@ export async function updateKnowledgeCheck(knowledgeCheckId, moduleID, updates) 
   const doc = buildKnowledgeCheckDoc({
     knowledgeCheckId: existing.knowledgeCheckId,
     moduleID: existing.moduleID,
-    contentId: updates.contentId != null ? parseInt(updates.contentId) : null,
+    contentId: updates.sectionId ? null : (updates.contentId != null ? parseInt(updates.contentId) : null),
+    sectionId: updates.sectionId ? parseInt(updates.sectionId) : null,
     type,
     question: updates.question,
     explanation: updates.explanation,

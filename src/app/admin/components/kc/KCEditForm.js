@@ -10,10 +10,13 @@ import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput, Open
 import AIGradingToggle from './AIGradingToggle';
 import { validateKC, buildKCPayload } from './validateKC';
 
-export default function KCEditForm({ kc, index, selectedModule, content = [], onCancel, onSaved }) {
+export default function KCEditForm({ kc, index, selectedModule, content = [], sections = [], onCancel, onSaved }) {
   const [error, setError] = useState(null);
   const [contentId, setContentId] = useState(
     kc.contentId != null ? String(kc.contentId) : ''
+  );
+  const [sectionId, setSectionId] = useState(
+    kc.sectionId != null ? String(kc.sectionId) : ''
   );
   const [question, setQuestion] = useState(kc.question || '');
   const [choices, setChoices] = useState(
@@ -54,7 +57,8 @@ export default function KCEditForm({ kc, index, selectedModule, content = [], on
           ...buildKCPayload(formState()),
           knowledgeCheckId: kc.knowledgeCheckId,
           moduleID: selectedModule,
-          contentId: contentId || null,
+          contentId: sections.length > 0 ? null : (contentId || null),
+          sectionId: sections.length > 0 ? (sectionId || null) : null,
         },
       });
       const checksData = await api.get(`/api/knowledge-checks?moduleId=${selectedModule}`).json();
@@ -83,8 +87,17 @@ export default function KCEditForm({ kc, index, selectedModule, content = [], on
     }),
   ];
 
-  const selectedContentOption =
-    contentOptions.find((option) => option.value === String(contentId)) || contentOptions[0];
+  const selectedContentOption = contentOptions.find((option) => option.value === String(contentId)) || contentOptions[0];
+
+  const sectionOptions = [
+    { value: '', label: 'End of module' },
+    ...sections.map((section) => ({
+      value: String(section.sectionId),
+      label: section.title,
+    })),
+  ];
+
+  const selectedSectionOption = sectionOptions.find((option) => option.value === String(sectionId)) || sectionOptions[0];
 
   return (
     <div className="p-4 sm:p-6 bg-blue-50 border-l-4 border-blue-500">
@@ -116,24 +129,44 @@ export default function KCEditForm({ kc, index, selectedModule, content = [], on
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Place this question after this page
-          </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {sections.length > 0 ? 'Place this question in a section' : 'Place this question after this page'}
+        </label>
 
-          <Select
-            value={selectedContentOption}
-            onChange={(option) => setContentId(option?.value || '')}
-            options={contentOptions}
-            isSearchable
-            placeholder="Search content pages..."
-            className="text-sm"
-            classNamePrefix="react-select"
-          />
+        {sections.length > 0 ? (
+          <>
+            <Select
+              value={selectedSectionOption}
+              onChange={(option) => setSectionId(option?.value || '')}
+              options={sectionOptions}
+              isSearchable
+              placeholder="Search sections..."
+              className="text-sm"
+              classNamePrefix="react-select"
+            />
 
-          <p className="mt-1 text-xs text-gray-500">
-            Select a content page so this question appears immediately after that page in the learner module.
-          </p>
-        </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Select a section so this question appears after all content pages in that section.
+            </p>
+          </>
+        ) : (
+          <>
+            <Select
+              value={selectedContentOption}
+              onChange={(option) => setContentId(option?.value || '')}
+              options={contentOptions}
+              isSearchable
+              placeholder="Search content pages..."
+              className="text-sm"
+              classNamePrefix="react-select"
+            />
+
+            <p className="mt-1 text-xs text-gray-500">
+              Select a content page so this question appears immediately after that page in the learner module.
+            </p>
+          </>
+        )}
+      </div>
 
         <QuestionInput value={question} onChange={setQuestion} />
 

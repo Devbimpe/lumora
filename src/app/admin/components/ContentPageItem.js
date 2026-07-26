@@ -3,12 +3,13 @@ import { useState } from 'react';
 import ConfirmationModal from './ConfirmationModal';
 import { api, apiErrorMessage } from '@/app/_lib/api-client';
 
-export default function ContentPageItem({ item, index, selectedModule, onContentChange }) {
+export default function ContentPageItem({ item, index, selectedModule, sections = [], onContentChange }) {
   // MARK: Edit State
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState(null);
   const [editOverview, setEditOverview] = useState("");
   const [editReading, setEditReading] = useState("");
+  const [editSectionId, setEditSectionId] = useState('');
   const [editImageDescription, setEditImageDescription] = useState('');
   const [showEditPreview, setShowEditPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,6 +29,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
     setEditing(true);
     setEditOverview(item.Overview);
     setEditReading(item.Reading || '');
+    setEditSectionId(item.sectionId ?? item.SectionID ?? '');
     setEditImageDescription(item.ImageDescription || '');
     setShowEditPreview(false);
     setImageSrc(item.ImageURL || null);
@@ -40,6 +42,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
     setEditing(false);
     setEditOverview("");
     setEditReading("");
+    setEditSectionId('');
     setEditImageDescription('');
     setShowEditPreview(false);
     setImageSrc(null);
@@ -49,6 +52,10 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
   };
 
   const saveEdit = async () => {
+    if (sections.length > 0 && !editSectionId) {
+      setError('Please choose a section for this content page');
+      return;
+    }
     try {
       setIsSubmitting(true);
       console.log('Saving content with values:', { editOverview, editReading, uploadedImageURL, imageDescription });
@@ -56,6 +63,7 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
         json: {
           Overview: editOverview,
           Reading: editReading,
+          sectionId: editSectionId || null,
           imageURL: uploadedImageURL || null,
           imageDescription: uploadedImageURL ? editImageDescription : null,
         },
@@ -169,6 +177,22 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
                     <button onClick={cancelEdit} className="text-gray-500 hover:text-gray-700 text-2xl leading-none">×</button>
                   </div>
                   <div className="space-y-4">
+                    {sections.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Section</label>
+                        <select
+                        value={editSectionId}
+                        onChange={(event) => setEditSectionId(event.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                          <option value="">Choose a section...</option>
+                          {sections.map((section) => (
+                            <option key={section.sectionId} value={section.sectionId}>
+                              {section.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Page Heading (Overview)</label>
                       <textarea
