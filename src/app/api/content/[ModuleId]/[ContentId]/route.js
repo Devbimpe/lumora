@@ -23,6 +23,7 @@ export const GET = defineUserRoute(async (req, session, ctx) => {
     return NextResponse.json({
       contentID: content.contentId,
       moduleID: content.moduleId,
+      sectionId: content.sectionId ?? null,
       Objectverview: content.overview,
       Reading: content.reading,
       imageURL: content.image || null,
