@@ -139,7 +139,7 @@ export default function FeedbackPage() {
                     </div>
                     <div className="ml-3 min-w-0">
                       <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 truncate">{f.fullName}</h3>
-                      <p className="text-xs sm:text-sm text-gray-500 truncate">@{f.userName}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">{f.email}</p>
                     </div>
                   </div>
 
@@ -150,23 +150,6 @@ export default function FeedbackPage() {
 
                 <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border-l-4 border-green-400">
                   <p className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed">{f.message}</p>
-                </div>
-
-                <div className="mt-3 sm:mt-4 flex items-center text-xs text-gray-500">
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  <span className="truncate">User ID: {f.userId}</span>
                 </div>
               </div>
             </div>
