@@ -42,10 +42,10 @@ export const PUT = defineAdminRoute(async (req, session, ctx) => {
     const contentId = params.ContentId;
     const moduleId = params.ModuleId;
     
-    const { Overview, Reading, imageURL, imageDescription } = await req.json();
+    const { Overview, Reading, sectionId, imageURL, imageDescription } = await req.json();
 
     // Update content in Firestore
-    await updateContent(moduleId, contentId, { Overview, Reading, imageURL, imageDescription });
+    await updateContent(moduleId, contentId, { Overview, Reading, sectionId, imageURL, imageDescription });
 
     return NextResponse.json({ success: true });
   } catch (error) {
