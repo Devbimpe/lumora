@@ -5,7 +5,7 @@ import ConfirmationModal from './ConfirmationModal';
 import KCReadView from './kc/KCReadView';
 import KCEditForm from './kc/KCEditForm';
 
-export default function KnowledgeCheckItem({ kc, index, selectedModule, content = [], onKCChange }) {
+export default function KnowledgeCheckItem({ kc, index, selectedModule, content = [], sections = [], onKCChange }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -40,6 +40,7 @@ export default function KnowledgeCheckItem({ kc, index, selectedModule, content 
             index={index}
             selectedModule={selectedModule}
             content={content}
+            sections={sections}
             onCancel={() => setEditing(false)}
             onSaved={(data) => {
               onKCChange(data);

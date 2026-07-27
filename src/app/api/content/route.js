@@ -23,6 +23,8 @@ export const GET = defineUserRoute(async (request) => {
     const formattedContent = content.map(item => ({
       ContentID: item.contentId,
       ModuleID: item.moduleId,
+      SectionID: item.sectionId ?? null,
+      sectionId: item.sectionId ?? null,
       Overview: item.overview,
       Reading: item.reading,
       ImageURL: item.image || null,
@@ -40,7 +42,7 @@ export const GET = defineUserRoute(async (request) => {
 export const POST = defineAdminRoute(async (request) => {
   try {
     const body = await request.json();
-    const { moduleId, overview, reading, imageURL, imageDescription } = body;
+    const { moduleId, sectionId, overview, reading, imageURL, imageDescription } = body;
 
     if (!moduleId || !overview || (!reading && !imageURL)) {
       return badRequestError('Module ID, overview, and either reading or image are required');
@@ -48,6 +50,7 @@ export const POST = defineAdminRoute(async (request) => {
 
     const result = await createContent({
       moduleId: parseInt(moduleId),
+      sectionId: sectionId || null,
       overview,
       reading,
       imageURL,

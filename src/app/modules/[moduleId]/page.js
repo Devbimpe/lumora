@@ -103,6 +103,7 @@ function ModulePageContent() {
           question: check.question,
           explanation: check.explanation,
           contentId: check.contentId,
+          sectionId: check.sectionId ?? null,
           moduleID: check.moduleID,
           aiGradingEnabled: check.aiGradingEnabled,
           ...(check.type === 'multiple-choice'
@@ -112,10 +113,11 @@ function ModulePageContent() {
         
         // Fetch content, knowledge checks, and module details in parallel. Content and
         // knowledge checks are required for a usable module page; module details are best-effort.
-        const [contentResult, checksResult, moduleResult] = await Promise.allSettled([
+        const [contentResult, checksResult, moduleResult, sectionsResult] = await Promise.allSettled([
           api.get(`/api/content?moduleId=${moduleNum}`).json(),
           api.get(`/api/knowledge-checks?moduleId=${moduleNum}`).json(),
           api.get(`/api/Module?moduleId=${moduleNum}`).json(),
+          api.get(`/api/sections?moduleId=${moduleNum}`).json(),
         ]);
 
         if (contentResult.status !== 'fulfilled') {
@@ -127,6 +129,7 @@ function ModulePageContent() {
 
         const contentItems = contentResult.value;
         const knowledgeChecks = checksResult.value;
+        const sections = sectionsResult.status === 'fulfilled' && Array.isArray(sectionsResult.value) ? sectionsResult.value : [];
 
         let moduleDetails = null;
         if (moduleResult.status === 'fulfilled') {
@@ -139,48 +142,93 @@ function ModulePageContent() {
           }
         }
         
-        // Group knowledge checks by their contentId for insertion after associated content
+        const toContentItem = (content) => ({
+          id: `content-${content.ContentID}`,
+          type: 'content',
+          contentId: content.ContentID,
+          sectionId: content.sectionId ?? content.SectionID ?? null,
+          overview: content.Overview,
+          reading: content.Reading,
+          image: content.ImageURL,
+          imageDescription: content.ImageDescription,
+        });
+
+        const items = [];
+        const sortedContent = [...contentItems].sort((a, b) => a.ContentID - b.ContentID);
+        const sortedSections = [...sections].sort((a, b) => {
+          const aOrder = Number(a.sortOrder ?? a.sectionId ?? 0);
+          const bOrder = Number(b.sortOrder ?? b.sectionId ?? 0);
+          return aOrder - bOrder;
+        });
+
+        if (sortedSections.length > 0) {
+          sortedSections.forEach((section, index) => {
+            const sectionId = Number(section.sectionId);
+
+            items.push({
+            id: `section-${sectionId}`,
+            type: 'sectionIntro',
+            sectionId,
+            title: section.title,
+            description: section.description,
+            sectionNumber: index + 1,
+          });
+
+          sortedContent
+            .filter((content) => Number(content.sectionId ?? content.SectionID) === sectionId)
+            .forEach((content) => {
+              items.push(toContentItem(content));
+            });
+
+          knowledgeChecks
+            .filter((check) => Number(check.sectionId) === sectionId)
+            .forEach((check) => {
+              items.push(toKcItem(check));
+            });
+        });
+
+        sortedContent
+          .filter((content) => content.sectionId == null && content.SectionID == null)
+          .forEach((content) => {
+            items.push(toContentItem(content));
+          });
+
+        knowledgeChecks
+          .filter((check) => check.sectionId == null && check.contentId == null)
+          .forEach((check) => {
+            items.push(toKcItem(check));
+          });
+      } else {
         const checksByContentId = {};
         const unassociatedChecks = [];
-        knowledgeChecks.forEach(check => {
+
+        knowledgeChecks.forEach((check) => {
           if (check.contentId != null) {
             if (!checksByContentId[check.contentId]) {
               checksByContentId[check.contentId] = [];
             }
+
             checksByContentId[check.contentId].push(check);
           } else {
             unassociatedChecks.push(check);
           }
         });
-        
-        // Build unified items array: each content item followed by its knowledge checks
-        const items = [];
-        const sortedContent = [...contentItems].sort((a, b) => a.ContentID - b.ContentID);
-        
-        sortedContent.forEach(content => {
-          items.push({
-            id: `content-${content.ContentID}`,
-            type: 'content',
-            contentId: content.ContentID,
-            overview: content.Overview,
-            reading: content.Reading,
-            image: content.ImageURL,
-            imageDescription: content.ImageDescription
-          });
-          
-          // Insert knowledge checks associated with this content item
+
+        sortedContent.forEach((content) => {
+          items.push(toContentItem(content));
+
           const associatedChecks = checksByContentId[content.ContentID] || [];
-          associatedChecks.forEach(check => {
+          associatedChecks.forEach((check) => {
             items.push(toKcItem(check));
           });
         });
-        
-        // Append any knowledge checks not linked to a specific content item
-        unassociatedChecks.forEach(check => {
-          items.push(toKcItem(check));
+
+        unassociatedChecks.forEach((check) => {
+            items.push(toKcItem(check));
         });
-        
-        setAllItems(items);
+      }
+
+      setAllItems(items);
         
         const currentModule = allModules.length > 0 ? allModules.find(m => m.ModuleID === parseInt(moduleNum)) : null;
         const resolvedHeading = currentModule?.Heading || moduleDetails?.heading || `Module ${moduleNum}`;
@@ -756,6 +804,23 @@ function ModulePageContent() {
 
           {/* Content Display */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8">
+            
+            {currentItem.type === 'sectionIntro' && (
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-sm font-semibold text-green-700 mb-3">
+                  Section {currentItem.sectionNumber}
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+                  {currentItem.title}
+                </h2>
+                {currentItem.description && (
+                  <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto whitespace-pre-wrap">
+                    {currentItem.description}
+                  </p>
+                )}
+              </div>
+            )}
+
             {currentItem.type === 'content' && <ContentItemView item={currentItem} />}
             {currentItem.type === 'knowledgeCheck' && (
               <KnowledgeCheckView
