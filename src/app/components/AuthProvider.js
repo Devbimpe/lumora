@@ -8,6 +8,7 @@ import {
   useCallback,
 } from 'react';
 import {
+  browserSessionPersistence,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as _signOut,
@@ -152,13 +153,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   /** @type {AuthContextReturn['signIn']} */
-  const signIn = useCallback(async (email, password) => {
+  const signIn = useCallback(async (email, password, remember) => {
     if (auth.currentUser) {
       // Ensure user object is cleared first for React state
       await _signOut(auth);
     }
 
-    await auth.setPersistence(browserLocalPersistence);
+    if (remember) {
+      await auth.setPersistence(browserLocalPersistence);
+    } else {
+      await auth.setPersistence(browserSessionPersistence);
+    }
+
     await signInWithEmailAndPassword(auth, email, password);
     // onAuthStateChanged fires -> onSnapshot picks up the Firestore doc -> setUser()
   }, []);

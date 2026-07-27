@@ -46,12 +46,14 @@ const TrainingModule = () => {
     async function fetchModules() {
       try {
         const data = await api.get("/api/modules").json();
-
+        
+        // FILTER: Only keep modules where published is true
+        // We filter BEFORE mapping so the index (used for bgColor) stays consistent (Green, Orange, Green...)
+        const publishedModules = data.filter(module => module.published === true);
         const progress = await api.get(`/api/progress?userId=${user.uid}`).json();
 
-        // /api/modules only returns published modules, so no client-side filter is needed.
-        // Map data to component format — icon only from saved faviconURL (no fallback)
-        const formattedModules = data.map((module, index) => {
+        // Map filtered data to component format — icon only from saved faviconURL (no fallback)
+        const formattedModules = publishedModules.map((module, index) => {
           const moduleProgress = progress.find(p => p.moduleId === module.ModuleID);
           const resumeId = moduleProgress?.lastViewedContentId || 1;
 
