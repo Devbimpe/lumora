@@ -29,11 +29,18 @@ export const api = ky.extend({
  * @returns {Promise<string>}
  */
 export async function apiErrorMessage(err, fallback) {
-  if (err && typeof err === 'object' && 'response' in /** @type {any} */ (err)) {
-    try {
-      const data = await /** @type {any} */ (err).response.json();
-      if (data && typeof data.error === 'string') return data.error;
-    } catch { /* ignore */ }
+  if (err && typeof err === 'object') {
+    let { data, response } = err; // ky `HTTPError`
+    if (!data && response) {
+      try {
+        data = await response.json();
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (data && typeof data === 'object' && typeof data.error === 'string')
+      return data.error;
   }
   return fallback;
 }

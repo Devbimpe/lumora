@@ -207,3 +207,14 @@ export async function validateJsonBody(req, validator) {
 
   return { body, validationError: null };
 }
+
+/**
+ * Gets the client ip from proxy headers. Do NOT trust unless behind trusted proxy.
+ * 
+ * @param {NextRequest} req
+ * @returns {string | undefined}
+ */
+export function extractClientIp(req) {
+  const forwarded = req.headers.get('x-forwarded-for');
+  return forwarded ? forwarded.split(',', 2)[0].trim() : undefined;
+}

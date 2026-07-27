@@ -16,7 +16,7 @@ export default function UserRow({ user, onToggleActivation, onDelete }) {
           </div>
           <div className="ml-4">
             <div className="text-sm font-mono text-gray-500">
-              {user.UserID}
+              {user.email || user.Email}
             </div>
           </div>
         </div>

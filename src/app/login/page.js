@@ -83,6 +83,7 @@ function LoginInner() {
       return
     }
 
+
     try {
       console.log("🚀 Attempting login...")
       await signIn(formData.email, formData.password, formData.rememberMe)
@@ -142,7 +143,7 @@ function LoginInner() {
             <form onSubmit={handleSubmit}>
               {/* Error Message */}
               {error && (
-                <div className="error-message">
+                <div className="error-message" role="alert" aria-live="assertive">
                   {/* Display login error message */}
                   {error}
                 </div>
@@ -176,8 +177,9 @@ function LoginInner() {
                   onChange={handleInputChange}
                   disabled={loading}
                   minLength="8"
+                  aria-describedby="password-hint"
                 />
-                <small>
+                <small id="password-hint">
                   Password must be 8+ characters with uppercase, lowercase, number, and special character
                 </small>
               </div>

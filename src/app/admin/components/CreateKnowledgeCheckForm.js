@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import Select from 'react-select';
 import { api, apiErrorMessage } from '@/app/_lib/api-client';
 import KCTabSwitcher from './kc/KCTabSwitcher';
 import ChoicesEditor from './kc/ChoicesEditor';
@@ -9,8 +10,10 @@ import { QuestionInput, RubricInput, GradingContextInput, ExplanationInput, Open
 import AIGradingToggle from './kc/AIGradingToggle';
 import { validateKC, buildKCPayload } from './kc/validateKC';
 
-export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCreated, onError }) {
+export default function CreateKnowledgeCheckForm({ selectedModule, content = [], sections = [], onClose, onCreated, onError }) {
   const [question, setQuestion] = useState('');
+  const [contentId, setContentId] = useState('');
+  const [sectionId, setSectionId] = useState('');
   const [choices, setChoices] = useState(['', '']);
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [explanation, setExplanation] = useState('');
@@ -23,6 +26,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
 
   const resetForm = () => {
     setQuestion('');
+    setContentId('');
+    setSectionId('');
     setChoices(['', '']);
     setCorrectAnswer('');
     setExplanation('');
@@ -55,7 +60,8 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
         json: {
           ...buildKCPayload(formState()),
           moduleID: selectedModule,
-          contentId: null,
+          contentId: sections.length > 0 ? null : (contentId || null),
+          sectionId: sections.length > 0 ? (sectionId || null) : null,
         },
       });
       const checksData = await api.get(`/api/knowledge-checks?moduleId=${selectedModule}`).json();
@@ -73,6 +79,29 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
     setChoices(choices.filter((_, i) => i !== idx));
     setCorrectAnswer('');
   };
+  const contentOptions = [
+    { value: '', label: 'End of module' },
+    ...content.map((item) => {
+      const id = item.contentId ?? item.ContentID;
+      const title = item.overview ?? item.Overview ?? `Content Page ${id}`;
+
+      return {
+        value: String(id),
+        label: title,
+      };
+    }),
+  ];
+
+  const selectedContentOption = contentOptions.find((option) => option.value === String(contentId)) || contentOptions[0];
+  const sectionOptions = [
+    { value: '', label: 'End of module' },
+    ...sections.map((section) => ({
+      value: String(section.sectionId),
+      label: section.title,
+    })),
+  ];
+
+  const selectedSectionOption = sectionOptions.find((option) => option.value === String(sectionId)) || sectionOptions[0];
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-blue-500">
@@ -99,6 +128,46 @@ export default function CreateKnowledgeCheckForm({ selectedModule, onClose, onCr
           <GradingContextInput value={gradingContext} onChange={setGradingContext} />
         )}
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {sections.length > 0 ? 'Place this question in a section' : 'Place this question after this page'}
+        </label>
+
+        {sections.length > 0 ? (
+          <>
+            <Select
+              value={selectedSectionOption}
+              onChange={(option) => setSectionId(option?.value || '')}
+              options={sectionOptions}
+              isSearchable
+              placeholder="Search sections..."
+              className="text-sm"
+              classNamePrefix="react-select"
+            />
+
+            <p className="mt-1 text-xs text-gray-500">
+              Select a section so this question appears after all content pages in that section.
+            </p>
+          </>
+        ) : (
+          <>
+            <Select
+              value={selectedContentOption}
+              onChange={(option) => setContentId(option?.value || '')}
+              options={contentOptions}
+              isSearchable
+              placeholder="Search content pages..."
+              className="text-sm"
+              classNamePrefix="react-select"
+            />
+
+            <p className="mt-1 text-xs text-gray-500">
+              Select a content page so this question appears immediately after that page in the learner module.
+            </p>
+          </>
+        )}
+      </div>
+        
         <QuestionInput value={question} onChange={setQuestion} />
 
         {tab === 'multiple-choice' && (

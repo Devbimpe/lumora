@@ -50,16 +50,22 @@ const TrainingModule = () => {
         // FILTER: Only keep modules where published is true
         // We filter BEFORE mapping so the index (used for bgColor) stays consistent (Green, Orange, Green...)
         const publishedModules = data.filter(module => module.published === true);
+        const progress = await api.get(`/api/progress?userId=${user.uid}`).json();
 
         // Map filtered data to component format — icon only from saved faviconURL (no fallback)
-        const formattedModules = publishedModules.map((module, index) => ({
-          id: module.ModuleID,
-          title: `MODULE ${module.ModuleID}: ${module.Heading}`,
-          subtitle: module.Subheading || "",
-          href: `/modules/module${module.ModuleID}`,
-          icon: module.faviconURL || null,
-          bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
-        }));
+        const formattedModules = publishedModules.map((module, index) => {
+          const moduleProgress = progress.find(p => p.moduleId === module.ModuleID);
+          const resumeId = moduleProgress?.lastViewedContentId || 1;
+
+          return {
+            id: module.ModuleID,
+            title: module.Heading,
+            subtitle: module.Subheading || "",
+            href: `/modules/module${module.ModuleID}?item=${resumeId}`,
+            icon: module.faviconURL || null,
+            bgColor: index % 2 === 0 ? "bg-green-100" : "bg-orange-100",
+          };
+        });
         
         setModules(formattedModules);
       } catch (error) {

@@ -1,19 +1,23 @@
 import {
   badRequestError,
   definePublicRoute,
+  extractClientIp,
   validateJsonBody,
 } from '@/app/_lib/route';
 import { createUserAccount, createUserDoc } from '@/app/_db/admin-db';
 import { mapAuthError, serverAuthErrorMap } from '@/app/_lib/auth-helper';
+import { verifyTurnstile } from '@/app/_lib/turnstile';
 import { sendEmailVerification } from '@/app/api/(user)/email-verification';
 
 // POST handler: Handles user signup
-// Expects a JSON body with 'name', 'username', 'email', and 'password' fields
+// Expects a JSON body with 'name', 'username', 'email', 'password', and 'token' fields
 export const POST = definePublicRoute(async (req) => {
   try {
     const { body, validationError } = await validateJsonBody(req);
     if (validationError) return validationError;
-    let { name, username, email, password } = body;
+    let { name, username, email, password, token } = body;
+
+    if (!token) return badRequestError('Missing required challenge token');
 
     name = name.trim();
     username = username.trim();
@@ -21,6 +25,9 @@ export const POST = definePublicRoute(async (req) => {
 
     if (!name || !username || !email || !password)
       return badRequestError('Missing required sign up fields');
+
+    if (!await verifyTurnstile(token, 'signup', extractClientIp(req)))
+      return badRequestError('Security challenge failed, please try again');
 
     // Create Firestore document for the user
     const { uid, error: docError } = await createUserDoc({

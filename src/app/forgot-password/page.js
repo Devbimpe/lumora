@@ -1,18 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { api } from "@/app/_lib/api-client"
 import "../globals.css"
 import "../login/login.css"
+import { Turnstile } from "@/app/components/Turnstile"
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("")
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState("")
     const [error, setError] = useState("")
+    const [token, setToken] = useState(null);
+    const turnstile = useRef()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+
+        if (!token) {
+          setError("Please complete the security check")
+          setMessage("")
+          return
+        }
+
         setLoading(true)
         setError("")
         setMessage("")
@@ -20,8 +30,10 @@ export default function ForgotPassword() {
         try {
             const data = await api.post("/api/forgot-password", {
                 throwHttpErrors: false,
-                json: { email }
+                json: { email, token }
             }).json()
+            setToken(null);
+            turnstile.current?.reset();
 
             if (data.error) {
                 setError(data.message)
@@ -72,10 +84,23 @@ export default function ForgotPassword() {
                                 />
                             </div>
 
+                            <Turnstile
+                              ref={turnstile}
+                              className="mb-4"
+                              config={{
+                                action: 'forgot-password',
+                                callback: (newToken) => setToken(newToken),
+                                'expired-callback': () => {
+                                  setToken(null);
+                                  turnstile.current?.reset();
+                                },
+                              }}
+                            />
+
                             <div className="button">
                                 <button 
                                     type="submit" 
-                                    disabled={loading}
+                                    disabled={loading || !token}
                                 >
                                     {loading ? "Sending..." : "Send Reset Link"}
                                 </button>

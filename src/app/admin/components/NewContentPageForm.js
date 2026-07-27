@@ -11,9 +11,10 @@ function isValidHttpUrl(value) {
   }
 }
 
-export default function NewContentPageForm({ selectedModule, onClose, onCreated, onError }) {
+export default function NewContentPageForm({ selectedModule, sections = [], onClose, onCreated, onError }) {
   const [newOverview, setNewOverview] = useState('');
   const [newReading, setNewReading] = useState('');
+  const [sectionId, setSectionId] = useState('');
   const [showCreatePreview, setShowCreatePreview] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
@@ -146,12 +147,17 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
       onError('Either Reading content or an uploaded image is required');
       return;
     }
+    if (sections.length > 0 && !sectionId) {
+      onError('Please choose a section for this content page');
+      return;
+    }
 
     try {
       setIsSubmitting(true);
       await api.post('/api/content', {
         json: {
           moduleId: selectedModule,
+          sectionId: sectionId || null,
           overview: newOverview,
           reading: newReading,
           imageURL: uploadedImageURL || null,
@@ -164,6 +170,7 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
 
       setNewOverview('');
       setNewReading('');
+      setSectionId('');
       setShowCreatePreview(false);
       handleClose();
     } catch (err) {
@@ -183,6 +190,26 @@ export default function NewContentPageForm({ selectedModule, onClose, onCreated,
       </div>
 
       <div className="space-y-4">
+        {sections.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Section</label>
+          <select
+            value={sectionId}
+            onChange={(event) => setSectionId(event.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          >
+            <option value="">Choose a section...</option>
+            {sections.map((section) => (
+              <option key={section.sectionId} value={section.sectionId}>
+                {section.title}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            This page will appear inside the selected section.
+          </p>
+        </div>  
+      )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Page Heading (Overview)</label>
           <textarea

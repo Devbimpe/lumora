@@ -134,7 +134,7 @@ export default function Sidebar() {
     { id: 'management', label: 'Module Management', path: '/admin/module-management', icon: <FiBookOpen/>},
     { id: 'progress', label: 'Progress', path: '/admin/module-progress', icon: <FiBarChart2/> },
     { id: 'feedback', label: 'Feedback', path: '/admin/feedback', icon: <FiMessageSquare/> },
-    { id: 'training-module', label: 'Training Module', path: '/training-module' },
+    { id: 'training-module', label: 'Go to Student View \u2192', path: '/training-module' },
   ];
 
   const getActiveSection = () => {
@@ -454,7 +454,7 @@ export default function Sidebar() {
         <div className="flex items-center justify-between p-4">
           <Link href="/" className="flex items-center">
             <Image
-              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772423261/LumoraLogo-Transparent.png"
+              src="/lumora.png"
               alt="Lumora Logo"
               width={150}
               height={45}
@@ -514,14 +514,14 @@ export default function Sidebar() {
       <div className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 shadow-sm bg-white">
         
         {/* Logo Section */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="py-6 px-0 border-b border-gray-200">
           <Link href="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
             <Image
-              src="http://res.cloudinary.com/du6yiw4it/image/upload/v1772423261/LumoraLogo-Transparent.png"
+              src="/lumora.png"
               alt="Lumora Logo"
               width={200}
-              height={60}
-              className="h-10 w-auto"
+              height={80}
+              className="h-16 w-auto"
             />
           </Link>
         </div>

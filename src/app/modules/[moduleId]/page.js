@@ -33,6 +33,7 @@ function ModulePageContent() {
   const [persistedViewedContent, setPersistedViewedContent] = useState([]);
   const [moduleProgressHydrated, setModuleProgressHydrated] = useState(false);
   const [submittedViewAnimate, setSubmittedViewAnimate] = useState(false);
+  const [progress, setProgress] = useState(null);
 
   const isSubmittedView = currentItem?.type === 'knowledgeCheck' && selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__';
   useEffect(() => {
@@ -95,13 +96,14 @@ function ModulePageContent() {
         // `allItems` uses `type` for content-vs-knowledgeCheck, so the MC/open-ended
         // discriminator is carried as `kcType`.
         const toKcItem = (check) => ({
-          id: `check-${check.knowledgeCheckId}`,
+          id: `kc-${check.knowledgeCheckId}`,
           type: 'knowledgeCheck',
           knowledgeCheckId: check.knowledgeCheckId,
           kcType: check.type,
           question: check.question,
           explanation: check.explanation,
           contentId: check.contentId,
+          sectionId: check.sectionId ?? null,
           moduleID: check.moduleID,
           aiGradingEnabled: check.aiGradingEnabled,
           ...(check.type === 'multiple-choice'
@@ -111,10 +113,11 @@ function ModulePageContent() {
         
         // Fetch content, knowledge checks, and module details in parallel. Content and
         // knowledge checks are required for a usable module page; module details are best-effort.
-        const [contentResult, checksResult, moduleResult] = await Promise.allSettled([
+        const [contentResult, checksResult, moduleResult, sectionsResult] = await Promise.allSettled([
           api.get(`/api/content?moduleId=${moduleNum}`).json(),
           api.get(`/api/knowledge-checks?moduleId=${moduleNum}`).json(),
           api.get(`/api/Module?moduleId=${moduleNum}`).json(),
+          api.get(`/api/sections?moduleId=${moduleNum}`).json(),
         ]);
 
         if (contentResult.status !== 'fulfilled') {
@@ -126,6 +129,7 @@ function ModulePageContent() {
 
         const contentItems = contentResult.value;
         const knowledgeChecks = checksResult.value;
+        const sections = sectionsResult.status === 'fulfilled' && Array.isArray(sectionsResult.value) ? sectionsResult.value : [];
 
         let moduleDetails = null;
         if (moduleResult.status === 'fulfilled') {
@@ -138,48 +142,93 @@ function ModulePageContent() {
           }
         }
         
-        // Group knowledge checks by their contentId for insertion after associated content
+        const toContentItem = (content) => ({
+          id: `content-${content.ContentID}`,
+          type: 'content',
+          contentId: content.ContentID,
+          sectionId: content.sectionId ?? content.SectionID ?? null,
+          overview: content.Overview,
+          reading: content.Reading,
+          image: content.ImageURL,
+          imageDescription: content.ImageDescription,
+        });
+
+        const items = [];
+        const sortedContent = [...contentItems].sort((a, b) => a.ContentID - b.ContentID);
+        const sortedSections = [...sections].sort((a, b) => {
+          const aOrder = Number(a.sortOrder ?? a.sectionId ?? 0);
+          const bOrder = Number(b.sortOrder ?? b.sectionId ?? 0);
+          return aOrder - bOrder;
+        });
+
+        if (sortedSections.length > 0) {
+          sortedSections.forEach((section, index) => {
+            const sectionId = Number(section.sectionId);
+
+            items.push({
+            id: `section-${sectionId}`,
+            type: 'sectionIntro',
+            sectionId,
+            title: section.title,
+            description: section.description,
+            sectionNumber: index + 1,
+          });
+
+          sortedContent
+            .filter((content) => Number(content.sectionId ?? content.SectionID) === sectionId)
+            .forEach((content) => {
+              items.push(toContentItem(content));
+            });
+
+          knowledgeChecks
+            .filter((check) => Number(check.sectionId) === sectionId)
+            .forEach((check) => {
+              items.push(toKcItem(check));
+            });
+        });
+
+        sortedContent
+          .filter((content) => content.sectionId == null && content.SectionID == null)
+          .forEach((content) => {
+            items.push(toContentItem(content));
+          });
+
+        knowledgeChecks
+          .filter((check) => check.sectionId == null && check.contentId == null)
+          .forEach((check) => {
+            items.push(toKcItem(check));
+          });
+      } else {
         const checksByContentId = {};
         const unassociatedChecks = [];
-        knowledgeChecks.forEach(check => {
+
+        knowledgeChecks.forEach((check) => {
           if (check.contentId != null) {
             if (!checksByContentId[check.contentId]) {
               checksByContentId[check.contentId] = [];
             }
+
             checksByContentId[check.contentId].push(check);
           } else {
             unassociatedChecks.push(check);
           }
         });
-        
-        // Build unified items array: each content item followed by its knowledge checks
-        const items = [];
-        const sortedContent = [...contentItems].sort((a, b) => a.ContentID - b.ContentID);
-        
-        sortedContent.forEach(content => {
-          items.push({
-            id: `content-${content.ContentID}`,
-            type: 'content',
-            contentId: content.ContentID,
-            overview: content.Overview,
-            reading: content.Reading,
-            image: content.ImageURL,
-            imageDescription: content.ImageDescription
-          });
-          
-          // Insert knowledge checks associated with this content item
+
+        sortedContent.forEach((content) => {
+          items.push(toContentItem(content));
+
           const associatedChecks = checksByContentId[content.ContentID] || [];
-          associatedChecks.forEach(check => {
+          associatedChecks.forEach((check) => {
             items.push(toKcItem(check));
           });
         });
-        
-        // Append any knowledge checks not linked to a specific content item
-        unassociatedChecks.forEach(check => {
-          items.push(toKcItem(check));
+
+        unassociatedChecks.forEach((check) => {
+            items.push(toKcItem(check));
         });
-        
-        setAllItems(items);
+      }
+
+      setAllItems(items);
         
         const currentModule = allModules.length > 0 ? allModules.find(m => m.ModuleID === parseInt(moduleNum)) : null;
         const resolvedHeading = currentModule?.Heading || moduleDetails?.heading || `Module ${moduleNum}`;
@@ -204,7 +253,7 @@ function ModulePageContent() {
 
   // Load module progress so we can show saved knowledge check answers and feedback
   useEffect(() => {
-    if (!user?.id || !moduleId) {
+    if (!user?.uid || !moduleId) {
       setModuleProgressHydrated(false);
       return;
     }
@@ -217,7 +266,9 @@ function ModulePageContent() {
     (async () => {
       try {
         const progress = await api.get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`).json();
+        
         if (!cancelled) {
+          setProgress(progress);
           setSavedKnowledgeCheckSubmissions(progress?.knowledgeCheckSubmissions || {});
           setPersistedCompletedContent(Array.isArray(progress?.completedContent) ? progress.completedContent : []);
           setPersistedViewedContent(Array.isArray(progress?.viewedContent) ? progress.viewedContent : []);
@@ -229,7 +280,7 @@ function ModulePageContent() {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id, moduleId]);
+  }, [user?.uid, moduleId]);
 
   const persistedCompletedContentSet = useMemo(
     () => new Set((persistedCompletedContent || []).map(value => String(value))),
@@ -241,66 +292,86 @@ function ModulePageContent() {
     [persistedViewedContent]
   );
 
-  // Logged-in users: open module at first incomplete item when URL has no ?item= (resume)
+  // persist all answers (mc, open-ended)
   useEffect(() => {
-    if (!user?.id || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
+      if (!moduleProgressHydrated) return;
+
+      setSelectedAnswers(prev => {
+        const next = { ...prev };
+        let changed = false;
+
+        for (const [kcId, submission] of Object.entries(savedKnowledgeCheckSubmissions)) {
+          const ans = submission?.userAnswer;
+
+          if (typeof ans === 'number' && next[kcId] === undefined) {
+            next[kcId] = ans; // MC wrong or right
+            changed = true;
+          }
+
+          if (typeof ans === 'string' && next[kcId] === undefined) {
+            next[kcId] = '__submitted__'; // open-ended submitted
+            changed = true;
+          }
+        }
+
+        return changed ? next : prev;
+      });
+
+      setOpenEndedAnswers(prev => {
+        const next = { ...prev };
+        let changed = false;
+
+        for (const [kcId, submission] of Object.entries(savedKnowledgeCheckSubmissions)) {
+          const ans = submission?.userAnswer;
+
+          if (typeof ans === 'string' && !next[kcId]) {
+            next[kcId] = ans;
+            changed = true;
+          }
+        }
+
+      return changed ? next : prev;
+    });
+  }, [moduleProgressHydrated, savedKnowledgeCheckSubmissions]);
+
+  // Logged-in users: open module at first incomplete item when URL has no ?item= (resume)
+
+ useEffect(() => {
+    if (!user?.uid || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
+
+    const hydrated =
+      Object.keys(selectedAnswers).length > 0 ||
+      Object.keys(openEndedAnswers).length > 0 ||
+      Object.keys(savedKnowledgeCheckSubmissions).length > 0;
+
+    if (!hydrated) return;
+
     if (currentItemId) return;
 
     const firstIncomplete = findFirstIncompleteItem(
       allItems,
-      persistedViewedContentSet,
-      persistedCompletedContentSet,
+      new Set(persistedViewedContent.map(String)),
+      new Set(persistedCompletedContent.map(String)),
       savedKnowledgeCheckSubmissions,
       selectedAnswers
     );
-    const target = firstIncomplete || allItems[allItems.length - 1];
-    if (!target) return;
 
+    const target = firstIncomplete || allItems[0];
     router.replace(`/modules/${moduleId}?item=${encodeURIComponent(target.id)}`);
   }, [
-    user?.id,
+    user?.uid,
     moduleId,
     loading,
     moduleProgressHydrated,
     allItems,
     currentItemId,
-    persistedViewedContentSet,
-    persistedCompletedContentSet,
+    selectedAnswers,
+    openEndedAnswers,
     savedKnowledgeCheckSubmissions,
+    persistedViewedContent,
+    persistedCompletedContent,
     router,
   ]);
-
-  useEffect(() => {
-    setSelectedAnswers({});
-    setOpenEndedAnswers({});
-    setAiFeedbackByCheck({});
-  }, [moduleId]);
-
-  // Restore MC selections for knowledge checks already completed (correct) in saved progress
-  useEffect(() => {
-    if (!user?.id || !moduleProgressHydrated || !allItems.length || loading) return;
-
-    setSelectedAnswers((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const item of allItems) {
-        if (item.type !== 'knowledgeCheck') continue;
-        if (item.kcType !== 'multiple-choice') continue;
-        const id = item.knowledgeCheckId;
-        if (prev[id] !== undefined) continue;
-        const idx = item.correctAnswer;
-        if (typeof idx !== 'number') continue;
-        const done =
-          persistedCompletedContentSet.has(`kc-${id}`) ||
-          persistedCompletedContentSet.has(String(id));
-        if (done) {
-          next[id] = idx;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [user?.id, moduleProgressHydrated, allItems, persistedCompletedContentSet, loading]);
 
   // Update module heading when allModules loads
   useEffect(() => {
@@ -415,19 +486,61 @@ function ModulePageContent() {
     // Don't track here - let the useEffect handle it to avoid duplicates
   };
 
-  const handleOptionClick = useCallback((knowledgeCheckId, index, correctIndex) => {
-    setSelectedAnswers(prev => ({
-      ...prev,
-      [knowledgeCheckId]: index
-    }));
+  const handleOptionClick = useCallback(
+    async (knowledgeCheckId, index, correctIndex) => {
+      setSelectedAnswers(prev => ({
+        ...prev,
+        [knowledgeCheckId]: index
+      }));
+
+      if (user) {
+        try {
+          await api.post('/api/progress', {
+            json: {
+              userId: user.uid,
+              moduleId: moduleId.replace('module', ''),
+              action: 'saveKnowledgeCheckFeedback',
+              contentId: knowledgeCheckId,
+              userAnswer: index,
+              aiGradingEnabled: false, // or true if you later add AI grading for MC
+            },
+          });
+
+          setSavedKnowledgeCheckSubmissions(prev => ({
+            ...prev,
+            [knowledgeCheckId]: {
+              ...(prev[knowledgeCheckId] || {}),
+              userAnswer: index,
+            },
+          }));
+        } catch (err) {
+          console.error('Failed to save MC answer to progress:', err);
+        }
+      }
     
-    // Track completion if answer is correct
-    if (index === correctIndex && user) {
+      // Track completion if answer is correct
+     if (user) {
       trackKnowledgeCheckCompletion(knowledgeCheckId);
     }
-  }, [user, trackKnowledgeCheckCompletion]);
 
-  const handleOpenEndedSubmit = useCallback(async (knowledgeCheckId, answerText) => {
+  }, [user, trackKnowledgeCheckCompletion]
+);
+
+  const handleOpenEndedSubmit = useCallback(async (knowledgeCheckId, answerText, token) => {
+    // Find the knowledge check details so we can send full context to the grader
+    const item = allItems.find(
+      (i) => i.type === 'knowledgeCheck' && i.knowledgeCheckId === knowledgeCheckId
+    );
+
+    if (!item) {
+      return;
+    }
+
+    if (item.aiGradingEnabled && !token) {
+      console.warn('AI grading is enabled but captcha has not been solved');
+      return;
+    }
+
     setSelectedAnswers(prev => ({
       ...prev,
       [knowledgeCheckId]: '__submitted__'
@@ -437,17 +550,8 @@ function ModulePageContent() {
       [knowledgeCheckId]: answerText
     }));
 
-    // Find the knowledge check details so we can send full context to the grader
-    const item = allItems.find(
-      (i) => i.type === 'knowledgeCheck' && i.knowledgeCheckId === knowledgeCheckId
-    );
-
     if (user) {
       trackKnowledgeCheckCompletion(knowledgeCheckId);
-    }
-
-    if (!item) {
-      return;
     }
 
     // Non-AI-graded: skip the grader, save answer-only, show explanation.
@@ -505,6 +609,7 @@ function ModulePageContent() {
           moduleID: item.moduleID,
           knowledgeCheckId: item.knowledgeCheckId,
           userAnswer: answerText,
+          token,
         }
       }).json();
 
@@ -699,6 +804,23 @@ function ModulePageContent() {
 
           {/* Content Display */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8">
+            
+            {currentItem.type === 'sectionIntro' && (
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-sm font-semibold text-green-700 mb-3">
+                  Section {currentItem.sectionNumber}
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+                  {currentItem.title}
+                </h2>
+                {currentItem.description && (
+                  <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto whitespace-pre-wrap">
+                    {currentItem.description}
+                  </p>
+                )}
+              </div>
+            )}
+
             {currentItem.type === 'content' && <ContentItemView item={currentItem} />}
             {currentItem.type === 'knowledgeCheck' && (
               <KnowledgeCheckView

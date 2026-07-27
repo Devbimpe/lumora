@@ -1,6 +1,7 @@
 export const COLLECTIONS = {
   USERS: 'users',
   MODULES: 'modules',
+  SECTIONS: 'sections',
   CONTENT: 'content',
   KNOWLEDGE_CHECKS: 'knowledgeChecks',
   STUDENT_SUBMISSIONS: 'studentSubmissions',

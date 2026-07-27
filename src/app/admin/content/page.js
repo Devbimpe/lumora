@@ -9,6 +9,8 @@ import NewContentPageForm from '../components/NewContentPageForm';
 import CreateKnowledgeCheckForm from '../components/CreateKnowledgeCheckForm';
 import ContentPageItem from '../components/ContentPageItem';
 import KnowledgeCheckItem from '../components/KnowledgeCheckItem';
+import SectionManager from '../components/SectionManager';
+
 
 function ContentPageContent() {
   const router = useRouter();
@@ -19,6 +21,7 @@ function ContentPageContent() {
   const [modules, setModules] = useState([]);
   const [content, setContent] = useState([]);
   const [knowledgeChecks, setKnowledgeChecks] = useState([]);
+  const [sections, setSections] = useState([]);
   const [selectedModule, setSelectedModule] = useState('');
   const [heading, setHeading] = useState('');
   const [subHeading, setSubHeading] = useState('');
@@ -53,6 +56,7 @@ function ContentPageContent() {
       setSelectedModule('');
       setContent([]);
       setKnowledgeChecks([]);
+      setSections([]);
       setHeading('');
       setSubHeading('');
       setFaviconURL(getDefaultFaviconUrl());
@@ -148,14 +152,16 @@ function ContentPageContent() {
     Promise.all([
       api.get('/api/content', { searchParams: { moduleId: selectedModule } }).json(),
       api.get('/api/knowledge-checks', { searchParams: { moduleId: selectedModule } }).json(),
+      api.get('/api/admin/sections', { searchParams: { moduleId: selectedModule } }).json(),
     ])
-      .then(([contentData, checksData]) => {
+      .then(([contentData, checksData, sectionsData]) => {
         if (!isMounted) {
           return;
         }
 
         setContent(Array.isArray(contentData) ? contentData : []);
         setKnowledgeChecks(Array.isArray(checksData) ? checksData : []);
+        setSections(Array.isArray(sectionsData) ? sectionsData : []);
       })
       .catch((err) => {
         if (isMounted) {
@@ -352,6 +358,15 @@ function ContentPageContent() {
         </div>
       )}
 
+      {mode !== 'new' && selectedModule && (
+        <SectionManager
+          selectedModule={selectedModule}
+          sections={sections}
+          onSectionsChange={setSections}
+          onError={setError}
+        />
+      )}
+
       {mode !== 'new' &&
         (loading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -368,6 +383,7 @@ function ContentPageContent() {
                     item={item}
                     index={index}
                     selectedModule={selectedModule}
+                    sections={sections}
                     onContentChange={setContent}
                   />
                 ))}
@@ -403,6 +419,7 @@ function ContentPageContent() {
                 )}
                 <NewContentPageForm
                   selectedModule={selectedModule}
+                  sections={sections}
                   onClose={() => { setShowCreateForm(false); setNewContentError(null); }}
                   onCreated={(data) => {
                     setContent(data);
@@ -423,6 +440,8 @@ function ContentPageContent() {
                       kc={kc}
                       index={index}
                       selectedModule={selectedModule}
+                      content={content}
+                      sections={sections}
                       onKCChange={(data) => {
                         setKnowledgeChecks(data);
                         window.dispatchEvent(new Event('kc-updated'));
@@ -449,6 +468,8 @@ function ContentPageContent() {
                 )}
                 <CreateKnowledgeCheckForm
                   selectedModule={selectedModule}
+                  content={content}
+                  sections={sections}
                   onClose={() => { setShowKCForm(false); setKcFormError(null); }}
                   onCreated={(data) => {
                     setKnowledgeChecks(data);

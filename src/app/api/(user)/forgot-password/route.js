@@ -2,17 +2,24 @@ import crypto from "node:crypto"
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 import { getUserByEmail, Timestamp, updateUser } from "@/app/_db/admin-db.js"
-import { badRequestError, definePublicRoute, validateJsonBody } from "@/app/_lib/route"
+import { badRequestError, definePublicRoute, extractClientIp, validateJsonBody } from "@/app/_lib/route"
+import { verifyTurnstile } from "@/app/_lib/turnstile"
 
 export const POST = definePublicRoute(async req => {
   try {
     const { body, validationError } = await validateJsonBody(req)
     if (validationError) return validationError
-    const { email } = body
+    const { email, token } = body
 
     if (!email) {
       return badRequestError("Email is required.")
     }
+    if (!token) {
+      return badRequestError("Challenge token is required.")
+    }
+
+    if (!await verifyTurnstile(token, 'forgot-password', extractClientIp(req)))
+      return badRequestError('Security challenge failed, please try again');
 
     // Fire-and-forget: don't await. If we only wait for email delivery when
     // the user exists, response timing reveals which emails are registered.
@@ -58,7 +65,10 @@ async function requestResetIfUserExists(email) {
 
 async function sendResetEmail(to, token) {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
