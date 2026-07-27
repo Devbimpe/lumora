@@ -108,7 +108,7 @@ export default function Page() {
       const data = await res.json();
       if (res.ok) {
         notifySuccess();
-        setSuccess('Sucess!');
+        setSuccess('Success!');
         setForm({ name: '', userName: '', email: '', password: '', confirmPassword: '' });
         setDisabled(true); // Prevent additional sign ups without refreshing the page
         turnstile.current.remove();
