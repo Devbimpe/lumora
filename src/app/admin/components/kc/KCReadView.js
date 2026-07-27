@@ -13,7 +13,6 @@ export default function KCReadView({ kc, index }) {
             {kc.type === 'multiple-choice' && (
               <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Multiple Choice</span>
             )}
-            <span className="text-xs sm:text-sm text-gray-500">Module {kc.moduleID}</span>
           </div>
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{kc.question}</h3>
         </div>

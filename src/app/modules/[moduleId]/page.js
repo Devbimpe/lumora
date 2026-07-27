@@ -33,6 +33,7 @@ function ModulePageContent() {
   const [persistedViewedContent, setPersistedViewedContent] = useState([]);
   const [moduleProgressHydrated, setModuleProgressHydrated] = useState(false);
   const [submittedViewAnimate, setSubmittedViewAnimate] = useState(false);
+  const [progress, setProgress] = useState(null);
 
   const isSubmittedView = currentItem?.type === 'knowledgeCheck' && selectedAnswers[currentItem.knowledgeCheckId] === '__submitted__';
   useEffect(() => {
@@ -95,7 +96,7 @@ function ModulePageContent() {
         // `allItems` uses `type` for content-vs-knowledgeCheck, so the MC/open-ended
         // discriminator is carried as `kcType`.
         const toKcItem = (check) => ({
-          id: `check-${check.knowledgeCheckId}`,
+          id: `kc-${check.knowledgeCheckId}`,
           type: 'knowledgeCheck',
           knowledgeCheckId: check.knowledgeCheckId,
           kcType: check.type,
@@ -204,7 +205,7 @@ function ModulePageContent() {
 
   // Load module progress so we can show saved knowledge check answers and feedback
   useEffect(() => {
-    if (!user?.id || !moduleId) {
+    if (!user?.uid || !moduleId) {
       setModuleProgressHydrated(false);
       return;
     }
@@ -217,7 +218,9 @@ function ModulePageContent() {
     (async () => {
       try {
         const progress = await api.get(`/api/progress?userId=${user.uid}&moduleId=${moduleNum}`).json();
+        
         if (!cancelled) {
+          setProgress(progress);
           setSavedKnowledgeCheckSubmissions(progress?.knowledgeCheckSubmissions || {});
           setPersistedCompletedContent(Array.isArray(progress?.completedContent) ? progress.completedContent : []);
           setPersistedViewedContent(Array.isArray(progress?.viewedContent) ? progress.viewedContent : []);
@@ -229,7 +232,7 @@ function ModulePageContent() {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id, moduleId]);
+  }, [user?.uid, moduleId]);
 
   const persistedCompletedContentSet = useMemo(
     () => new Set((persistedCompletedContent || []).map(value => String(value))),
@@ -241,66 +244,86 @@ function ModulePageContent() {
     [persistedViewedContent]
   );
 
-  // Logged-in users: open module at first incomplete item when URL has no ?item= (resume)
+  // persist all answers (mc, open-ended)
   useEffect(() => {
-    if (!user?.id || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
+      if (!moduleProgressHydrated) return;
+
+      setSelectedAnswers(prev => {
+        const next = { ...prev };
+        let changed = false;
+
+        for (const [kcId, submission] of Object.entries(savedKnowledgeCheckSubmissions)) {
+          const ans = submission?.userAnswer;
+
+          if (typeof ans === 'number' && next[kcId] === undefined) {
+            next[kcId] = ans; // MC wrong or right
+            changed = true;
+          }
+
+          if (typeof ans === 'string' && next[kcId] === undefined) {
+            next[kcId] = '__submitted__'; // open-ended submitted
+            changed = true;
+          }
+        }
+
+        return changed ? next : prev;
+      });
+
+      setOpenEndedAnswers(prev => {
+        const next = { ...prev };
+        let changed = false;
+
+        for (const [kcId, submission] of Object.entries(savedKnowledgeCheckSubmissions)) {
+          const ans = submission?.userAnswer;
+
+          if (typeof ans === 'string' && !next[kcId]) {
+            next[kcId] = ans;
+            changed = true;
+          }
+        }
+
+      return changed ? next : prev;
+    });
+  }, [moduleProgressHydrated, savedKnowledgeCheckSubmissions]);
+
+  // Logged-in users: open module at first incomplete item when URL has no ?item= (resume)
+
+ useEffect(() => {
+    if (!user?.uid || !moduleId || loading || !moduleProgressHydrated || !allItems.length) return;
+
+    const hydrated =
+      Object.keys(selectedAnswers).length > 0 ||
+      Object.keys(openEndedAnswers).length > 0 ||
+      Object.keys(savedKnowledgeCheckSubmissions).length > 0;
+
+    if (!hydrated) return;
+
     if (currentItemId) return;
 
     const firstIncomplete = findFirstIncompleteItem(
       allItems,
-      persistedViewedContentSet,
-      persistedCompletedContentSet,
+      new Set(persistedViewedContent.map(String)),
+      new Set(persistedCompletedContent.map(String)),
       savedKnowledgeCheckSubmissions,
       selectedAnswers
     );
-    const target = firstIncomplete || allItems[allItems.length - 1];
-    if (!target) return;
 
+    const target = firstIncomplete || allItems[0];
     router.replace(`/modules/${moduleId}?item=${encodeURIComponent(target.id)}`);
   }, [
-    user?.id,
+    user?.uid,
     moduleId,
     loading,
     moduleProgressHydrated,
     allItems,
     currentItemId,
-    persistedViewedContentSet,
-    persistedCompletedContentSet,
+    selectedAnswers,
+    openEndedAnswers,
     savedKnowledgeCheckSubmissions,
+    persistedViewedContent,
+    persistedCompletedContent,
     router,
   ]);
-
-  useEffect(() => {
-    setSelectedAnswers({});
-    setOpenEndedAnswers({});
-    setAiFeedbackByCheck({});
-  }, [moduleId]);
-
-  // Restore MC selections for knowledge checks already completed (correct) in saved progress
-  useEffect(() => {
-    if (!user?.id || !moduleProgressHydrated || !allItems.length || loading) return;
-
-    setSelectedAnswers((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const item of allItems) {
-        if (item.type !== 'knowledgeCheck') continue;
-        if (item.kcType !== 'multiple-choice') continue;
-        const id = item.knowledgeCheckId;
-        if (prev[id] !== undefined) continue;
-        const idx = item.correctAnswer;
-        if (typeof idx !== 'number') continue;
-        const done =
-          persistedCompletedContentSet.has(`kc-${id}`) ||
-          persistedCompletedContentSet.has(String(id));
-        if (done) {
-          next[id] = idx;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [user?.id, moduleProgressHydrated, allItems, persistedCompletedContentSet, loading]);
 
   // Update module heading when allModules loads
   useEffect(() => {
@@ -415,17 +438,45 @@ function ModulePageContent() {
     // Don't track here - let the useEffect handle it to avoid duplicates
   };
 
-  const handleOptionClick = useCallback((knowledgeCheckId, index, correctIndex) => {
-    setSelectedAnswers(prev => ({
-      ...prev,
-      [knowledgeCheckId]: index
-    }));
+  const handleOptionClick = useCallback(
+    async (knowledgeCheckId, index, correctIndex) => {
+      setSelectedAnswers(prev => ({
+        ...prev,
+        [knowledgeCheckId]: index
+      }));
+
+      if (user) {
+        try {
+          await api.post('/api/progress', {
+            json: {
+              userId: user.uid,
+              moduleId: moduleId.replace('module', ''),
+              action: 'saveKnowledgeCheckFeedback',
+              contentId: knowledgeCheckId,
+              userAnswer: index,
+              aiGradingEnabled: false, // or true if you later add AI grading for MC
+            },
+          });
+
+          setSavedKnowledgeCheckSubmissions(prev => ({
+            ...prev,
+            [knowledgeCheckId]: {
+              ...(prev[knowledgeCheckId] || {}),
+              userAnswer: index,
+            },
+          }));
+        } catch (err) {
+          console.error('Failed to save MC answer to progress:', err);
+        }
+      }
     
-    // Track completion if answer is correct
-    if (index === correctIndex && user) {
+      // Track completion if answer is correct
+     if (user) {
       trackKnowledgeCheckCompletion(knowledgeCheckId);
     }
-  }, [user, trackKnowledgeCheckCompletion]);
+
+  }, [user, trackKnowledgeCheckCompletion]
+);
 
   const handleOpenEndedSubmit = useCallback(async (knowledgeCheckId, answerText, token) => {
     // Find the knowledge check details so we can send full context to the grader

@@ -263,7 +263,6 @@ export default function ContentPageItem({ item, index, selectedModule, onContent
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Page {index + 1}</span>
-                        <span className="text-xs sm:text-sm text-gray-500">Module {item.ModuleID}</span>
                       </div>
                       <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 break-words">{item.Overview}</h3>
                     </div>

@@ -1076,7 +1076,7 @@ export async function markContentViewed(userId, moduleId, contentId) {
   const progress = await getUserModuleProgress(userId, moduleId);
 
   const viewedContent = progress?.viewedContent || [];
-  const contentIdStr = String(contentId);
+  const contentIdStr = `content-${contentId}`;
   if (!viewedContent.includes(contentIdStr)) {
     viewedContent.push(contentIdStr);
   }
@@ -1103,7 +1103,7 @@ export async function markContentCompleted(userId, moduleId, contentId) {
   const progress = await getUserModuleProgress(userId, moduleId);
 
   const completedContent = progress?.completedContent || [];
-  const contentIdStr = String(contentId);
+  const contentIdStr = `content-${contentId}`;
   if (!completedContent.includes(contentIdStr)) {
     completedContent.push(contentIdStr);
   }
@@ -1157,11 +1157,12 @@ export async function saveKnowledgeCheckFeedback(userId, moduleId, contentId, {
 }) {
   const progress = await getUserModuleProgress(userId, moduleId);
   const existing = progress?.knowledgeCheckSubmissions || {};
-  const contentIdStr = String(contentId);
+  // Normalize KC key: "kc-2" → "2"
+  const kcKey = String(contentId).replace('kc-', '');
 
   const knowledgeCheckSubmissions = {
     ...existing,
-    [contentIdStr]: {
+    [kcKey]: {
       userAnswer: userAnswer ?? '',
       grade: grade ?? null,
       feedback: feedback ?? '',

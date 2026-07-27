@@ -45,9 +45,6 @@ export default function ModuleRow({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full flex-shrink-0">
-                Module {module.id}
-              </span>
               {module.published && (
                 <span className="text-[10px] uppercase tracking-wider font-bold text-green-600">Published</span>
               )}
