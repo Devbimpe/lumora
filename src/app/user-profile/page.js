@@ -46,13 +46,15 @@ export default function Page() {
         
       {personalInfoData && <InfoSummary personalInfo={personalInfoData} />}
       {/* Navigation Tabs */}
-      <div className="bg-gray-100 rounded-full p-2 shadow-sm max-w-3xl mx-auto">
-          <div className="grid grid-cols-4 gap-2">
+      <div className="bg-gray-100 rounded-2xl sm:rounded-full p-2 shadow-sm max-w-3xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2" role="tablist" aria-label="Profile sections">
           {tabs.map((tab) => (
               <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`w-full px-6 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+              role="tab"
+              aria-selected={activeTab === tab}
+              className={`w-full px-2 sm:px-6 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 whitespace-normal leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 ${
                   activeTab === tab
                   ? "bg-white text-green-700 shadow-md"
                   : "text-gray-700 hover:text-green-700"
@@ -74,4 +76,3 @@ export default function Page() {
       </div>
     );
   }
-  

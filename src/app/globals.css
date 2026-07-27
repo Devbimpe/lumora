@@ -51,7 +51,7 @@ h1 {
 }
 
 h2 {
-  color: #888;
+  color: #666; 
   font-size: 1rem;
   margin-bottom: 2rem;
 }
@@ -85,7 +85,7 @@ input[type='text'] {
 }
 
 .button button {
-  background-color: orange;
+  background-color: #B45309; 
   color: white;
   border: none;
   padding: 0.75rem;
@@ -101,7 +101,7 @@ input[type='text'] {
 }
 
 .register_link a {
-  color: orange;
+  color: #B45309; 
   text-decoration: none;
   margin-left: 0.3rem;
 }
@@ -120,7 +120,7 @@ input[type='text'] {
 
 
 .footer li a:hover {
-  color: orange;
+  color: #B45309; 
 }
 
 .ModuleButtons {
@@ -131,7 +131,7 @@ input[type='text'] {
 }
 
 .ModuleButtons input[type="button"] {
-    background-color: #ff6600;
+    background-color: #B45309; 
     color: white;
     border: none;
     border-radius: 10px;
@@ -141,7 +141,7 @@ input[type='text'] {
 }
 
 .ModuleButtons input[type="button"]:hover {
-    background-color: #e65c00;
+    background-color: #92400e;
 }
 
 
