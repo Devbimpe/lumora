@@ -1,10 +1,16 @@
 import { v2 as cloudinary } from 'cloudinary';
 
- cloudinary.config({ 
-     cloud_name: 'du6yiw4it', 
-     api_key: '735481273155742', 
-     api_secret: process.env.CLOUDINARY_SECRET 
- });
+const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_SECRET } = process.env;
+if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_SECRET)
+    throw new Error('missing one or more Cloudinary env variables');
+
+cloudinary.config({ 
+    secure: true,
+    hide_sensitive: true,
+    cloud_name: CLOUDINARY_CLOUD_NAME, 
+    api_key: CLOUDINARY_API_KEY, 
+    api_secret: CLOUDINARY_SECRET 
+});
 
 /**
  * Because we are using normal URL's for images, we can just simply use the img src atribute to download them,
