@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import imageHosting from '@/image-hosting/imageHosting.js';
+import imageHosting from '@/app/_lib/image-hosting';
 import {
   badRequestError,
   defineAdminRoute,

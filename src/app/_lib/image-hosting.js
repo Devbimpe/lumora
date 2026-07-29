@@ -1,4 +1,10 @@
-import cloudinary from './cloudinary.js';
+import { v2 as cloudinary } from 'cloudinary';
+
+ cloudinary.config({ 
+     cloud_name: 'du6yiw4it', 
+     api_key: '735481273155742', 
+     api_secret: process.env.CLOUDINARY_SECRET 
+ });
 
 /**
  * Because we are using normal URL's for images, we can just simply use the img src atribute to download them,
@@ -148,4 +154,3 @@ export default {
     autoUploadImage,
     deleteImage,
 };
-
