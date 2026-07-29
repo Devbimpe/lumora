@@ -1,5 +1,4 @@
 "use client";
-import React from 'react';
 import { useState, useEffect } from 'react';
 import { Inbox } from 'lucide-react';
 import { api } from '@/app/_lib/api-client';

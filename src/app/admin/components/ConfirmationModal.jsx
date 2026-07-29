@@ -1,5 +1,4 @@
 "use client";
-import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 
 export default function ConfirmationModal({ 
