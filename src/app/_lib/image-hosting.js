@@ -47,7 +47,7 @@ export async function uploadImageFromBuffer(buffer, filename=null) {
 // ? We might want to just return the promise result, but this lets us only reveal certain things from the upload 
     return {
         id: uploadResult.public_id,
-        url: uploadResult.url,
+        url: uploadResult.secure_url || uploadResult.url,
     };
 }
 
@@ -71,7 +71,7 @@ export async function uploadImageFromURL(imageURL, filename=null) {
     
     return {
         id: uploadResult.public_id,
-        url: uploadResult.url,
+        url: uploadResult.secure_url || uploadResult.url,
     };
 }
 
@@ -130,7 +130,6 @@ function extractFilename(imagePath) {
 export default { 
     uploadImageFromBuffer,
     uploadImageFromURL,
-    uploadImageFromLocalPath,
     autoUploadImage,
     deleteImage,
 };

@@ -2,7 +2,7 @@
  * Cloudinary URLs for module card images (M1–M7).
  * Uploaded via /api/admin/upload-image.
  */
-const CLOUDINARY_BASE = "http://res.cloudinary.com/du6yiw4it/image/upload";
+const CLOUDINARY_BASE = "https://res.cloudinary.com/du6yiw4it/image/upload";
 
 export const FAVICON_URLS = {
   1: `${CLOUDINARY_BASE}/v1772424041/M1.png`,
