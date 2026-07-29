@@ -29,7 +29,8 @@ export const POST = definePublicRoute(async (req) => {
     if (!await verifyTurnstile(token, 'signup', extractClientIp(req)))
       return badRequestError('Security challenge failed, please try again');
 
-    // Create Firestore document for the user
+    // Firestore doc is created before the Auth account so Auth can reuse the same
+    // uid. If createUserAccount throws (e.g. duplicate email), the doc is orphaned (no rollback here).
     const { uid, error: docError } = await createUserDoc({
       name,
       username,

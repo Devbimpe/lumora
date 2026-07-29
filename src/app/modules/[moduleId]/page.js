@@ -385,7 +385,11 @@ function ModulePageContent() {
     }
   }, [allModules, moduleId]);
 
-  // Track item view (with deduplication)
+  // Two dedup guards, each covering a different case:
+  //  - trackedViews (Set): an item is tracked at most once per session.
+  //  - trackingInProgress (mutex): no second track call runs while an async
+  //    request is in flight. On failure the Set entry is removed so the view
+  //    can be retried, which is why the Set alone isn't sufficient.
   const trackItemView = useCallback(async (itemId) => {
     if (!user || !itemId) return;
     

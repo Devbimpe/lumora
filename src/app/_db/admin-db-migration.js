@@ -3,8 +3,7 @@ import { COLLECTIONS } from '@/app/_db/common';
 import { getFirestore } from 'firebase-admin/firestore';
 
 export async function performMigration() {
-  // TODO: remove this migration after the sign up code has been fixed for a while
-  await migrateUserDocumentId();
+  // All migrations have been completed.
 }
 
 // Ensures that the ID for a user document is the same as its `firebaseUid` field.

@@ -23,7 +23,7 @@ if (!getApps().length) {
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
     })
   });
- // await performMigration();
+ await performMigration();
 }
 
 const db = getFirestore();
@@ -43,7 +43,8 @@ export async function getUserById(uid) {
   let snapshot = await usersRef.doc(uid).get();
 
   if (!snapshot.exists) {
-    // Legacy fallback
+    // Legacy fallback: older user docs carry a `firebaseUid` field instead of
+    // using the uid as the doc id. Safe to remove once confirmed no longer needed.
     const queryResult = await usersRef.where('firebaseUid', '==', uid).get();
     if (queryResult.empty) return null;
     if (queryResult.size > 1) console.warn(`multiple user documents returned for ${uid}`);
@@ -413,6 +414,8 @@ export async function deleteModule(moduleId) {
   const progressQuery = progressRef.where('moduleId', '==', parseInt(moduleId));
   const progressSnapshot = await progressQuery.get();
   if (!progressSnapshot.empty) {
+    // Separate chunked batch: a module can have more learner-progress records than
+    // one Firestore batch (500-op limit) holds, so deletes are committed in chunks.
     let progressBatch = db.batch();
     let ops = 0;
     for (const progressDoc of progressSnapshot.docs) {
@@ -1062,8 +1065,12 @@ export async function getUserProgress(userId) {
 }
 
 /**
- * Get user progress for a specific module
- * Always includes percentage field
+ * Get user progress for a specific module.
+ * Always includes percentage field.
+ *
+ * Not read-only: recalculates percentage and, when it reaches 100%, persists
+ * isCompleted/completedAt to Firestore. Don't call from read-only/dashboard
+ * paths unless the write side effects are ok.
  */
 export async function getUserModuleProgress(userId, moduleId) {
   const progressRef = db.collection(COLLECTIONS.USER_PROGRESS);
