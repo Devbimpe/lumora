@@ -20,19 +20,8 @@ LUMORA is an interactive e-learning platform designed to deliver training module
    - Put in a .env.local in the root directory 
 
 2. **Configure environment variables**  
-  - Create a `.env.local` file in the project root directory.
-  - Add your Firebase SDK configuration for frontend:
-    ```
-    NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-    NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-    ```
-  - Add your Firebase Admin SDK configuration for backend:
-    ```
-    FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-    FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nThis_is\n_Your_Private\n_Key\n-----END PRIVATE KEY-----\n"
-    ```
+  - Copy `.env.example` to the `.env.local` file in the project root directory.
+  - Fill in the values.
   - Save the file.
 
 ### Deploying Lumora
