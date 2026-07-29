@@ -83,23 +83,6 @@ export async function getUserByEmail(email) {
 }
 
 /**
- * Get user by Firebase UID
- * @deprecated use `getUserById` instead
- */
-export async function getUserByFirebaseUid(firebaseUid) {
-  const usersRef = db.collection(COLLECTIONS.USERS);
-  const q = usersRef.where('firebaseUid', '==', firebaseUid);
-  const querySnapshot = await q.get();
-
-  if (querySnapshot.empty) {
-    return null;
-  }
-
-  const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
-}
-
-/**
  * Get user by activation token
  * @returns {Promise<UserDocWithId | null>}
  */
@@ -926,25 +909,6 @@ export async function getModuleWithContent(moduleId) {
   };
 }
 
-// ==================== STUDENT SUBMISSION OPERATIONS ====================
-
-/**
- * Create a student submission
- */
-export async function createStudentSubmission(submissionData) {
-  const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
-
-  const docRef = await submissionsRef.add({
-    knowledgeCheckId: parseInt(submissionData.knowledgeCheckId),
-    studentId: submissionData.studentId,
-    submissionAnswer: submissionData.submissionAnswer,
-    grade: submissionData.grade || null,
-    createdAt: Timestamp.now()
-  });
-
-  return docRef.id;
-}
-
 // Fetch Feedback for Admin Dashboard
 
 /**
@@ -1032,20 +996,6 @@ export async function getAllModuleProgressWithUsers() {
       completed,
     };
   });
-}
-
-/**
- * Get submissions by student ID
- */
-export async function getSubmissionsByStudentId(studentId) {
-  const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
-  const q = submissionsRef.where('studentId', '==', studentId);
-  const querySnapshot = await q.get();
-
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
 }
 
 // ==================== USER PROGRESS OPERATIONS ====================
@@ -1316,18 +1266,4 @@ export async function createFeedback(feedbackData) {
   });
 
   return docRef.id;
-}
-
-/**
- * Get feedback by user ID
- */
-export async function getFeedbackByUserId(userId) {
-  const feedbackRef = db.collection(COLLECTIONS.FEEDBACK);
-  const q = feedbackRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
-  const querySnapshot = await q.get();
-
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
 }
