@@ -35,6 +35,7 @@ function defineRoute(type, handler) {
     } else {
       switch (type) {
         case 'public':
+          // fallthrough: an authenticated user on a public route still checks email
         case 'user':
           if (session.claim.email && !session.claim.email_verified) {
             return accessForbiddenError('User email is not verified');
