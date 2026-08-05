@@ -13,7 +13,7 @@ const AuthProvider = dynamic(
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head></head>
+      <head>Lumora</head>
       <body>
         <AuthProvider>
           <Header />
