@@ -3,12 +3,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import imageHosting from '@/image-hosting/imageHosting.js';
-import {
-  badRequestError,
-  defineAdminRoute,
-  internalServerError,
-} from '@/app/_lib/route';
+import imageHosting from '@/app/_lib/image-hosting';
+import { defineAdminRoute } from '@/app/_lib/route';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB

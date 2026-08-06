@@ -9,6 +9,13 @@
   display: none;
 }
 
+/*
+  Many existing buttons are missing cursor hover effects.
+  This is a shortcut to fix this globally.
+  :where() is used to reduce specificity.
+*/
+:where(button:not([disabled])) { cursor: pointer; }
+
 /* styles/Login.css */
 
 .page {

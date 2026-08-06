@@ -70,10 +70,13 @@ export default function ModuleSidebar({
                         persistedViewedContentSet.has(String(item.contentId))));
             const displayNumber = index + 1;
             let title = `Item ${displayNumber}`;
-            if (item.type === 'content') {
-              title = item.overview || `Section ${displayNumber}`;
+
+            if (item.type === 'sectionIntro') {
+              title = `Section ${item.sectionNumber}`;
+            } else if (item.type === 'content') {
+              title = item.overview || `Content ${displayNumber}`;
             } else if (item.type === 'knowledgeCheck') {
-              title = `Knowledge Check`;
+              title = 'Knowledge Check';
             }
             return (
               <button

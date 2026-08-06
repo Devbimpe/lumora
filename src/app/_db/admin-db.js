@@ -23,7 +23,7 @@ if (!getApps().length) {
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
     })
   });
- // await performMigration();
+ await performMigration();
 }
 
 const db = getFirestore();
@@ -43,7 +43,8 @@ export async function getUserById(uid) {
   let snapshot = await usersRef.doc(uid).get();
 
   if (!snapshot.exists) {
-    // Legacy fallback
+    // Legacy fallback: older user docs carry a `firebaseUid` field instead of
+    // using the uid as the doc id. Safe to remove once confirmed no longer needed.
     const queryResult = await usersRef.where('firebaseUid', '==', uid).get();
     if (queryResult.empty) return null;
     if (queryResult.size > 1) console.warn(`multiple user documents returned for ${uid}`);
@@ -79,23 +80,6 @@ export async function getUserByEmail(email) {
   }
 
   return await getUserById(uid);
-}
-
-/**
- * Get user by Firebase UID
- * @deprecated use `getUserById` instead
- */
-export async function getUserByFirebaseUid(firebaseUid) {
-  const usersRef = db.collection(COLLECTIONS.USERS);
-  const q = usersRef.where('firebaseUid', '==', firebaseUid);
-  const querySnapshot = await q.get();
-
-  if (querySnapshot.empty) {
-    return null;
-  }
-
-  const userDoc = querySnapshot.docs[0];
-  return { id: userDoc.id, ...userDoc.data() };
 }
 
 /**
@@ -413,6 +397,8 @@ export async function deleteModule(moduleId) {
   const progressQuery = progressRef.where('moduleId', '==', parseInt(moduleId));
   const progressSnapshot = await progressQuery.get();
   if (!progressSnapshot.empty) {
+    // Separate chunked batch: a module can have more learner-progress records than
+    // one Firestore batch (500-op limit) holds, so deletes are committed in chunks.
     let progressBatch = db.batch();
     let ops = 0;
     for (const progressDoc of progressSnapshot.docs) {
@@ -923,25 +909,6 @@ export async function getModuleWithContent(moduleId) {
   };
 }
 
-// ==================== STUDENT SUBMISSION OPERATIONS ====================
-
-/**
- * Create a student submission
- */
-export async function createStudentSubmission(submissionData) {
-  const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
-
-  const docRef = await submissionsRef.add({
-    knowledgeCheckId: parseInt(submissionData.knowledgeCheckId),
-    studentId: submissionData.studentId,
-    submissionAnswer: submissionData.submissionAnswer,
-    grade: submissionData.grade || null,
-    createdAt: Timestamp.now()
-  });
-
-  return docRef.id;
-}
-
 // Fetch Feedback for Admin Dashboard
 
 /**
@@ -1031,20 +998,6 @@ export async function getAllModuleProgressWithUsers() {
   });
 }
 
-/**
- * Get submissions by student ID
- */
-export async function getSubmissionsByStudentId(studentId) {
-  const submissionsRef = db.collection(COLLECTIONS.STUDENT_SUBMISSIONS);
-  const q = submissionsRef.where('studentId', '==', studentId);
-  const querySnapshot = await q.get();
-
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-}
-
 // ==================== USER PROGRESS OPERATIONS ====================
 
 /**
@@ -1062,8 +1015,12 @@ export async function getUserProgress(userId) {
 }
 
 /**
- * Get user progress for a specific module
- * Always includes percentage field
+ * Get user progress for a specific module.
+ * Always includes percentage field.
+ *
+ * Not read-only: recalculates percentage and, when it reaches 100%, persists
+ * isCompleted/completedAt to Firestore. Don't call from read-only/dashboard
+ * paths unless the write side effects are ok.
  */
 export async function getUserModuleProgress(userId, moduleId) {
   const progressRef = db.collection(COLLECTIONS.USER_PROGRESS);
@@ -1309,18 +1266,4 @@ export async function createFeedback(feedbackData) {
   });
 
   return docRef.id;
-}
-
-/**
- * Get feedback by user ID
- */
-export async function getFeedbackByUserId(userId) {
-  const feedbackRef = db.collection(COLLECTIONS.FEEDBACK);
-  const q = feedbackRef.where('userId', '==', userId).orderBy('createdAt', 'desc');
-  const querySnapshot = await q.get();
-
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
 }

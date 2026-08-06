@@ -1,25 +1,23 @@
-'use client';
-import dynamic from 'next/dynamic';
 import Footer from './components/Footer';
 import { Header } from './components/Header';
+import ClientProviders from './components/ClientProviders';
 import './globals.css';
 import './header.css';
 
-const AuthProvider = dynamic(
-  () => import('./components/AuthProvider').then((m) => m.AuthProvider),
-  { ssr: false },
-);
+export const metadata = {
+  title: 'Lumora',
+  description: 'Scenario-based learning platform',
+};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head></head>
       <body>
-        <AuthProvider>
+        <ClientProviders>
           <Header />
           {children}
           <Footer />
-        </AuthProvider>
+        </ClientProviders>
       </body>
     </html>
   );

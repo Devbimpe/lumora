@@ -24,7 +24,7 @@ export const GET = defineUserRoute(async (req, session, ctx) => {
       contentID: content.contentId,
       moduleID: content.moduleId,
       sectionId: content.sectionId ?? null,
-      Objectverview: content.overview,
+      overview: content.overview,
       Reading: content.reading,
       imageURL: content.image || null,
       imageDescription: content.imageDescription || null

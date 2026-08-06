@@ -4,6 +4,10 @@
 // selectedIndex / correctIndex are 0-based indices into choices.
 export default function MultipleChoiceOptions({ choices, selectedIndex, correctIndex, onSelect }) {
   const showFeedback = selectedIndex !== undefined;
+  const handleSelect = (idx) => {
+    if (showFeedback) return;
+    onSelect(idx);
+  }
 
   return (
     <ul className="space-y-2 sm:space-y-3">
@@ -23,7 +27,7 @@ export default function MultipleChoiceOptions({ choices, selectedIndex, correctI
                 ? 'border-red-500 bg-red-50'
                 : 'border-gray-300 bg-white opacity-60'
             }`}
-            onClick={() => onSelect(idx)}
+            onClick={() => handleSelect(idx)}
           >
             <div className="flex items-start">
               {showFeedback && isCorrect && (

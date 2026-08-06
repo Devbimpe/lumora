@@ -71,6 +71,9 @@ export const POST = defineUserRoute(async (request, session) => {
 
     let result;
 
+    // KCs aren't paged content, so they bypass markContentViewed/markContentCompleted
+    // and write directly to the viewed/completed sets under their "kc-<id>" string.
+    // Keep the two branches in sync when changing how content progress is recorded.
     const isKC = typeof contentId === 'string' && contentId.startsWith('kc-');
 
     switch (action) {
