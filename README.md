@@ -5,27 +5,70 @@ LUMORA is an interactive e-learning platform designed to deliver training module
 
 ### Setting up Dev Enviroment
 
-1. Run `npm install` in lumora directory
-    * This is assuming that Node.js is installed and the version is >= 22
-    * This will install the required `node_modules` listed in package.json into your current directory.
-3. Within in the project directory run the following command: `npm run dev`
-    * This will start a development container on `localhost:3000` and install the required .next/ modules
-4. In a web browser of your choice go to: http://localhost:3000
-5. You have now successfully set up your development enviroment!! You're one cool dev :D
+Prerequisites: ensure Node.js version 20 is installed (recommended to user NVM).
 
-### Steps on how to set up Firebase for your project.
-1. **Create a Firebase project**  
-   - Go to firebase console in Lumora google account
-   - Invite members to the database
-   - Put in a .env.local in the root directory 
+Clone repository. 
 
-2. **Configure environment variables**  
-  - Copy `.env.example` to the `.env.local` file in the project root directory.
-  - Fill in the values.
-  - Save the file.
+Install dependencies: run `npm install` in the root directory.
 
-### Deploying Lumora
-TBD --- Steps not outlined yet in this document untill Lumora is successfully deployed and a production build has been created.
+**Enviroment Variable Configuration:**
+  * Copy the provided `.env.example` file and rename it to `.env.local`.
+
+  * Frontend Firebase: populate the `NEXT_PUBLIC_FIREBASE_*` variables with values from the Firebase Project Settings (General -> Web app).
+
+  * Backend Firebase Admin: Navigate to Firebase Project Settings -> Service Accounts -> Generate new private key. Open the downloaded JSON and paste the `client_email` into `FIREBASE_CLIENT_EMAIL`, and the `private_key` into `FIREBASE_PRIVATE_KEY` (ensure you preserve the \n line breaks).
+
+  * Third-Party APIs: Fill in your `GROQ_API_KEY` (for AI grading),   `CLOUDINARY_SECRET` (for image uploads), Cloudflare Turnstile keys, and SMTP email credentials.
+
+Run Locally: execute `npm run dev` and navigate to `http://localhost:3000`
+
+
+### Technology Stack
+**Frontend:** Next.js (App Router), React, Tailwind CSS (for responsive, high-fidelity UI and animations).
+
+**Backend & Database:** Firebase Authentication (ID tokens), Firebase Firestore (NoSQL), and Firebase Storage. Data operations are strictly handled server-side via the Firebase Admin SDK.
+
+**API Client:** ky HTTP client for frontend-to-backend communication.
+
+**AI Integration:** Groq API utilizing the llama-3.1-8b-instant model for the configurable knowledge-check grading engine.
+
+**Deployment & CI/CD:** Vercel for hosting, automated via GitLab CI/CD pipelines.
+
+
+### Deployment and Maintenance
+*Current Hosting*
+
+**Vercel Project Names:** `lumora-16953` (preview/staging environments) and `lumora-prod-91c61` (production environment).
+
+**Staging URL:** `https://lumora-staging.vercel.app`
+
+**Production URL:** `https://project-413nd.vercel.app/` (Can be mapped to the official Lumora custom domain once Stable V1 is fully approved).
+
+**Dashboard Access:** Access to the deployment environments and server logs is managed through the Vercel dashboard.
+
+*CI/CD and automation*
+
+The GitLab pipeline in `.gitlab-ci.yml` handles continuous deployment only. It does not run automated tests.
+
+  * Changes on dev deploy to the Vercel preview project lumora-16953.
+  * Changes on main deploy to the Vercel production project lumora-prod-91c61.
+  * The pipeline also deploys the corresponding Firebase project.
+  * Set the Vercel project IDs correctly before deployment.
+
+The pipeline requires these GitLab CI/CD variables:
+
+  * `VERCEL_TOKEN`: A Vercel API access token. See the Vercel guide.
+  * `GOOGLE_APPLICATION_CREDENTIALS`: A file-type variable containing the path to a JSON service-account key file. The key must belong to the `firebase-ci-deploy` service account: `firebase-ci-deploy@lumora-prod-91c61.iam.gserviceaccount.com`.
+
+Manage the service-account keys in the Google Cloud Console.
+
+*Deploying Lumora*
+
+Deployments are fully automated via our GitLab pipeline, ensuring Vercel and Firebase are always kept in sync.
+
+  * To deploy to the *Staging* environment, push or merge your tested code into the `dev` branch.
+  * To deploy to *Production*, create a Merge Request and merge the `dev` branch into the main branch.
+  * The GitLab CI/CD runner will automatically pull the code, install dependencies, build the Next.js application, deploy the build to Vercel, and execute `firebase deploy` to sync `firestore.rules` and `firestore.indexes.json` with the Google Cloud servers.
 
 
 ### Links to Outside Documentation
