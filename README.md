@@ -75,3 +75,4 @@ Deployments are fully automated via our GitLab pipeline, ensuring Vercel and Fir
 Including some important resources so developers can access them quickly
 1. React Documentation: https://react.dev/
 2. Next.js Documentation: https://nextjs.org/docs 
+3. Vercel Guide: https://vercel.com/kb/guide/how-do-i-use-a-vercel-api-access-token
